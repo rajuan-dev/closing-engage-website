@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ArrowRight, Building2, CheckCircle2, ChevronRight, KeyRound, Lock, Mail, MapPin, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import clsx from "clsx";
@@ -499,12 +499,38 @@ export function RoleCard({
 }
 
 export function LoginForm() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      alert("Please enter a username or email.");
+      return;
+    }
+    
+    // Simple logic for the demo: 
+    // 'admin' -> admin dashboard
+    // contains 'notary' -> notary dashboard
+    // everything else -> company dashboard
+    if (email.toLowerCase() === "admin") {
+      navigate("/admin/dashboard");
+    } else if (email.toLowerCase().includes("notary")) {
+      navigate("/notary/dashboard");
+    } else {
+      navigate("/company/dashboard");
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-[680px] space-y-6">
+    <form onSubmit={handleLogin} className="mx-auto max-w-[680px] space-y-6">
       <Input
-        label="Email"
+        label="Email or Username"
         icon={<Mail className="h-5 w-5 text-ink-400" />}
-        placeholder="Username"
+        placeholder="Enter your email or 'admin'"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <Input
@@ -512,6 +538,8 @@ export function LoginForm() {
         icon={<ShieldCheck className="h-5 w-5 text-ink-400" />}
         placeholder="Enter password"
         type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <div className="text-right">
@@ -520,12 +548,12 @@ export function LoginForm() {
         </Link>
       </div>
       <Button
+        type="submit"
         className="mt-2 h-[60px] w-full rounded-[16px] text-[22px] font-bold shadow-[0_18px_36px_rgba(24,90,188,0.2)]"
-        onClick={placeholderAction("Login")}
       >
         Login
       </Button>
-    </div>
+    </form>
   );
 }
 

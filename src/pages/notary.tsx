@@ -2,13 +2,16 @@ import { useRef, useState } from "react";
 import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CloudUpload, Download, Eye, FileBadge2, FileText, Filter, Flame, Info, MapPin, Paperclip, Pencil, Plus, Printer, Search, SendHorizontal, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, Button, FooterBand, Input, Surface, Textarea } from "@/components/common";
-import { chatMessages, credentialHistory, notaryAssignedOrders, notaryOrders } from "@/data/mock-data";
+import { chatMessages, credentialHistory } from "@/data/mock-data";
+import { useStore } from "@/store/useStore";
 
 export function NotaryDashboardPage() {
+  const { notaryOrders } = useStore();
+
   const stats = [
-    { title: "Total Assigned Orders", value: "24", helper: "Global", icon: FileText, tone: "brand" },
-    { title: "In Progress", value: "08", helper: "Active", icon: Flame, tone: "warning" },
-    { title: "Completed", value: "13", helper: "History", icon: CheckCircle2, tone: "success" },
+    { title: "Total Assigned Orders", value: notaryOrders.length.toString().padStart(2, '0'), helper: "Global", icon: FileText, tone: "brand" },
+    { title: "In Progress", value: notaryOrders.filter(o => o.status === "In Progress" || o.status === "Assigned").length.toString().padStart(2, '0'), helper: "Active", icon: Flame, tone: "warning" },
+    { title: "Completed", value: notaryOrders.filter(o => o.status === "Submitted").length.toString().padStart(2, '0'), helper: "History", icon: CheckCircle2, tone: "success" },
   ] as const;
 
   return (
@@ -80,7 +83,7 @@ export function NotaryDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {notaryOrders.map((order) => (
+              {useStore().notaryOrders.map((order) => (
                 <tr key={order.id} className="border-t border-[#edf1f7]">
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5">
@@ -129,6 +132,7 @@ export function NotaryOrdersPage() {
   const [dateFilter, setDateFilter] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
+  const { notaryAssignedOrders } = useStore();
   const filteredOrders = notaryAssignedOrders.filter((order) => {
     const matchesSearch =
       searchValue.trim() === "" ||
@@ -299,7 +303,9 @@ export function NotaryOrderDetailPage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([
     new File(["temporary"], "Scanback_Part1.pdf", { type: "application/pdf" }),
   ]);
-  const [notaryNotes, setNotaryNotes] = useState("");
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("2024-10-24");
+  const [scheduledTime, setScheduledTime] = useState("14:00");
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -330,6 +336,14 @@ export function NotaryOrderDetailPage() {
           <Button
             variant="outline"
             className="h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold"
+            onClick={() => setShowScheduleModal(true)}
+          >
+            <CalendarDays className="mr-2 h-4 w-4" />
+            Schedule Closing
+          </Button>
+          <Button
+            variant="outline"
+            className="h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold"
             onClick={() => setOrderStatus("In Progress")}
           >
             Mark as In Progress
@@ -342,6 +356,40 @@ export function NotaryOrderDetailPage() {
           </Button>
         </div>
       </div>
+
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5">
+          <Surface className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-ink-900">Schedule Closing</h3>
+              <button onClick={() => setShowScheduleModal(false)}><X className="h-5 w-5 text-ink-400" /></button>
+            </div>
+            <div className="space-y-4">
+              <Input 
+                label="Date" 
+                type="date" 
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                className="h-12 w-full rounded-xl border-line bg-slate-50 px-4" 
+              />
+              <Input 
+                label="Time" 
+                type="time" 
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className="h-12 w-full rounded-xl border-line bg-slate-50 px-4" 
+              />
+            </div>
+            <div className="mt-8 flex gap-3">
+              <Button variant="ghost" onClick={() => setShowScheduleModal(false)} className="flex-1">Cancel</Button>
+              <Button onClick={() => {
+                alert(`Closing scheduled for ${scheduledDate} at ${scheduledTime}`);
+                setShowScheduleModal(false);
+              }} className="flex-1">Confirm Schedule</Button>
+            </div>
+          </Surface>
+        </div>
+      )}
 
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f4f8ff] p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
         <div className="text-[14px] font-extrabold uppercase tracking-[0.16em] text-ink-500">Order Lifecycle</div>
@@ -500,7 +548,17 @@ export function NotaryOrderDetailPage() {
       </div>
       <div className="flex justify-end">
         <div className="w-full max-w-[520px]">
-          <Button className="h-[52px] w-full rounded-[12px] text-[18px] font-semibold">
+          <Button 
+            className="h-[52px] w-full rounded-[12px] text-[18px] font-semibold"
+            onClick={() => {
+              if (uploadedFiles.length === 0) {
+                alert("Please upload at least one document.");
+                return;
+              }
+              alert("Documents successfully submitted!");
+              setUploadedFiles([]);
+            }}
+          >
             Submit Documents
             <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
@@ -669,7 +727,17 @@ export function NotaryUploadDocumentsPage() {
           <CheckCircle2 className="h-4 w-4" />
           All systems operational
         </div>
-        <Button className="h-[52px] rounded-[12px] px-7 text-[16px] font-semibold">
+        <Button 
+          className="h-[52px] rounded-[12px] px-7 text-[16px] font-semibold"
+          onClick={() => {
+            if (uploadedFiles.length === 0) {
+              alert("Please upload at least one document.");
+              return;
+            }
+            alert("Documents successfully uploaded and submitted!");
+            setUploadedFiles([]);
+          }}
+        >
           Upload & Submit
           <ChevronRight className="ml-2 h-5 w-5" />
         </Button>
@@ -680,20 +748,69 @@ export function NotaryUploadDocumentsPage() {
 }
 
 export function NotarySettingsPage() {
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [orderUpdates, setOrderUpdates] = useState(true);
-  const [documentUpdates, setDocumentUpdates] = useState(false);
-  const notificationItems = [
-    { label: "Email Notifications", body: "Receive global summary emails", active: emailNotifications, setActive: setEmailNotifications },
-    { label: "Order Updates", body: "Real-time alerts for escrow changes", active: orderUpdates, setActive: setOrderUpdates },
-    { label: "Document Updates", body: "Alerts when new documents are signed", active: documentUpdates, setActive: setDocumentUpdates },
-  ];
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState({
+    fullName: "Sarah Miller",
+    email: "sarah.miller@title-experts.com",
+    phone: "+1 (512) 555-0123",
+  });
+
+  const [professionalInfo, setProfessionalInfo] = useState({
+    licenseNumber: "TX-992031-NM",
+    commissionExpiry: "08/14/2026",
+    serviceArea: "Austin, TX & surrounding Travis County",
+  });
+
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  });
+
+  const [notifications, setNotifications] = useState([
+    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: true },
+    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: true },
+    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: false },
+  ]);
+
+  const toggleNotification = (id: string) => {
+    if (!isEditMode) return;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, active: !n.active } : n))
+    );
+  };
+
+  const handleSave = () => {
+    const payload = {
+      personal: personalInfo,
+      professional: professionalInfo,
+      notificationSettings: notifications.reduce((acc, curr) => ({ ...acc, [curr.id]: curr.active }), {}),
+    };
+    console.log("Saving notary settings to backend...", payload);
+    alert("Notary settings saved successfully!");
+    setIsEditMode(false);
+  };
+
+  const handleUpdatePassword = () => {
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      alert("Please fill in all password fields.");
+      return;
+    }
+    if (passwords.new !== passwords.confirm) {
+      alert("New passwords do not match.");
+      return;
+    }
+    alert("Password updated successfully!");
+    setPasswords({ current: "", new: "", confirm: "" });
+  };
 
   return (
     <div className="space-y-7">
       <div className="flex flex-wrap items-start gap-6">
         <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#101622,#2a3449)] text-white shadow-[0_18px_38px_rgba(20,48,112,0.14)]">
-          <span className="text-[28px] font-bold">SM</span>
+          <span className="text-[28px] font-bold">
+            {personalInfo.fullName.split(" ").map(n => n[0]).join("")}
+          </span>
           <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-white shadow-[0_10px_24px_rgba(24,90,188,0.2)]">
             <Camera className="h-4 w-4" />
           </button>
@@ -701,19 +818,20 @@ export function NotarySettingsPage() {
         <div>
           <div className="flex flex-wrap items-center gap-4">
             <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
-              Sarah Miller
+              {personalInfo.fullName}
             </h1>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#d9f8e7] px-4 py-1.5 text-[12px] font-extrabold uppercase tracking-[0.14em] text-[#138e59]">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Verified Notary
             </div>
           </div>
-          <div className="mt-3 text-[16px] text-ink-500">sarah.miller@title-experts.com</div>
+          <div className="mt-3 text-[16px] text-ink-500">{personalInfo.email}</div>
           <Button
-            variant="outline"
-            className="mt-5 h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold text-brand-600"
+            variant={isEditMode ? "ghost" : "outline"}
+            className={`mt-4 h-[44px] rounded-[12px] px-5 text-[14px] font-semibold ${isEditMode ? "text-danger-600 hover:bg-[#fff5f5]" : "border-[#dfe6f2] text-brand-600"}`}
+            onClick={() => setIsEditMode(!isEditMode)}
           >
-            Edit Profile
+            {isEditMode ? "Discard Changes" : "Edit Profile"}
           </Button>
         </div>
       </div>
@@ -726,9 +844,27 @@ export function NotarySettingsPage() {
               <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Personal Information</div>
             </div>
             <div className="grid gap-5 md:grid-cols-2">
-              <Input label="FULL NAME" placeholder="Sarah Miller" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="PHONE NUMBER" placeholder="+1 (512) 555-0123" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="EMAIL ADDRESS" placeholder="sarah.miller@title-experts.com" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px] md:col-span-2" />
+              <Input 
+                label="FULL NAME" 
+                disabled={!isEditMode}
+                value={personalInfo.fullName}
+                onChange={(e) => setPersonalInfo({ ...personalInfo, fullName: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="PHONE NUMBER" 
+                disabled={!isEditMode}
+                value={personalInfo.phone}
+                onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="EMAIL ADDRESS" 
+                disabled={!isEditMode}
+                value={personalInfo.email}
+                onChange={(e) => setPersonalInfo({ ...personalInfo, email: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] md:col-span-2 ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
             </div>
           </Surface>
 
@@ -738,21 +874,27 @@ export function NotarySettingsPage() {
               <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Professional Details</div>
             </div>
             <div className="grid gap-5 md:grid-cols-2">
-              <Input label="LICENSE NUMBER" placeholder="TX-992031-NM" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <div>
-                <span className="mb-2 block text-sm font-semibold text-ink-900">COMMISSION EXPIRY</span>
-                <div className="flex h-[48px] items-center justify-between rounded-[12px] border border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px] text-ink-700">
-                  <span>08/14/2026</span>
-                  <CalendarDays className="h-4 w-4 text-ink-400" />
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <span className="mb-2 block text-sm font-semibold text-ink-900">SERVICE AREA</span>
-                <div className="flex h-[48px] items-center gap-3 rounded-[12px] border border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px] text-ink-700">
-                  <MapPin className="h-4 w-4 text-ink-400" />
-                  Austin, TX & surrounding Travis County
-                </div>
-              </div>
+              <Input 
+                label="LICENSE NUMBER" 
+                disabled={!isEditMode}
+                value={professionalInfo.licenseNumber}
+                onChange={(e) => setProfessionalInfo({ ...professionalInfo, licenseNumber: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="COMMISSION EXPIRY" 
+                disabled={!isEditMode}
+                value={professionalInfo.commissionExpiry}
+                onChange={(e) => setProfessionalInfo({ ...professionalInfo, commissionExpiry: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="SERVICE AREA" 
+                disabled={!isEditMode}
+                value={professionalInfo.serviceArea}
+                onChange={(e) => setProfessionalInfo({ ...professionalInfo, serviceArea: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] md:col-span-2 ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
             </div>
           </Surface>
         </div>
@@ -761,12 +903,38 @@ export function NotarySettingsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Security Settings</div>
             <div className="mt-6 space-y-5">
-              <Input label="CURRENT PASSWORD" placeholder="••••••••" type="password" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="NEW PASSWORD" placeholder="••••••••" type="password" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="CONFIRM NEW PASSWORD" placeholder="••••••••" type="password" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
+              <Input 
+                label="CURRENT PASSWORD" 
+                placeholder="••••••••" 
+                type="password" 
+                disabled={!isEditMode}
+                value={passwords.current}
+                onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="NEW PASSWORD" 
+                placeholder="••••••••" 
+                type="password" 
+                disabled={!isEditMode}
+                value={passwords.new}
+                onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="CONFIRM NEW PASSWORD" 
+                placeholder="••••••••" 
+                type="password" 
+                disabled={!isEditMode}
+                value={passwords.confirm}
+                onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
               <Button
                 variant="outline"
-                className="h-[44px] w-full rounded-[12px] border-[#dfe6f2] text-[14px] font-semibold text-brand-600"
+                disabled={!isEditMode}
+                className="h-[44px] w-full rounded-[12px] border-[#dfe6f2] text-[14px] font-semibold text-brand-600 disabled:opacity-50"
+                onClick={handleUpdatePassword}
               >
                 Update Password
               </Button>
@@ -776,24 +944,45 @@ export function NotarySettingsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Notification Preferences</div>
             <div className="mt-6 space-y-6">
-              {notificationItems.map(({ label, body, active, setActive }) => (
-                <div key={`${label}`} className="flex items-center justify-between gap-4">
+              {notifications.map((n) => (
+                <div key={n.id} className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-[15px] font-semibold text-ink-900">{label}</div>
-                    <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{body}</div>
+                    <div className="text-[15px] font-semibold text-ink-900">{n.label}</div>
+                    <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{n.body}</div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setActive((current) => !current)}
-                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${active ? "bg-brand-600" : "bg-[#dbe2ec]"}`}
+                    disabled={!isEditMode}
+                    onClick={() => toggleNotification(n.id)}
+                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${!isEditMode ? "cursor-not-allowed opacity-60" : ""}`}
                   >
-                    <div className={`h-5 w-5 rounded-full bg-white shadow-sm ${active ? "ml-5" : ""}`} />
+                    <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${n.active ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </div>
               ))}
             </div>
           </Surface>
         </div>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 rounded-[18px] border border-[#e4ebf5] bg-white p-5 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+        <Button
+          variant="outline"
+          className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"
+          onClick={() => {
+            setIsEditMode(false);
+            window.location.reload();
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          disabled={!isEditMode}
+          className="h-[46px] rounded-[12px] px-8 text-[15px] font-semibold disabled:opacity-50"
+          onClick={handleSave}
+        >
+          Save Changes
+        </Button>
       </div>
       <FooterBand />
     </div>
@@ -821,11 +1010,15 @@ export function NotaryCredentialsPage() {
           <Button
             variant="outline"
             className="h-[48px] rounded-[14px] border-[#dfe6f2] px-5 text-[15px] font-semibold text-ink-700"
+            onClick={() => alert("Update information is mock-only for now.")}
           >
             <Pencil className="mr-2 h-4 w-4" />
             Update information
           </Button>
-          <Button className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]">
+          <Button 
+            className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]"
+            onClick={() => alert("Upload new credential is mock-only for now.")}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Upload new credential
           </Button>

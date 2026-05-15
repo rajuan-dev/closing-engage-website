@@ -2,14 +2,16 @@ import { useRef, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, Download, Eye, FileText, FolderKanban, Hourglass, Info, MapPin, Pencil, Plus, Printer, RotateCw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserPlus, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Input, Select, Surface, Textarea } from "@/components/common";
-import { companyDocuments, companyOrders, teamMembers } from "@/data/mock-data";
+import { useStore } from "@/store/useStore";
 
 export function CompanyDashboardPage() {
+  const { companyOrders } = useStore();
+
   const dashboardStats = [
-    { title: "Total Orders", value: "1,248", icon: FileText, tone: "brand" },
-    { title: "Active Orders", value: "342", icon: FolderKanban, tone: "brand" },
-    { title: "Pending Review", value: "56", icon: Hourglass, tone: "warning" },
-    { title: "Completed Orders", value: "850", icon: CheckCircle2, tone: "success" },
+    { title: "Total Orders", value: companyOrders.length.toString(), icon: FileText, tone: "brand" },
+    { title: "Active Orders", value: companyOrders.filter(o => o.status === "Assigned" || o.status === "Under Review" || o.status === "Received").length.toString(), icon: FolderKanban, tone: "brand" },
+    { title: "Pending Review", value: companyOrders.filter(o => o.status === "Under Review").length.toString(), icon: Hourglass, tone: "warning" },
+    { title: "Completed Orders", value: companyOrders.filter(o => o.status === "Completed" || o.status === "Approved").length.toString(), icon: CheckCircle2, tone: "success" },
   ] as const;
 
   const recentOrders = [
@@ -96,14 +98,14 @@ export function CompanyDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {recentOrders.map((order) => (
+              {useStore().companyOrders.slice(0, 3).map((order) => (
                 <tr key={order.id} className="border-t border-[#edf1f7]">
                   <td className="px-7 py-5 text-[15px] font-bold text-ink-900">{order.id}</td>
-                  <td className="px-7 py-5 text-[15px] font-medium text-ink-600">{order.client}</td>
+                  <td className="px-7 py-5 text-[15px] font-medium text-ink-600">{order.clientName}</td>
                   <td className="px-7 py-5">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${order.accent} text-[10px] font-bold text-white`}>
-                        {order.initials}
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1d2d48] to-[#8d6557] text-[10px] font-bold text-white`}>
+                        {order.notary && order.notary !== "--" ? order.notary.substring(0, 2).toUpperCase() : "--"}
                       </div>
                       <span className="text-[15px] font-medium text-ink-600">{order.notary}</span>
                     </div>
@@ -114,7 +116,7 @@ export function CompanyDashboardPage() {
                   <td className="px-7 py-5 text-[15px] font-medium text-ink-500">{order.date}</td>
                   <td className="px-7 py-5">
                     <Link
-                      to="/company/orders/ce-9421"
+                      to={`/company/orders/${order.id.replace("#", "").toLowerCase()}`}
                       className="inline-flex h-9 items-center justify-center rounded-[10px] bg-[#eef1ff] px-4 text-[13px] font-semibold text-brand-600 transition-colors hover:bg-[#e7ecff]"
                     >
                       View
@@ -182,10 +184,23 @@ export function CompanyDashboardPage() {
 }
 
 export function CompanyOrdersPage() {
+  const { companyOrders } = useStore();
+  const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("All");
+
+  const filteredOrders = companyOrders.filter((order) => {
+    const matchesSearch =
+      searchValue.trim() === "" ||
+      order.id.toLowerCase().includes(searchValue.toLowerCase()) ||
+      order.clientName.toLowerCase().includes(searchValue.toLowerCase());
+    const matchesStatus = statusFilter === "All" || order.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   const stats = [
-    { title: "Total Orders", value: "1,248", icon: FileText, tone: "brand" },
-    { title: "Pending Review", value: "56", icon: Hourglass, tone: "warning" },
-    { title: "Completed Today", value: "850", icon: CheckCircle2, tone: "success" },
+    { title: "Total Orders", value: companyOrders.length.toString(), icon: FileText, tone: "brand" },
+    { title: "Pending Review", value: companyOrders.filter(o => o.status === "Under Review").length.toString(), icon: Hourglass, tone: "warning" },
+    { title: "Completed Today", value: companyOrders.filter(o => o.status === "Completed").length.toString(), icon: CheckCircle2, tone: "success" },
   ] as const;
 
   const notaryAccent: Record<string, string> = {
@@ -216,11 +231,21 @@ export function CompanyOrdersPage() {
 
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f9fbff] p-4 shadow-[0_12px_30px_rgba(20,48,112,0.04)]">
         <div className="grid gap-4 lg:grid-cols-[1.55fr_0.4fr_0.4fr_54px]">
-          <div className="flex h-[50px] items-center gap-3 rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-300">
-            <Search className="h-4 w-4 shrink-0" />
-            <span>Search by Order ID or Client Name</span>
+          <div className="flex h-[50px] items-center gap-3 rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-700">
+            <Search className="h-4 w-4 shrink-0 text-ink-300" />
+            <input
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              placeholder="Search by Order ID or Client Name"
+              className="w-full bg-transparent outline-none"
+            />
           </div>
-          <Select options={["Status: All"]} className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" />
+          <Select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={["All", "Received", "Assigned", "Under Review", "Approved", "Completed"]} 
+            className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" 
+          />
           <div className="flex h-[50px] items-center justify-between rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-700">
             <div className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-ink-400" />
@@ -228,7 +253,7 @@ export function CompanyOrdersPage() {
             </div>
             <ChevronDown className="h-4 w-4 text-ink-400" />
           </div>
-          <button className="flex h-[50px] items-center justify-center rounded-[14px] border border-[#e5ebf5] bg-white text-brand-600 transition-colors hover:bg-[#f5f8ff]">
+          <button onClick={() => { setSearchValue(""); setStatusFilter("All"); }} className="flex h-[50px] items-center justify-center rounded-[14px] border border-[#e5ebf5] bg-white text-brand-600 transition-colors hover:bg-[#f5f8ff]">
             <SlidersHorizontal className="h-4 w-4" />
           </button>
         </div>
@@ -272,9 +297,9 @@ export function CompanyOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {companyOrders.map((order) => (
+              {filteredOrders.map((order) => (
                 <tr key={order.id} className="border-t border-[#edf1f7]">
-                  <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id.replace("#", "#ORD-")}</td>
+                  <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5 text-[15px] font-semibold text-ink-900">{order.clientName}</td>
                   <td className="px-6 py-5 text-[15px] text-ink-500">{order.propertyAddress}</td>
                   <td className="px-6 py-5">
@@ -285,7 +310,7 @@ export function CompanyOrdersPage() {
                         <div className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${notaryAccent[order.notary] ?? "from-[#22344f] to-[#8f6a60]"} text-[10px] font-bold text-white`}>
                           {order.notary.split(" ").map((part) => part[0]).join("").slice(0, 2)}
                         </div>
-                        <span className="text-[15px] text-ink-600">{order.notary}</span>
+                        <span className="text-[15px] font-medium text-ink-600">{order.notary}</span>
                       </div>
                     )}
                   </td>
@@ -294,7 +319,7 @@ export function CompanyOrdersPage() {
                   </td>
                   <td className="px-6 py-5 text-[15px] text-ink-500">{order.date}</td>
                   <td className="px-6 py-5">
-                    <Link to="/company/orders/ce-9421" className="text-[15px] font-semibold text-brand-600">
+                    <Link to={`/company/orders/${order.id.replace("#", "").toLowerCase()}`} className="text-[15px] font-semibold text-brand-600">
                       View
                     </Link>
                   </td>
@@ -329,6 +354,22 @@ export function CompanyOrdersNewPage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [formData, setFormData] = useState({
+    title: "",
+    clientName: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    date: "",
+    loanType: "",
+    scanbacks: "No"
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const appendFiles = (files: FileList | File[]) => {
     const acceptedFiles = Array.from(files).filter((file) => {
@@ -394,21 +435,67 @@ export function CompanyOrdersNewPage() {
             <div className="text-[20px] font-extrabold text-ink-900">Order Information</div>
           </div>
           <div className="grid gap-5">
-            <Input label="ORDER TITLE *" placeholder="e.g. 452 Oak Street Refinance" className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" />
+            <Input 
+              label="ORDER TITLE *" 
+              placeholder="e.g. 452 Oak Street Refinance" 
+              value={formData.title}
+              onChange={(e) => handleInputChange("title", e.target.value)}
+              className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
+            />
             <div className="grid gap-5 md:grid-cols-2">
-              <Input label="CLIENT NAME *" placeholder="Full legal name" className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" />
-              <Input label="PROPERTY ADDRESS *" placeholder="Street address" className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" />
+              <Input 
+                label="CLIENT NAME *" 
+                placeholder="Full legal name" 
+                value={formData.clientName}
+                onChange={(e) => handleInputChange("clientName", e.target.value)}
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
+              />
+              <Input 
+                label="PROPERTY ADDRESS *" 
+                placeholder="Street address" 
+                value={formData.address}
+                onChange={(e) => handleInputChange("address", e.target.value)}
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
+              />
             </div>
             <div className="grid gap-5 md:grid-cols-3">
-              <Input label="CITY" className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" />
-              <Select label="STATE" options={["Select State"]} className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white" />
-              <Input label="ZIP" className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" />
+              <Input 
+                label="CITY" 
+                value={formData.city}
+                onChange={(e) => handleInputChange("city", e.target.value)}
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
+              />
+              <Select 
+                label="STATE" 
+                options={["Select State", "TX", "CA", "NY"]} 
+                value={formData.state}
+                onChange={(e) => handleInputChange("state", e.target.value)}
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white" 
+              />
+              <Input 
+                label="ZIP" 
+                value={formData.zip}
+                onChange={(e) => handleInputChange("zip", e.target.value)}
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
+              />
             </div>
-            <Input label="SIGNING DATE & TIME" placeholder="mm/dd/yyyy" className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" />
+            <Input 
+              label="SIGNING DATE & TIME" 
+              placeholder="mm/dd/yyyy" 
+              value={formData.date}
+              onChange={(e) => handleInputChange("date", e.target.value)}
+              className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
+            />
             <div className="grid gap-5 lg:grid-cols-[1fr_0.72fr]">
               <div>
                 <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-500">Loan Details</div>
-                <Select label="LOAN TYPE" options={["Select a loan type"]} className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-[#f7faff]" />
+                <Select 
+                  label="LOAN TYPE" 
+                  options={["Select a loan type", "Refinance", "Purchase", "HELOC"]} 
+                  value={formData.loanType}
+                  onChange={(e) => handleInputChange("loanType", e.target.value)}
+                  className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-[#f7faff]" 
+                />
               </div>
               <div>
                 <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-500">Requirements</div>
@@ -416,11 +503,21 @@ export function CompanyOrdersNewPage() {
                   <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-500">SCAN BACKS REQUIRED</div>
                   <div className="mt-4 flex gap-6 text-[14px] text-ink-700">
                     <label className="flex items-center gap-2">
-                      <input type="radio" name="scanbacks" />
+                      <input 
+                        type="radio" 
+                        name="scanbacks" 
+                        checked={formData.scanbacks === "Yes"}
+                        onChange={() => handleInputChange("scanbacks", "Yes")}
+                      />
                       Yes, required
                     </label>
                     <label className="flex items-center gap-2">
-                      <input defaultChecked type="radio" name="scanbacks" />
+                      <input 
+                        type="radio" 
+                        name="scanbacks" 
+                        checked={formData.scanbacks === "No"}
+                        onChange={() => handleInputChange("scanbacks", "No")}
+                      />
                       No
                     </label>
                   </div>
@@ -546,12 +643,28 @@ export function CompanyOrdersNewPage() {
       </div>
 
       <div className="flex items-center justify-between">
-        <Button variant="ghost" className="rounded-[10px] border border-[#f3d7d7] bg-white px-5 py-2.5 text-[14px] font-semibold text-danger-600 hover:bg-[#fff6f6]">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="rounded-[10px] border border-[#f3d7d7] bg-white px-5 py-2.5 text-[14px] font-semibold text-danger-600 hover:bg-[#fff6f6]">
           Cancel
         </Button>
         <Button
           className="h-[44px] rounded-[10px] px-6 text-[14px] font-semibold"
-          onClick={() => navigate("/company/orders/ce-9421")}
+          onClick={() => {
+            if (!formData.clientName || !formData.address) {
+              alert("Client Name and Property Address are required.");
+              return;
+            }
+            const formObj = {
+               clientName: formData.clientName,
+               propertyAddress: formData.address,
+               status: "Received",
+               notary: "--",
+               date: formData.date || "Just now",
+               id: "#ORD-" + Math.floor(Math.random() * 100000)
+            };
+            useStore.getState().addCompanyOrder(formObj as any);
+            alert("Order created successfully!");
+            navigate("/company/orders");
+          }}
         >
           Submit Order
         </Button>
@@ -827,6 +940,20 @@ export function CompanyOrderDetailsPage() {
 }
 
 export function CompanyDocumentsPage() {
+  const { companyDocuments } = useStore();
+  const [docSearch, setDocSearch] = useState("");
+  const [docStatusFilter, setDocStatusFilter] = useState<"All" | "Approved" | "Pending">("All");
+
+  const filteredDocs = companyDocuments.filter((doc) => {
+    const matchesSearch =
+      docSearch.trim() === "" ||
+      doc.name.toLowerCase().includes(docSearch.toLowerCase()) ||
+      doc.orderId.toLowerCase().includes(docSearch.toLowerCase());
+    const matchesStatus = docStatusFilter === "All" || doc.status === docStatusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="space-y-7">
       <div>
@@ -837,36 +964,35 @@ export function CompanyDocumentsPage() {
           Access and download your approved files
         </p>
       </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr_0.9fr] xl:grid-cols-[1.05fr_1.05fr_0.62fr_0.26fr] xl:items-end">
-        <div>
-          <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-500">
-            Filter By Order
+      <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f9fbff] p-4 shadow-[0_12px_30px_rgba(20,48,112,0.04)]">
+        <div className="grid gap-4 lg:grid-cols-[1.55fr_0.4fr_0.4fr_54px]">
+          <div className="flex h-[50px] items-center gap-3 rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-700">
+            <Search className="h-4 w-4 shrink-0 text-ink-300" />
+            <input
+              value={docSearch}
+              onChange={(e) => setDocSearch(e.target.value)}
+              placeholder="Search by File Name or Order ID"
+              className="w-full bg-transparent outline-none"
+            />
           </div>
-          <Select options={["All Orders"]} className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white" />
-        </div>
-        <div>
-          <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-500">
-            Filter By Date
+          <Select 
+            value={docStatusFilter}
+            onChange={(e) => setDocStatusFilter(e.target.value as any)}
+            options={["All", "Approved", "Pending"]} 
+            className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" 
+          />
+          <div className="flex h-[50px] items-center justify-between rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-700">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4 text-ink-400" />
+              <span>Date: Any time</span>
+            </div>
+            <ChevronDown className="h-4 w-4 text-ink-400" />
           </div>
-          <div className="flex h-[48px] items-center justify-between rounded-[12px] border border-[#dfe6f2] bg-white px-4 text-[15px] text-ink-500">
-            <span>mm/dd/yyyy</span>
-            <CalendarDays className="h-4 w-4 text-ink-400" />
-          </div>
-        </div>
-        <div>
-          <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-500">
-            File Type
-          </div>
-          <button className="flex h-[48px] w-full items-center justify-center gap-2 rounded-[12px] bg-brand-600 px-4 text-[15px] font-semibold text-white shadow-[0_14px_30px_rgba(24,90,188,0.18)]">
-            <FileText className="h-4 w-4" />
-            PDF Only
+          <button onClick={() => { setDocSearch(""); setDocStatusFilter("All"); }} className="flex h-[50px] items-center justify-center rounded-[14px] border border-[#e5ebf5] bg-white text-brand-600 transition-colors hover:bg-[#f5f8ff]">
+            <SlidersHorizontal className="h-4 w-4" />
           </button>
         </div>
-        <button className="h-[48px] rounded-[12px] bg-[#e9edf3] px-5 text-[15px] font-semibold text-ink-700 transition-colors hover:bg-[#dfe5ee]">
-          Clear
-        </button>
-      </div>
+      </Surface>
 
       <Surface className="overflow-hidden rounded-[18px] border border-[#e4ebf5] bg-white shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
         <div className="overflow-x-auto">
@@ -881,7 +1007,7 @@ export function CompanyDocumentsPage() {
               </tr>
             </thead>
             <tbody>
-              {companyDocuments.map((doc) => (
+              {filteredDocs.map((doc) => (
                 <tr key={doc.id} className="border-t border-[#edf1f7]">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
@@ -911,7 +1037,7 @@ export function CompanyDocumentsPage() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[#edf1f7] px-6 py-5 text-sm text-ink-500">
-          <span>Showing 4 of 24 documents</span>
+          <span>Showing {filteredDocs.length} of {companyDocuments.length} documents</span>
           <div className="flex items-center gap-4">
             <button className="text-ink-500">
               <ChevronLeft className="h-4 w-4" />
@@ -1113,11 +1239,16 @@ export function CompanyDocumentsDetailPage() {
 }
 
 export function CompanyTeamPage() {
+  const { teamMembers, addTeamMember } = useStore();
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedMemberRole, setSelectedMemberRole] = useState<"Admin" | "Member">("Admin");
   const [teamSearch, setTeamSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"All" | "Admin" | "Member">("All");
   const [statusFilter, setStatusFilter] = useState<"All" | "Active" | "Pending Invite">("All");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   const teamAvatars: Record<string, string> = {
     "John Doe": "from-[#23334d] to-[#1e2940]",
@@ -1150,7 +1281,12 @@ export function CompanyTeamPage() {
           </div>
           <Button
             className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]"
-            onClick={() => setShowAddMemberModal(true)}
+            onClick={() => {
+              setName("");
+              setEmail("");
+              setPhone("");
+              setShowAddMemberModal(true);
+            }}
           >
             <UserPlus className="mr-2 h-4 w-4" />
             Add Member
@@ -1257,7 +1393,7 @@ export function CompanyTeamPage() {
         </Surface>
       </div>
 
-      {showAddMemberModal ? (
+      {showAddMemberModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.42)] px-5"
           onClick={() => setShowAddMemberModal(false)}
@@ -1287,78 +1423,54 @@ export function CompanyTeamPage() {
 
             <div className="space-y-7 px-7 pb-7">
               <div className="grid gap-5 md:grid-cols-2">
-                <Input label="FULL NAME" placeholder="John Doe" className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]" />
-                <Input label="PHONE NUMBER (OPTIONAL)" placeholder="+1 (555) 000-0000" className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]" />
-                <Input label="EMAIL ADDRESS" placeholder="john.doe@company.com" className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px] md:col-span-2" />
+                <Input
+                  label="FULL NAME"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]"
+                />
+                <Input
+                  label="EMAIL ADDRESS"
+                  placeholder="john.doe@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]"
+                />
+                <Input
+                  label="PHONE NUMBER (OPTIONAL)"
+                  placeholder="+1 (555) 000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px] md:col-span-2"
+                />
               </div>
 
               <div>
-                <div className="mb-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-500">
-                  Role Selection
+                <div className="mb-4 text-[13px] font-bold uppercase tracking-[0.08em] text-ink-400">
+                  Select Member Role
                 </div>
-                <div className="space-y-4">
-                  <label
-                    className={`flex cursor-pointer items-start gap-4 rounded-[16px] border-2 px-4 py-4 ${
-                      selectedMemberRole === "Admin"
-                        ? "border-brand-500 bg-white"
-                        : "border-transparent bg-[#f7f9fd]"
-                    }`}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <button
+                    type="button"
+                    className={`flex flex-col rounded-[20px] border p-6 text-left transition-all ${selectedMemberRole === "Admin" ? "border-brand-300 bg-[#f4f8ff] ring-1 ring-brand-300" : "border-[#e5ebf5] bg-white hover:border-brand-200"}`}
+                    onClick={() => setSelectedMemberRole("Admin")}
                   >
-                    <input
-                      type="radio"
-                      name="member-role"
-                      checked={selectedMemberRole === "Admin"}
-                      onChange={() => setSelectedMemberRole("Admin")}
-                      className="mt-1"
-                    />
-                    <span>
-                      <span className="block text-[16px] font-bold text-ink-900">Admin</span>
-                      <span className="mt-1 block text-[14px] leading-[1.7] text-ink-500">
-                        Full access to all company settings and orders
-                      </span>
-                    </span>
-                  </label>
-                  <label
-                    className={`flex cursor-pointer items-start gap-4 rounded-[16px] border-2 px-4 py-4 ${
-                      selectedMemberRole === "Member"
-                        ? "border-brand-500 bg-white"
-                        : "border-transparent bg-[#f7f9fd]"
-                    }`}
+                    <div className="text-[18px] font-extrabold text-ink-900">Admin</div>
+                    <div className="mt-2 text-[14px] leading-[1.6] text-ink-500">
+                      Full access to all orders, documents, and team settings
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex flex-col rounded-[20px] border p-6 text-left transition-all ${selectedMemberRole === "Member" ? "border-brand-300 bg-[#f4f8ff] ring-1 ring-brand-300" : "border-[#e5ebf5] bg-white hover:border-brand-200"}`}
+                    onClick={() => setSelectedMemberRole("Member")}
                   >
-                    <input
-                      type="radio"
-                      name="member-role"
-                      checked={selectedMemberRole === "Member"}
-                      onChange={() => setSelectedMemberRole("Member")}
-                      className="mt-1"
-                    />
-                    <span>
-                      <span className="block text-[16px] font-bold text-ink-900">Member</span>
-                      <span className="mt-1 block text-[14px] leading-[1.7] text-ink-500">
-                        Limited access to assigned orders and documents
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-500">
-                  Permissions
-                </div>
-                <div className="grid gap-4 rounded-[16px] bg-[#f7f9fd] px-4 py-4 text-[16px] text-ink-700 md:grid-cols-2">
-                  <label className="flex items-center gap-3">
-                    <input defaultChecked type="checkbox" className="h-4 w-4" />
-                    Create Orders
-                  </label>
-                  <label className="flex items-center gap-3">
-                    <input defaultChecked type="checkbox" className="h-4 w-4" />
-                    View Orders
-                  </label>
-                  <label className="flex items-center gap-3">
-                    <input type="checkbox" className="h-4 w-4" />
-                    Download Documents
-                  </label>
+                    <div className="text-[18px] font-extrabold text-ink-900">Member</div>
+                    <div className="mt-2 text-[14px] leading-[1.6] text-ink-500">
+                      Access to view and manage assigned orders only
+                    </div>
+                  </button>
                 </div>
               </div>
 
@@ -1376,13 +1488,34 @@ export function CompanyTeamPage() {
               >
                 Cancel
               </Button>
-              <Button className="h-[46px] rounded-[12px] px-6 text-[15px] font-semibold">
+              <Button
+                className="h-[46px] rounded-[12px] px-6 text-[15px] font-semibold"
+                onClick={() => {
+                  if (!name || !email) {
+                    alert("Full name and email are required.");
+                    return;
+                  }
+                  addTeamMember({
+                    name: name,
+                    email: email,
+                    role: selectedMemberRole,
+                    status: "Pending Invite",
+                    joinedDate: new Date().toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "2-digit",
+                      year: "numeric",
+                    }),
+                  });
+                  alert(`${name} has been invited!`);
+                  setShowAddMemberModal(false);
+                }}
+              >
                 Add Member
               </Button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 }
@@ -1430,50 +1563,152 @@ export function CompanyTeamNewPage() {
 }
 
 export function CompanySettingsPage() {
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState({
+    fullName: "Alex Thompson",
+    email: "alex.t@estateflux.com",
+    phone: "+1 (555) 902-4412",
+  });
+
+  const [companyInfo, setCompanyInfo] = useState({
+    companyName: "Estate Flux Title",
+    companyEmail: "ops@estateflux.com",
+    contactNumber: "+1 (555) 200-1100",
+    businessAddress: "782 Commerce Blvd, Austin TX",
+  });
+
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  });
+
+  const [notifications, setNotifications] = useState([
+    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: true },
+    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: true },
+    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: false },
+  ]);
+
+  const toggleNotification = (id: string) => {
+    if (!isEditMode) return;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, active: !n.active } : n))
+    );
+  };
+
+  const handleSave = () => {
+    // Backend data field ready
+    const payload = {
+      personal: personalInfo,
+      company: companyInfo,
+      notificationSettings: notifications.reduce((acc, curr) => ({ ...acc, [curr.id]: curr.active }), {}),
+    };
+    console.log("Saving settings to backend...", payload);
+    alert("Company settings saved successfully!");
+    setIsEditMode(false);
+  };
+
+  const handleUpdatePassword = () => {
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      alert("Please fill in all password fields.");
+      return;
+    }
+    if (passwords.new !== passwords.confirm) {
+      alert("New passwords do not match.");
+      return;
+    }
+    console.log("Updating password...", { current: passwords.current, new: passwords.new });
+    alert("Password updated successfully!");
+    setPasswords({ current: "", new: "", confirm: "" });
+  };
+
   return (
     <div className="space-y-7">
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div className="flex items-center gap-5">
             <div className="relative flex h-[76px] w-[76px] items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#17263e,#7a5361)] text-xl font-bold text-white shadow-[0_14px_30px_rgba(20,48,112,0.12)]">
-              AT
+              {personalInfo.fullName.split(" ").map(n => n[0]).join("")}
               <div className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[10px] text-white">
                 •
               </div>
             </div>
             <div>
-              <div className="text-[34px] font-extrabold tracking-[-0.04em] text-ink-900">Alex Thompson</div>
-              <div className="mt-2 text-[15px] text-ink-500">alex.t@estateflux.com</div>
-              <div className="mt-1 text-[15px] text-ink-500">Estate Flux Title</div>
+              <div className="text-[34px] font-extrabold tracking-[-0.04em] text-ink-900">{personalInfo.fullName}</div>
+              <div className="mt-2 text-[15px] text-ink-500">{personalInfo.email}</div>
+              <div className="mt-1 text-[15px] text-ink-500">{companyInfo.companyName}</div>
             </div>
           </div>
           <Button
-            variant="outline"
-            className="h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold text-brand-600"
+            variant={isEditMode ? "ghost" : "outline"}
+            className={`h-[44px] rounded-[12px] px-5 text-[14px] font-semibold ${isEditMode ? "text-danger-600 hover:bg-[#fff5f5]" : "border-[#dfe6f2] text-brand-600"}`}
+            onClick={() => setIsEditMode(!isEditMode)}
           >
-            Edit Profile
+            {isEditMode ? "Discard Changes" : "Edit Profile"}
           </Button>
         </div>
       </Surface>
 
       <div className="grid gap-6 xl:grid-cols-[1.18fr_0.56fr]">
         <div className="space-y-6">
-          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30_rgba(20,48,112,0.05)]">
             <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Personal Information</div>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
-              <Input label="FULL NAME" placeholder="Alex Thompson" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="EMAIL ADDRESS" placeholder="alex.t@estateflux.com" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="PHONE NUMBER" placeholder="+1 (555) 902-4412" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px] md:col-span-2" />
+              <Input 
+                label="FULL NAME" 
+                disabled={!isEditMode}
+                value={personalInfo.fullName} 
+                onChange={(e) => setPersonalInfo({ ...personalInfo, fullName: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="EMAIL ADDRESS" 
+                disabled={!isEditMode}
+                value={personalInfo.email} 
+                onChange={(e) => setPersonalInfo({ ...personalInfo, email: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="PHONE NUMBER" 
+                disabled={!isEditMode}
+                value={personalInfo.phone} 
+                onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] md:col-span-2 ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
             </div>
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Company Information</div>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
-              <Input label="COMPANY NAME" placeholder="Estate Flux Title" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="COMPANY EMAIL" placeholder="ops@estateflux.com" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="CONTACT NUMBER" placeholder="+1 (555) 200-1100" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="BUSINESS ADDRESS" placeholder="782 Commerce Blvd, Austin TX" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
+              <Input 
+                label="COMPANY NAME" 
+                disabled={!isEditMode}
+                value={companyInfo.companyName} 
+                onChange={(e) => setCompanyInfo({ ...companyInfo, companyName: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="COMPANY EMAIL" 
+                disabled={!isEditMode}
+                value={companyInfo.companyEmail} 
+                onChange={(e) => setCompanyInfo({ ...companyInfo, companyEmail: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="CONTACT NUMBER" 
+                disabled={!isEditMode}
+                value={companyInfo.contactNumber} 
+                onChange={(e) => setCompanyInfo({ ...companyInfo, contactNumber: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="BUSINESS ADDRESS" 
+                disabled={!isEditMode}
+                value={companyInfo.businessAddress} 
+                onChange={(e) => setCompanyInfo({ ...companyInfo, businessAddress: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
             </div>
           </Surface>
         </div>
@@ -1482,12 +1717,38 @@ export function CompanySettingsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Security Settings</div>
             <div className="mt-6 space-y-5">
-              <Input label="CURRENT PASSWORD" placeholder="••••••••" type="password" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="NEW PASSWORD" placeholder="••••••••" type="password" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
-              <Input label="CONFIRM NEW PASSWORD" placeholder="••••••••" type="password" className="h-[48px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[14px]" />
+              <Input 
+                label="CURRENT PASSWORD" 
+                placeholder="••••••••" 
+                type="password" 
+                disabled={!isEditMode}
+                value={passwords.current}
+                onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="NEW PASSWORD" 
+                placeholder="••••••••" 
+                type="password" 
+                disabled={!isEditMode}
+                value={passwords.new}
+                onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Input 
+                label="CONFIRM NEW PASSWORD" 
+                placeholder="••••••••" 
+                type="password" 
+                disabled={!isEditMode}
+                value={passwords.confirm}
+                onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
               <Button
                 variant="outline"
-                className="h-[44px] w-full rounded-[12px] border-[#dfe6f2] text-[14px] font-semibold text-brand-600"
+                disabled={!isEditMode}
+                className="h-[44px] w-full rounded-[12px] border-[#dfe6f2] text-[14px] font-semibold text-brand-600 disabled:opacity-50"
+                onClick={handleUpdatePassword}
               >
                 Update Password
               </Button>
@@ -1497,19 +1758,19 @@ export function CompanySettingsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Notification Preferences</div>
             <div className="mt-6 space-y-6">
-              {[
-                ["Email Notifications", "Receive global summary emails", true],
-                ["Order Updates", "Real-time alerts for escrow changes", true],
-                ["Document Updates", "Alerts when new documents are signed", false],
-              ].map(([label, body, active]) => (
-                <div key={`${label}`} className="flex items-center justify-between gap-4">
+              {notifications.map((n) => (
+                <div key={n.id} className="flex items-center justify-between gap-4">
                   <div>
-                    <div className="text-[15px] font-semibold text-ink-900">{label}</div>
-                    <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{body}</div>
+                    <div className="text-[15px] font-semibold text-ink-900">{n.label}</div>
+                    <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{n.body}</div>
                   </div>
-                  <div className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${active ? "bg-brand-600" : "bg-[#dbe2ec]"}`}>
-                    <div className={`h-5 w-5 rounded-full bg-white shadow-sm ${active ? "ml-5" : ""}`} />
-                  </div>
+                  <button 
+                    disabled={!isEditMode}
+                    onClick={() => toggleNotification(n.id)}
+                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${!isEditMode ? "cursor-not-allowed opacity-60" : ""}`}
+                  >
+                    <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${n.active ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -1521,10 +1782,18 @@ export function CompanySettingsPage() {
         <Button
           variant="outline"
           className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"
+          onClick={() => {
+             setIsEditMode(false);
+             window.location.reload();
+          }}
         >
           Cancel
         </Button>
-        <Button className="h-[46px] rounded-[12px] px-6 text-[15px] font-semibold">
+        <Button 
+          disabled={!isEditMode}
+          className="h-[46px] rounded-[12px] px-8 text-[15px] font-semibold disabled:opacity-50" 
+          onClick={handleSave}
+        >
           Save Changes
         </Button>
       </div>
