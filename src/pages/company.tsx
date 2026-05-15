@@ -13,48 +13,28 @@ export function CompanyDashboardPage() {
 
   const dashboardStats = [
     { title: "Total Orders", value: companyOrders.length.toString(), icon: FileText, tone: "brand" },
-    { title: "Active Orders", value: companyOrders.filter(o => o.status === "Assigned" || o.status === "Under Review" || o.status === "Received").length.toString(), icon: FolderKanban, tone: "brand" },
+    { title: "Active Orders", value: companyOrders.filter(o => ["Assigned", "Under Review", "Received"].includes(o.status)).length.toString(), icon: FolderKanban, tone: "brand" },
     { title: "Pending Review", value: companyOrders.filter(o => o.status === "Under Review").length.toString(), icon: Hourglass, tone: "warning" },
-    { title: "Completed Orders", value: companyOrders.filter(o => o.status === "Completed" || o.status === "Approved").length.toString(), icon: CheckCircle2, tone: "success" },
+    { title: "Completed Orders", value: companyOrders.filter(o => ["Completed", "Approved"].includes(o.status)).length.toString(), icon: CheckCircle2, tone: "success" },
   ] as const;
 
-  const recentOrders = [
-    { id: "#89210", client: "John Smith", notary: "Robert Wilson", initials: "RW", accent: "from-[#1d2d48] to-[#8d6557]", status: "Assigned" as const, date: "Mar 24, 2026" },
-    { id: "#89209", client: "Sarah Jones", notary: "Emily Davis", initials: "ED", accent: "from-[#6a4f62] to-[#d0a177]", status: "Under Review" as const, date: "Mar 23, 2026" },
-    { id: "#89208", client: "Michael Brown", notary: "David Clark", initials: "DC", accent: "from-[#17384a] to-[#4e9b8f]", status: "Completed" as const, date: "Mar 22, 2026" },
-  ];
+  const total = companyOrders.length || 1;
+  const getPercent = (count: number) => `${Math.round((count / total) * 100)}%`;
 
   const statusRows = [
-    { label: "Received", value: "100%", width: "100%" },
-    { label: "Assigned", value: "85%", width: "85%" },
-    { label: "Under Review", value: "60%", width: "60%" },
-    { label: "Approved", value: "45%", width: "45%" },
-    { label: "Completed", value: "30%", width: "30%" },
+    { label: "Received", value: getPercent(companyOrders.filter(o => o.status === "Received").length), width: getPercent(companyOrders.filter(o => o.status === "Received").length) },
+    { label: "Assigned", value: getPercent(companyOrders.filter(o => o.status === "Assigned").length), width: getPercent(companyOrders.filter(o => o.status === "Assigned").length) },
+    { label: "Under Review", value: getPercent(companyOrders.filter(o => o.status === "Under Review").length), width: getPercent(companyOrders.filter(o => o.status === "Under Review").length) },
+    { label: "Approved", value: getPercent(companyOrders.filter(o => o.status === "Approved").length), width: getPercent(companyOrders.filter(o => o.status === "Approved").length) },
+    { label: "Completed", value: getPercent(companyOrders.filter(o => o.status === "Completed").length), width: getPercent(companyOrders.filter(o => o.status === "Completed").length) },
   ];
 
-  const activityItems = [
-    {
-      title: "Order assigned to notary",
-      description: "Robert Wilson took #89210",
-      time: "2 mins ago",
-      icon: CircleDot,
-      tone: "brand",
-    },
-    {
-      title: "Status updated for #89210",
-      description: "Moved to Under Review",
-      time: "45 mins ago",
-      icon: Hourglass,
-      tone: "warning",
-    },
-    {
-      title: "Document approved by client",
-      description: "Sarah Jones verified all files",
-      time: "2 hours ago",
-      icon: ShieldCheck,
-      tone: "success",
-    },
-  ] as const;
+  const notaryAccent: Record<string, string> = {
+    "David Miller": "from-[#7a6458] to-[#d6b08e]",
+    "Robert Vance": "from-[#23314a] to-[#9d6d5f]",
+    "Elena Wright": "from-[#6a4b63] to-[#d0ab8b]",
+    "Gordon Cole": "from-[#165466] to-[#4eb3af]",
+  };
 
   return (
     <div className="space-y-8">
@@ -62,7 +42,7 @@ export function CompanyDashboardPage() {
         {dashboardStats.map(({ title, value, icon: Icon, tone }) => (
           <Surface
             key={title}
-            className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]"
+            className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30_rgba(20,48,112,0.05)]"
           >
             <div
               className={`mb-9 flex h-12 w-12 items-center justify-center rounded-[14px] ${
@@ -102,26 +82,26 @@ export function CompanyDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {useStore().companyOrders.slice(0, 3).map((order) => (
-                <tr key={order.id} className="border-t border-[#edf1f7]">
+              {companyOrders.slice(0, 3).map((order) => (
+                <tr key={order.id} className="border-t border-[#edf1f7] hover:bg-slate-50/50 transition-colors">
                   <td className="px-7 py-5 text-[15px] font-bold text-ink-900">{order.id}</td>
-                  <td className="px-7 py-5 text-[15px] font-medium text-ink-600">{order.clientName}</td>
+                  <td className="px-7 py-5 text-[15px] font-bold text-brand-600">{order.clientName}</td>
                   <td className="px-7 py-5">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#1d2d48] to-[#8d6557] text-[10px] font-bold text-white`}>
-                        {order.notary && order.notary !== "--" ? order.notary.substring(0, 2).toUpperCase() : "--"}
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${notaryAccent[order.notary] || "from-slate-400 to-slate-500"} text-[10px] font-bold text-white shadow-sm`}>
+                        {order.notary === "--" ? "?" : order.notary.split(" ").map(n => n[0]).join("")}
                       </div>
-                      <span className="text-[15px] font-medium text-ink-600">{order.notary}</span>
+                      <span className="text-[15px] font-semibold text-ink-700">{order.notary === "--" ? "Not Assigned" : order.notary}</span>
                     </div>
                   </td>
                   <td className="px-7 py-5">
-                    <Badge status={order.status} />
+                    <Badge status={order.status as any} />
                   </td>
                   <td className="px-7 py-5 text-[15px] font-medium text-ink-500">{order.date}</td>
                   <td className="px-7 py-5">
                     <Link
-                      to={`/company/orders/${order.id.replace("#", "").toLowerCase()}`}
-                      className="inline-flex h-9 items-center justify-center rounded-[10px] bg-[#eef1ff] px-4 text-[13px] font-semibold text-brand-600 transition-colors hover:bg-[#e7ecff]"
+                      to={`/company/orders/${order.id.replace("#", "")}`}
+                      className="inline-flex h-9 items-center justify-center rounded-[10px] bg-[#eef1ff] px-4 text-[13px] font-bold text-brand-600 transition-colors hover:bg-[#e7ecff]"
                     >
                       View
                     </Link>
@@ -191,6 +171,14 @@ export function CompanyOrdersPage() {
   const { companyOrders } = useStore();
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [dateFilter, setDateFilter] = useState<string>("Date: Any time");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchValue, statusFilter, dateFilter]);
 
   const filteredOrders = companyOrders.filter((order) => {
     const matchesSearch =
@@ -198,8 +186,17 @@ export function CompanyOrdersPage() {
       order.id.toLowerCase().includes(searchValue.toLowerCase()) ||
       order.clientName.toLowerCase().includes(searchValue.toLowerCase());
     const matchesStatus = statusFilter === "All" || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    
+    // Mock date filtering logic
+    let matchesDate = true;
+    if (dateFilter === "Last 7 Days") matchesDate = order.date.includes("Mar"); // Simple mock
+    if (dateFilter === "Last 30 Days") matchesDate = true; // All mock data is within 30 days
+    
+    return matchesSearch && matchesStatus && matchesDate;
   });
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const stats = [
     { title: "Total Orders", value: companyOrders.length.toString(), icon: FileText, tone: "brand" },
@@ -250,14 +247,13 @@ export function CompanyOrdersPage() {
             options={["All", "Received", "Assigned", "Under Review", "Approved", "Completed"]} 
             className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" 
           />
-          <div className="flex h-[50px] items-center justify-between rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-700">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-ink-400" />
-              <span>Date: Any time</span>
-            </div>
-            <ChevronDown className="h-4 w-4 text-ink-400" />
-          </div>
-          <button onClick={() => { setSearchValue(""); setStatusFilter("All"); }} className="flex h-[50px] items-center justify-center rounded-[14px] border border-[#e5ebf5] bg-white text-brand-600 transition-colors hover:bg-[#f5f8ff]">
+          <Select 
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            options={["Date: Any time", "Last 7 Days", "Last 30 Days", "This Year"]} 
+            className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" 
+          />
+          <button onClick={() => { setSearchValue(""); setStatusFilter("All"); setDateFilter("Date: Any time"); }} className="flex h-[50px] items-center justify-center rounded-[14px] border border-[#e5ebf5] bg-white text-brand-600 transition-colors hover:bg-[#f5f8ff]">
             <SlidersHorizontal className="h-4 w-4" />
           </button>
         </div>
@@ -301,29 +297,32 @@ export function CompanyOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.map((order) => (
-                <tr key={order.id} className="border-t border-[#edf1f7]">
+              {paginatedOrders.map((order) => (
+                <tr key={order.id} className="border-t border-[#edf1f7] hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
-                  <td className="px-6 py-5 text-[15px] font-semibold text-ink-900">{order.clientName}</td>
-                  <td className="px-6 py-5 text-[15px] text-ink-500">{order.propertyAddress}</td>
+                  <td className="px-6 py-5 text-[15px] font-bold text-ink-900">{order.clientName}</td>
+                  <td className="px-6 py-5 text-[14px] text-ink-500">{order.propertyAddress}</td>
                   <td className="px-6 py-5">
                     {order.notary === "--" ? (
-                      <span className="text-[15px] text-ink-400">--</span>
+                      <span className="text-ink-300">--</span>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${notaryAccent[order.notary] ?? "from-[#22344f] to-[#8f6a60]"} text-[10px] font-bold text-white`}>
-                          {order.notary.split(" ").map((part) => part[0]).join("").slice(0, 2)}
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${notaryAccent[order.notary] || "from-slate-400 to-slate-500"} text-[10px] font-bold text-white shadow-sm`}>
+                          {order.notary.split(" ").map(n => n[0]).join("")}
                         </div>
-                        <span className="text-[15px] font-medium text-ink-600">{order.notary}</span>
+                        <span className="text-[14px] font-semibold text-ink-700">{order.notary}</span>
                       </div>
                     )}
                   </td>
                   <td className="px-6 py-5">
-                    <Badge status={order.status} />
+                    <Badge status={order.status as any} />
                   </td>
-                  <td className="px-6 py-5 text-[15px] text-ink-500">{order.date}</td>
+                  <td className="px-6 py-5 text-[14px] font-medium text-ink-500">{order.date}</td>
                   <td className="px-6 py-5">
-                    <Link to={`/company/orders/${order.id.replace("#", "").toLowerCase()}`} className="text-[15px] font-semibold text-brand-600">
+                    <Link 
+                      to={`/company/orders/${order.id.replace("#", "")}`} 
+                      className="text-[14px] font-bold text-ink-900 hover:text-brand-600 transition-colors"
+                    >
                       View
                     </Link>
                   </td>
@@ -333,17 +332,36 @@ export function CompanyOrdersPage() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[#edf1f7] px-6 py-5 text-sm text-ink-500">
-          <span>Showing 1-10 of 248 orders</span>
+          <span>
+            Showing <span className="font-bold text-ink-900">{Math.min(filteredOrders.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredOrders.length, currentPage * itemsPerPage)}</span> of <span className="font-bold text-ink-900">{filteredOrders.length}</span> orders
+          </span>
           <div className="flex items-center gap-2">
-            <button className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#f4f5fb] text-ink-400">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dfe6f2] text-ink-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+            >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand-600 text-sm font-semibold text-white">1</span>
-            <span className="px-2 text-sm font-medium text-ink-700">2</span>
-            <span className="px-2 text-sm font-medium text-ink-700">3</span>
-            <span className="px-2 text-sm font-medium text-ink-400">...</span>
-            <span className="px-2 text-sm font-medium text-ink-700">25</span>
-            <button className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#f4f5fb] text-ink-500">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-[10px] text-[14px] font-bold transition-all",
+                  currentPage === i + 1 
+                    ? "bg-brand-600 text-white shadow-lg shadow-brand-100" 
+                    : "text-ink-500 hover:bg-slate-50"
+                )}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dfe6f2] text-ink-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -368,7 +386,10 @@ export function CompanyOrdersNewPage() {
     zip: "",
     date: "",
     loanType: "",
-    scanbacks: "No"
+    scanbacks: "No",
+    preferredNotary: "No preference",
+    specialInstructions: "",
+    priority: "Normal Processing"
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -401,6 +422,26 @@ export function CompanyOrdersNewPage() {
 
   const removeFile = (indexToRemove: number) => {
     setUploadedFiles((current) => current.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleSubmit = () => {
+    if (!formData.clientName || !formData.address) {
+      toast.error("Client Name and Property Address are required.");
+      return;
+    }
+
+    const newOrder = {
+       id: "#ORD-" + (Math.floor(Math.random() * 90000) + 10000),
+       clientName: formData.clientName,
+       propertyAddress: `${formData.address}${formData.city ? ", " + formData.city : ""}${formData.state ? ", " + formData.state : ""} ${formData.zip}`,
+       status: "Received",
+       notary: formData.preferredNotary === "No preference" ? "--" : formData.preferredNotary,
+       date: formData.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    };
+
+    useStore.getState().addCompanyOrder(newOrder as any);
+    toast.success("Order created successfully!");
+    navigate("/company/orders");
   };
 
   return (
@@ -540,12 +581,20 @@ export function CompanyOrdersNewPage() {
               <div className="text-[20px] font-extrabold text-ink-900">Instructions</div>
             </div>
             <div className="grid gap-5">
-              <Select label="PREFERRED NOTARY (OPTIONAL)" options={["No preference"]} className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white" />
+              <Select 
+                label="PREFERRED NOTARY (OPTIONAL)" 
+                options={["No preference", "David Miller", "Robert Vance", "Elena Wright", "Gordon Cole"]} 
+                value={formData.preferredNotary}
+                onChange={(e) => handleInputChange("preferredNotary", e.target.value)}
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white" 
+              />
               <div className="-mt-2 text-[11px] text-ink-400">
                 Leave empty to auto-assign the best available notary in the area.
               </div>
               <Textarea
                 label="SPECIAL INSTRUCTIONS"
+                value={formData.specialInstructions}
+                onChange={(e) => handleInputChange("specialInstructions", e.target.value)}
                 placeholder="Enter any specific requirements, gate codes, or client preferences..."
                 className="min-h-[120px] rounded-[12px] border-[#dfe6f2] bg-white px-4 py-3 text-[14px]"
               />
@@ -556,13 +605,25 @@ export function CompanyOrdersNewPage() {
             <div className="text-[20px] font-extrabold">Order Priority</div>
             <div className="mt-6 space-y-5 text-[14px]">
               <label className="flex items-start gap-3">
-                <input defaultChecked type="radio" name="priority" className="mt-1" />
+                <input 
+                  type="radio" 
+                  name="priority" 
+                  className="mt-1" 
+                  checked={formData.priority === "Normal Processing"}
+                  onChange={() => handleInputChange("priority", "Normal Processing")}
+                />
                 <span>
                   <span className="font-semibold">Normal Processing</span>
                 </span>
               </label>
               <label className="flex items-start gap-3">
-                <input type="radio" name="priority" className="mt-1" />
+                <input 
+                  type="radio" 
+                  name="priority" 
+                  className="mt-1" 
+                  checked={formData.priority === "Urgent Request"}
+                  onChange={() => handleInputChange("priority", "Urgent Request")}
+                />
                 <span>
                   <span className="font-semibold">Urgent Request</span>
                   <br />
@@ -652,23 +713,7 @@ export function CompanyOrdersNewPage() {
         </Button>
         <Button
           className="h-[44px] rounded-[10px] px-6 text-[14px] font-semibold"
-          onClick={() => {
-            if (!formData.clientName || !formData.address) {
-              toast.error("Client Name and Property Address are required.");
-              return;
-            }
-            const formObj = {
-               clientName: formData.clientName,
-               propertyAddress: formData.address,
-               status: "Received",
-               notary: "--",
-               date: formData.date || "Just now",
-               id: "#ORD-" + Math.floor(Math.random() * 100000)
-            };
-            useStore.getState().addCompanyOrder(formObj as any);
-            toast.success("Order created successfully!");
-            navigate("/company/orders");
-          }}
+          onClick={handleSubmit}
         >
           Submit Order
         </Button>
@@ -678,24 +723,28 @@ export function CompanyOrdersNewPage() {
 }
 
 export function CompanyOrderDetailsPage() {
-  const { id } = useParams();
-  const orderId = id ? `#${id.toUpperCase()}` : "#CE-9421";
+  const { id } = useParams<{ id: string }>();
+  const { companyOrders, companyDocuments } = useStore();
+  
+  const order = companyOrders.find(o => o.id.replace("#", "") === id) || companyOrders[0];
+  const docs = companyDocuments.filter(d => d.orderId === order.id.replace("#", ""));
+
   const [showNotaryProfile, setShowNotaryProfile] = useState(false);
-  const orderDocuments = [
-    { name: "closing_statement.pdf", meta: "Uploaded Oct 23 • 2.4 MB" },
-    { name: "closing_statement.pdf", meta: "Uploaded Oct 23 • 2.4 MB" },
-  ];
-  const orderTimeline = [
-    { title: "Received", body: "Feb 21, 2023", active: true, current: false },
-    { title: "Assigned", body: "Feb 23, 2023", active: true, current: false },
-    { title: "Under Review", body: "Feb 24, 2023", active: true, current: false },
-    { title: "Approved", body: "Current Stage", active: true, current: true },
-    { title: "Completed", body: "Estimated Oct 26", active: false, current: false },
-  ];
+
+  const statuses = ["Received", "Assigned", "Under Review", "Approved", "Completed"];
+  const currentIdx = statuses.indexOf(order.status);
+  
+  const orderTimeline = statuses.map((s, idx) => ({
+    title: s,
+    body: idx < currentIdx ? "Completed" : idx === currentIdx ? "Current Stage" : "Pending",
+    active: idx <= currentIdx,
+    current: idx === currentIdx
+  }));
+
   const activityLog = [
     ["Review completed", "Final review by Compliance Team finished.", "Today, 2:45 PM"],
     ["Documents uploaded", "New version of Title Insurance form added.", "Yesterday, 10:15 AM"],
-    ["Notary assigned", "Sarah Parker has been assigned to this order.", "Oct 23, 9:00 AM"],
+    ["Notary assigned", `${order.notary === "--" ? "A notary" : order.notary} has been assigned to this order.`, order.date],
   ] as const;
 
   return (
@@ -710,9 +759,9 @@ export function CompanyOrderDetailsPage() {
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-1 flex-wrap items-center gap-4">
           <h1 className="text-[46px] font-extrabold leading-none tracking-[-0.05em] text-ink-900">
-            Order {orderId}
+            Order {order.id}
           </h1>
-          <Badge status="Approved" />
+          <Badge status={order.status as any} />
         </div>
         <Link to="/company/orders">
           <Button
@@ -735,15 +784,15 @@ export function CompanyOrderDetailsPage() {
               </button>
             </div>
             <div className="grid gap-8 md:grid-cols-2">
-              <Detail label="CLIENT NAME" value="Mila Waters" />
-              <Detail label="SIGNING DATE & TIME" value="Mar 18, 2026, 2:45 PM" />
+              <Detail label="CLIENT NAME" value={order.clientName} />
+              <Detail label="SIGNING DATE & TIME" value={`${order.date}, 2:45 PM`} />
               <div className="md:col-span-2">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
                   PROPERTY ADDRESS
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-[16px] font-semibold text-ink-900">
                   <MapPin className="h-4 w-4 text-brand-600" />
-                  442 Prospect St, Dallas TX 75201
+                  {order.propertyAddress}
                 </div>
               </div>
               <div className="md:col-span-2 rounded-[14px] bg-[#f5f8fe] px-5 py-4">
@@ -768,17 +817,19 @@ export function CompanyOrderDetailsPage() {
               <div className="text-[13px] font-semibold text-brand-600">2 Files Total</div>
             </div>
             <div className="space-y-4">
-              {orderDocuments.map((document, index) => (
+              {docs.length > 0 ? docs.map((document, index) => (
                 <div key={`${document.name}-${index}`} className="flex items-center gap-4 rounded-[14px] bg-[#fbfbff] px-5 py-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#fff1f1] text-danger-600">
                     <FileText className="h-4 w-4" />
                   </div>
                   <div>
                     <div className="text-[15px] font-semibold text-ink-900">{document.name}</div>
-                    <div className="mt-1 text-[12px] text-ink-400">{document.meta}</div>
+                    <div className="mt-1 text-[12px] text-ink-400">Uploaded {document.uploadDate} • {document.size}</div>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-6 text-ink-400 text-sm">No documents uploaded yet</div>
+              )}
             </div>
           </Surface>
 
@@ -813,10 +864,12 @@ export function CompanyOrderDetailsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ink-400">Assigned Notary</div>
             <div className="mt-5 flex items-center gap-4">
-              <div className="h-14 w-14 overflow-hidden rounded-[12px] bg-[linear-gradient(135deg,#7a523f,#d0b38d)]" />
+              <div className="h-14 w-14 overflow-hidden rounded-[12px] bg-[linear-gradient(135deg,#7a523f,#d0b38d)] flex items-center justify-center text-white font-bold text-xl">
+                {order.notary === "--" ? "?" : order.notary.split(" ").map(n => n[0]).join("")}
+              </div>
               <div>
-                <div className="text-[22px] font-extrabold tracking-[-0.03em] text-ink-900">Sarah Jenkins</div>
-                <div className="mt-1 text-[13px] text-ink-500">4.9 <span className="mx-1 text-[#f0a11d]">★</span> (124 Closings)</div>
+                <div className="text-[22px] font-extrabold tracking-[-0.03em] text-ink-900">{order.notary === "--" ? "Not Assigned" : order.notary}</div>
+                <div className="mt-1 text-[13px] text-ink-500">4.9 <span className="mx-1 text-[#f0a11d]">★</span> ({Math.floor(Math.random() * 200) + 50} Closings)</div>
               </div>
             </div>
             <div className="mt-6 space-y-4 text-[14px]">
@@ -873,7 +926,7 @@ export function CompanyOrderDetailsPage() {
       <Modal
         isOpen={showNotaryProfile}
         onClose={() => setShowNotaryProfile(false)}
-        title="Sarah Jenkins"
+        title={order.notary === "--" ? "No Notary Assigned" : order.notary}
         subtitle="Certified mobile notary supporting purchase, refinance, and seller-side closings."
         maxWidth="560px"
       >
