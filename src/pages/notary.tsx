@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CloudUpload, Download, Eye, FileBadge2, FileText, Filter, Flame, Info, MapPin, Paperclip, Pencil, Plus, Printer, Search, SendHorizontal, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Badge, Button, FooterBand, Input, Surface, Textarea } from "@/components/common";
+import { Link, useNavigate } from "react-router-dom";
+import { Badge, Button, FooterBand, Input, Modal, Surface, Textarea } from "@/components/common";
 import { chatMessages, credentialHistory } from "@/data/mock-data";
 import { useStore } from "@/store/useStore";
+
+import { toast } from "@/store/useToastStore";
 
 export function NotaryDashboardPage() {
   const { notaryOrders } = useStore();
@@ -306,7 +308,9 @@ export function NotaryOrderDetailPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduledDate, setScheduledDate] = useState("2024-10-24");
   const [scheduledTime, setScheduledTime] = useState("14:00");
+  const [notaryNotes, setNotaryNotes] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const appendFiles = (files: FileList | File[]) => {
@@ -357,39 +361,46 @@ export function NotaryOrderDetailPage() {
         </div>
       </div>
 
-      {showScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-5">
-          <Surface className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-ink-900">Schedule Closing</h3>
-              <button onClick={() => setShowScheduleModal(false)}><X className="h-5 w-5 text-ink-400" /></button>
-            </div>
-            <div className="space-y-4">
-              <Input 
-                label="Date" 
-                type="date" 
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                className="h-12 w-full rounded-xl border-line bg-slate-50 px-4" 
-              />
-              <Input 
-                label="Time" 
-                type="time" 
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                className="h-12 w-full rounded-xl border-line bg-slate-50 px-4" 
-              />
-            </div>
-            <div className="mt-8 flex gap-3">
-              <Button variant="ghost" onClick={() => setShowScheduleModal(false)} className="flex-1">Cancel</Button>
-              <Button onClick={() => {
-                alert(`Closing scheduled for ${scheduledDate} at ${scheduledTime}`);
+      <Modal
+        isOpen={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        title="Schedule Closing"
+        subtitle="Select the preferred date and time for this closing appointment"
+        maxWidth="520px"
+      >
+        <div className="space-y-6 px-7 pb-8">
+          <div className="grid gap-5">
+            <Input
+              label="Select Date"
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.target.value)}
+              className="bg-[#f7f9fd]"
+            />
+            <Input
+              label="Select Time"
+              type="time"
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.target.value)}
+              className="bg-[#f7f9fd]"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => setShowScheduleModal(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                toast.info(`Closing scheduled for ${scheduledDate} at ${scheduledTime}`);
                 setShowScheduleModal(false);
-              }} className="flex-1">Confirm Schedule</Button>
-            </div>
-          </Surface>
+              }}
+              className="flex-1"
+            >
+              Confirm Schedule
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
 
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f4f8ff] p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
         <div className="text-[14px] font-extrabold uppercase tracking-[0.16em] text-ink-500">Order Lifecycle</div>
@@ -548,14 +559,110 @@ export function NotaryOrderDetailPage() {
       </div>
       <div className="flex justify-end">
         <div className="w-full max-w-[520px]">
+          <Modal
+            isOpen={showUploadModal}
+            onClose={() => setShowUploadModal(false)}
+            title="Upload Scanbacks"
+            subtitle="Drag and drop your completed closing documents for review"
+          >
+            <div className="px-7 pb-8">
+              <div
+                className={`rounded-[24px] border-2 border-dashed p-10 text-center transition-all ${
+                  isDragActive ? "border-brand-500 bg-brand-50" : "border-[#e2e8f3] bg-[#fbfcfe]"
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragActive(true);
+                }}
+                onDragLeave={() => setIsDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragActive(false);
+                  if (e.dataTransfer.files) {
+                    setUploadedFiles([...uploadedFiles, ...Array.from(e.dataTransfer.files)]);
+                  }
+                }}
+              >
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-sm">
+                  <CloudUpload className="h-8 w-8" />
+                </div>
+                <div className="text-[20px] font-bold text-ink-900">Drop your files here</div>
+                <p className="mt-1 text-[14px] text-ink-500">Only PDF files are accepted</p>
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setUploadedFiles([...uploadedFiles, ...Array.from(e.target.files)]);
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  className="mt-6 h-[44px] rounded-[10px]"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Browse Files
+                </Button>
+              </div>
+
+              {uploadedFiles.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  {uploadedFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between rounded-[14px] border border-[#edf2f8] bg-white p-3 shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f1f5fb] text-brand-600">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                        <div className="max-w-[200px] truncate text-[14px] font-semibold text-ink-900">
+                          {file.name}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== idx))}
+                        className="text-ink-300 hover:text-rose-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-8 flex gap-3">
+                <Button variant="outline" onClick={() => setShowUploadModal(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (uploadedFiles.length === 0) {
+                      toast.error("Please upload at least one document.");
+                      return;
+                    }
+                    toast.success("Documents successfully submitted!");
+                    setUploadedFiles([]);
+                    setShowUploadModal(false);
+                  }}
+                >
+                  Submit Documents
+                </Button>
+              </div>
+            </div>
+          </Modal>
           <Button 
             className="h-[52px] w-full rounded-[12px] text-[18px] font-semibold"
             onClick={() => {
               if (uploadedFiles.length === 0) {
-                alert("Please upload at least one document.");
+                toast.error("Please upload at least one document.");
                 return;
               }
-              alert("Documents successfully submitted!");
+              toast.success("Documents successfully submitted!");
               setUploadedFiles([]);
             }}
           >
@@ -731,10 +838,10 @@ export function NotaryUploadDocumentsPage() {
           className="h-[52px] rounded-[12px] px-7 text-[16px] font-semibold"
           onClick={() => {
             if (uploadedFiles.length === 0) {
-              alert("Please upload at least one document.");
+              toast.error("Please upload at least one document.");
               return;
             }
-            alert("Documents successfully uploaded and submitted!");
+            toast.success("Documents successfully uploaded and submitted!");
             setUploadedFiles([]);
           }}
         >
@@ -787,20 +894,20 @@ export function NotarySettingsPage() {
       notificationSettings: notifications.reduce((acc, curr) => ({ ...acc, [curr.id]: curr.active }), {}),
     };
     console.log("Saving notary settings to backend...", payload);
-    alert("Notary settings saved successfully!");
+    toast.success("Notary settings saved successfully!");
     setIsEditMode(false);
   };
 
   const handleUpdatePassword = () => {
     if (!passwords.current || !passwords.new || !passwords.confirm) {
-      alert("Please fill in all password fields.");
+      toast.error("Please fill in all password fields.");
       return;
     }
     if (passwords.new !== passwords.confirm) {
-      alert("New passwords do not match.");
+      toast.error("New passwords do not match.");
       return;
     }
-    alert("Password updated successfully!");
+    toast.success("Password updated successfully!");
     setPasswords({ current: "", new: "", confirm: "" });
   };
 
@@ -1010,14 +1117,14 @@ export function NotaryCredentialsPage() {
           <Button
             variant="outline"
             className="h-[48px] rounded-[14px] border-[#dfe6f2] px-5 text-[15px] font-semibold text-ink-700"
-            onClick={() => alert("Update information is mock-only for now.")}
+            onClick={() => toast.info("Update information is mock-only for now.")}
           >
             <Pencil className="mr-2 h-4 w-4" />
             Update information
           </Button>
           <Button 
             className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]"
-            onClick={() => alert("Upload new credential is mock-only for now.")}
+            onClick={() => toast.info("Upload new credential is mock-only for now.")}
           >
             <Plus className="mr-2 h-4 w-4" />
             Upload new credential

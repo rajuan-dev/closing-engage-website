@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { ArrowRight, Building2, CheckCircle2, ChevronRight, KeyRound, Lock, Mail, MapPin, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "@/store/useToastStore";
 import clsx from "clsx";
 import { Button, Input, SectionTitle, Surface } from "@/components/common";
 import { publicNav, reliabilityCards, serviceCards } from "@/data/mock-data";
@@ -506,7 +507,7 @@ export function LoginForm() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      alert("Please enter a username or email.");
+      toast.error("Please enter a username or email.");
       return;
     }
     

@@ -1,8 +1,11 @@
 import { useRef, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, Download, Eye, FileText, FolderKanban, Hourglass, Info, MapPin, Pencil, Plus, Printer, RotateCw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserPlus, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Badge, Button, Input, Select, Surface, Textarea } from "@/components/common";
+import { Badge, Button, Input, Modal, Select, Surface, Textarea } from "@/components/common";
 import { useStore } from "@/store/useStore";
+import type { TeamMember } from "@/types/models";
+import { toast } from "@/store/useToastStore";
+import { useConfirmStore } from "@/store/useConfirmStore";
 
 export function CompanyDashboardPage() {
   const { companyOrders } = useStore();
@@ -650,7 +653,7 @@ export function CompanyOrdersNewPage() {
           className="h-[44px] rounded-[10px] px-6 text-[14px] font-semibold"
           onClick={() => {
             if (!formData.clientName || !formData.address) {
-              alert("Client Name and Property Address are required.");
+              toast.error("Client Name and Property Address are required.");
               return;
             }
             const formObj = {
@@ -662,7 +665,7 @@ export function CompanyOrdersNewPage() {
                id: "#ORD-" + Math.floor(Math.random() * 100000)
             };
             useStore.getState().addCompanyOrder(formObj as any);
-            alert("Order created successfully!");
+            toast.success("Order created successfully!");
             navigate("/company/orders");
           }}
         >
@@ -866,38 +869,15 @@ export function CompanyOrderDetailsPage() {
         </div>
       </div>
     </div>
-    {showNotaryProfile ? (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.42)] px-5"
-        onClick={() => setShowNotaryProfile(false)}
+      <Modal
+        isOpen={showNotaryProfile}
+        onClose={() => setShowNotaryProfile(false)}
+        title="Sarah Jenkins"
+        subtitle="Certified mobile notary supporting purchase, refinance, and seller-side closings."
+        maxWidth="560px"
       >
-        <div
-          className="w-full max-w-[560px] rounded-[22px] border border-[#dfe6f2] bg-white p-7 shadow-[0_28px_60px_rgba(20,48,112,0.18)]"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-ink-400">
-                Assigned Notary
-              </div>
-              <div className="mt-2 text-[30px] font-extrabold tracking-[-0.04em] text-ink-900">
-                Sarah Jenkins
-              </div>
-              <div className="mt-2 text-[14px] text-ink-500">
-                Certified mobile notary supporting purchase, refinance, and seller-side closings.
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNotaryProfile(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f7fc] text-xl text-ink-500 transition-colors hover:bg-[#edf3fe]"
-              aria-label="Close notary profile"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="mt-6 flex items-center gap-4 rounded-[18px] bg-[#f8fbff] p-5">
+        <div className="px-7 pb-8">
+          <div className="flex items-center gap-4 rounded-[18px] bg-[#f8fbff] p-5">
             <div className="h-18 w-18 overflow-hidden rounded-[16px] bg-[linear-gradient(135deg,#7a523f,#d0b38d)]" />
             <div>
               <div className="text-[18px] font-bold text-ink-900">Sarah Jenkins</div>
@@ -933,8 +913,7 @@ export function CompanyOrderDetailsPage() {
             </Button>
           </div>
         </div>
-      </div>
-    ) : null}
+      </Modal>
     </>
   );
 }
@@ -1239,7 +1218,7 @@ export function CompanyDocumentsDetailPage() {
 }
 
 export function CompanyTeamPage() {
-  const { teamMembers, addTeamMember } = useStore();
+  const { teamMembers, addTeamMember, updateTeamMember, removeTeamMember } = useStore();
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedMemberRole, setSelectedMemberRole] = useState<"Admin" | "Member">("Admin");
   const [teamSearch, setTeamSearch] = useState("");
@@ -1249,6 +1228,31 @@ export function CompanyTeamPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+
+  const { confirm } = useConfirmStore();
+
+  const handleDeleteMember = (email: string) => {
+    confirm({
+      title: "Remove Team Member?",
+      message: "Are you sure you want to remove this team member? This action cannot be undone.",
+      confirmLabel: "Remove Member",
+      type: "danger",
+      onConfirm: () => {
+        removeTeamMember(email);
+        toast.success("Member successfully removed.");
+      },
+    });
+  };
+
+  const handleEditMember = (member: TeamMember) => {
+    setEditingMember(member);
+    setName(member.name);
+    setEmail(member.email);
+    setPhone(member.phone || "");
+    setSelectedMemberRole(member.role);
+    setShowAddMemberModal(true);
+  };
 
   const teamAvatars: Record<string, string> = {
     "John Doe": "from-[#23334d] to-[#1e2940]",
@@ -1282,9 +1286,12 @@ export function CompanyTeamPage() {
           <Button
             className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]"
             onClick={() => {
+              const isEmail = teamSearch.includes("@");
               setName("");
-              setEmail("");
+              setEmail(isEmail ? teamSearch : "");
               setPhone("");
+              setSelectedMemberRole("Member");
+              setEditingMember(null);
               setShowAddMemberModal(true);
             }}
           >
@@ -1354,9 +1361,20 @@ export function CompanyTeamPage() {
                     </td>
                     <td className="px-6 py-5 text-[15px] text-ink-500">{member.email}</td>
                     <td className="px-6 py-5">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-[#f1f4f9] px-4 py-1.5 text-[13px] font-semibold text-ink-600">
-                        {member.role}
-                        <ChevronDown className="h-3.5 w-3.5 text-ink-400" />
+                      <div className="relative inline-flex items-center">
+                        <select
+                          value={member.role}
+                          onChange={(e) => {
+                            const newRole = e.target.value as "Admin" | "Member";
+                            updateTeamMember(member.email, { role: newRole });
+                            toast.success(`${member.name}'s role updated to ${newRole}`);
+                          }}
+                          className="appearance-none rounded-full bg-[#f1f4f9] pl-4 pr-8 py-1.5 text-[13px] font-bold text-ink-600 outline-none cursor-pointer hover:bg-brand-50 hover:text-brand-700 transition-all border border-transparent focus:border-brand-200"
+                        >
+                          <option value="Admin">Admin</option>
+                          <option value="Member">Member</option>
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-ink-400" />
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -1365,10 +1383,20 @@ export function CompanyTeamPage() {
                     <td className="px-6 py-5 text-[15px] text-ink-500">{member.joinedDate}</td>
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-5 text-ink-500">
-                        <button type="button" aria-label={`Edit ${member.name}`}>
+                        <button 
+                          type="button" 
+                          aria-label={`Edit ${member.name}`}
+                          onClick={() => handleEditMember(member)}
+                          className="hover:text-brand-600 transition-colors"
+                        >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button type="button" aria-label={`Delete ${member.name}`}>
+                        <button 
+                          type="button" 
+                          aria-label={`Delete ${member.name}`}
+                          onClick={() => handleDeleteMember(member.email)}
+                          className="hover:text-danger-600 transition-colors"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -1393,129 +1421,141 @@ export function CompanyTeamPage() {
         </Surface>
       </div>
 
-      {showAddMemberModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(15,23,42,0.42)] px-5"
-          onClick={() => setShowAddMemberModal(false)}
+      <Modal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        title={editingMember ? "Edit Team Member" : "Add New Member"}
+        subtitle={editingMember ? "Update the details for this team member" : "Invite a team member to your company account"}
+      >
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!name || !email) {
+              toast.error("Full name and email are required.");
+              return;
+            }
+
+            if (editingMember) {
+              updateTeamMember(editingMember.email, {
+                name,
+                email,
+                phone,
+                role: selectedMemberRole,
+              });
+              toast.success(`${name} has been updated!`);
+            } else {
+              addTeamMember({
+                name: name,
+                email: email,
+                phone: phone,
+                role: selectedMemberRole,
+                status: "Pending Invite",
+                joinedDate: new Date().toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                }),
+              });
+              toast.success(`${name} has been invited!`);
+            }
+            setShowAddMemberModal(false);
+          }}
         >
-          <div
-            className="w-full max-w-[760px] overflow-hidden rounded-[24px] border border-[#dfe6f2] bg-white shadow-[0_30px_70px_rgba(15,23,42,0.22)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-4 px-7 py-7">
-              <div>
-                <div className="text-[38px] font-extrabold tracking-[-0.04em] text-ink-900">
-                  Add New Member
-                </div>
-                <div className="mt-2 text-[16px] text-ink-500">
-                  Invite a team member to your company account
-                </div>
-              </div>
-              <button
-                type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-[#f6f8fd] hover:text-ink-700"
-                onClick={() => setShowAddMemberModal(false)}
-                aria-label="Close add member modal"
-              >
-                <X className="h-5 w-5" />
-              </button>
+          <div className="space-y-7 px-7 pb-7">
+            <div className="grid gap-5 md:grid-cols-2">
+              <Input
+                label="FULL NAME"
+                id="team-member-name"
+                name="name"
+                autoComplete="name"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]"
+              />
+              <Input
+                label="EMAIL ADDRESS"
+                id="team-member-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="john.doe@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]"
+              />
+              <Input
+                label="PHONE NUMBER (OPTIONAL)"
+                id="team-member-phone"
+                name="tel"
+                type="tel"
+                autoComplete="tel"
+                placeholder="+1 (555) 000-0000"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px] md:col-span-2"
+              />
             </div>
 
-            <div className="space-y-7 px-7 pb-7">
-              <div className="grid gap-5 md:grid-cols-2">
-                <Input
-                  label="FULL NAME"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]"
-                />
-                <Input
-                  label="EMAIL ADDRESS"
-                  placeholder="john.doe@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px]"
-                />
-                <Input
-                  label="PHONE NUMBER (OPTIONAL)"
-                  placeholder="+1 (555) 000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-[50px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 text-[15px] md:col-span-2"
-                />
+            <div>
+              <div className="mb-4 text-[13px] font-bold uppercase tracking-[0.08em] text-ink-400">
+                Select Member Role
               </div>
-
-              <div>
-                <div className="mb-4 text-[13px] font-bold uppercase tracking-[0.08em] text-ink-400">
-                  Select Member Role
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <button
-                    type="button"
-                    className={`flex flex-col rounded-[20px] border p-6 text-left transition-all ${selectedMemberRole === "Admin" ? "border-brand-300 bg-[#f4f8ff] ring-1 ring-brand-300" : "border-[#e5ebf5] bg-white hover:border-brand-200"}`}
-                    onClick={() => setSelectedMemberRole("Admin")}
-                  >
-                    <div className="text-[18px] font-extrabold text-ink-900">Admin</div>
-                    <div className="mt-2 text-[14px] leading-[1.6] text-ink-500">
-                      Full access to all orders, documents, and team settings
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex flex-col rounded-[20px] border p-6 text-left transition-all ${selectedMemberRole === "Member" ? "border-brand-300 bg-[#f4f8ff] ring-1 ring-brand-300" : "border-[#e5ebf5] bg-white hover:border-brand-200"}`}
-                    onClick={() => setSelectedMemberRole("Member")}
-                  >
-                    <div className="text-[18px] font-extrabold text-ink-900">Member</div>
-                    <div className="mt-2 text-[14px] leading-[1.6] text-ink-500">
-                      Access to view and manage assigned orders only
-                    </div>
-                  </button>
-                </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  className={`flex flex-col rounded-[20px] border p-6 text-left transition-all ${
+                    selectedMemberRole === "Admin" 
+                      ? "border-brand-300 bg-[#f4f8ff] ring-1 ring-brand-300" 
+                      : "border-[#e5ebf5] bg-white hover:border-brand-200"
+                  }`}
+                  onClick={() => setSelectedMemberRole("Admin")}
+                >
+                  <div className="text-[18px] font-extrabold text-ink-900">Admin</div>
+                  <div className="mt-2 text-[14px] leading-[1.6] text-ink-500">
+                    Full access to all orders, documents, and team settings
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className={`flex flex-col rounded-[20px] border p-6 text-left transition-all ${
+                    selectedMemberRole === "Member" 
+                      ? "border-brand-300 bg-[#f4f8ff] ring-1 ring-brand-300" 
+                      : "border-[#e5ebf5] bg-white hover:border-brand-200"
+                  }`}
+                  onClick={() => setSelectedMemberRole("Member")}
+                >
+                  <div className="text-[18px] font-extrabold text-ink-900">Member</div>
+                  <div className="mt-2 text-[14px] leading-[1.6] text-ink-500">
+                    Access to view and manage assigned orders only
+                  </div>
+                </button>
               </div>
-
-              <label className="flex items-center gap-3 rounded-[16px] bg-[#eef4ff] px-4 py-4 text-[16px] font-semibold text-brand-600">
-                <input defaultChecked type="checkbox" className="h-4 w-4" />
-                Send invitation email to this user
-              </label>
             </div>
 
-            <div className="flex items-center justify-end gap-3 border-t border-[#edf1f7] bg-[#fbfcff] px-7 py-5">
-              <Button
-                variant="outline"
-                className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"
-                onClick={() => setShowAddMemberModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="h-[46px] rounded-[12px] px-6 text-[15px] font-semibold"
-                onClick={() => {
-                  if (!name || !email) {
-                    alert("Full name and email are required.");
-                    return;
-                  }
-                  addTeamMember({
-                    name: name,
-                    email: email,
-                    role: selectedMemberRole,
-                    status: "Pending Invite",
-                    joinedDate: new Date().toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "2-digit",
-                      year: "numeric",
-                    }),
-                  });
-                  alert(`${name} has been invited!`);
-                  setShowAddMemberModal(false);
-                }}
-              >
-                Add Member
-              </Button>
-            </div>
+            <label className="flex items-center gap-3 rounded-[16px] bg-[#eef4ff] px-4 py-4 text-[16px] font-semibold text-brand-600">
+              <input defaultChecked type="checkbox" className="h-4 w-4" />
+              Send invitation email to this user
+            </label>
           </div>
-        </div>
-      )}
+
+          <div className="flex items-center justify-end gap-3 border-t border-[#edf1f7] bg-[#fbfcff] px-7 py-5">
+            <Button
+              variant="outline"
+              className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"
+              onClick={() => setShowAddMemberModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="h-[46px] rounded-[12px] px-6 text-[15px] font-semibold"
+            >
+              {editingMember ? "Save Changes" : "Add Member"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 }
@@ -1577,11 +1617,9 @@ export function CompanySettingsPage() {
     businessAddress: "782 Commerce Blvd, Austin TX",
   });
 
-  const [passwords, setPasswords] = useState({
-    current: "",
-    new: "",
-    confirm: "",
-  });
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [notifications, setNotifications] = useState([
     { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: true },
@@ -1596,30 +1634,24 @@ export function CompanySettingsPage() {
     );
   };
 
-  const handleSave = () => {
-    // Backend data field ready
-    const payload = {
-      personal: personalInfo,
-      company: companyInfo,
-      notificationSettings: notifications.reduce((acc, curr) => ({ ...acc, [curr.id]: curr.active }), {}),
-    };
-    console.log("Saving settings to backend...", payload);
-    alert("Company settings saved successfully!");
+  const handleSaveSettings = () => {
+    toast.success("Company settings saved successfully!");
     setIsEditMode(false);
   };
 
   const handleUpdatePassword = () => {
-    if (!passwords.current || !passwords.new || !passwords.confirm) {
-      alert("Please fill in all password fields.");
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Please fill in all password fields.");
       return;
     }
-    if (passwords.new !== passwords.confirm) {
-      alert("New passwords do not match.");
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match.");
       return;
     }
-    console.log("Updating password...", { current: passwords.current, new: passwords.new });
-    alert("Password updated successfully!");
-    setPasswords({ current: "", new: "", confirm: "" });
+    toast.success("Password updated successfully!");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   return (

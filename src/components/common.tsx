@@ -54,7 +54,7 @@ export function Input({
   icon?: ReactNode;
 }) {
   return (
-    <label className="block">
+    <label className="block" htmlFor={props.id}>
       {label ? <span className="mb-2 block text-sm font-semibold text-ink-900">{label}</span> : null}
       <span
         className={cn(
@@ -63,7 +63,11 @@ export function Input({
         )}
       >
         {icon}
-        <input className="h-full w-full bg-transparent outline-none placeholder:text-ink-300" {...props} />
+        <input 
+          id={props.id}
+          className="h-full w-full bg-transparent outline-none placeholder:text-ink-300" 
+          {...props} 
+        />
       </span>
     </label>
   );
@@ -92,23 +96,30 @@ export function Select({
   label,
   options,
   className,
-}: {
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & {
   label?: string;
   options: string[];
-  className?: string;
 }) {
   return (
     <label className="block">
       {label ? <span className="mb-2 block text-sm font-semibold text-ink-900">{label}</span> : null}
-      <span
-        className={cn(
-          "flex h-13 items-center justify-between rounded-xl border border-ink-100 bg-white px-4 text-sm text-ink-700",
-          className,
-        )}
-      >
-        <span>{options[0]}</span>
-        <ChevronDown className="h-4 w-4 text-ink-400" />
-      </span>
+      <div className="relative">
+        <select
+          className={cn(
+            "flex h-13 w-full appearance-none items-center justify-between rounded-xl border border-ink-100 bg-white px-4 text-sm text-ink-700 outline-none focus:border-brand-200",
+            className,
+          )}
+          {...props}
+        >
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+      </div>
     </label>
   );
 }
@@ -292,5 +303,57 @@ export function Table({
       </div>
       {footer ? <div className="border-t border-ink-100 px-6 py-4">{footer}</div> : null}
     </Surface>
+  );
+}
+
+import { X } from "lucide-react";
+
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  maxWidth = "760px",
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  maxWidth?: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-5 backdrop-blur-[2px] transition-all duration-300"
+      onClick={onClose}
+    >
+      <div
+        className={cn(
+          "w-full overflow-hidden rounded-[24px] border border-[#dfe6f2] bg-white shadow-[0_30px_70px_rgba(15,23,42,0.22)] animate-in zoom-in-95 duration-200",
+        )}
+        style={{ maxWidth }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 px-7 py-7">
+          <div>
+            <div className="text-[32px] font-extrabold tracking-[-0.04em] text-ink-900 md:text-[38px]">
+              {title}
+            </div>
+            {subtitle ? <div className="mt-2 text-[15px] text-ink-500 md:text-[16px]">{subtitle}</div> : null}
+          </div>
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-[#f6f8fd] hover:text-ink-700"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
 }
