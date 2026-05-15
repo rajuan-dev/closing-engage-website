@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, Download, Eye, FileText, FolderKanban, Hourglass, Info, MapPin, Pencil, Plus, Printer, RotateCw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserPlus, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Input, Modal, Select, Surface, Textarea } from "@/components/common";
@@ -6,6 +6,7 @@ import { useStore } from "@/store/useStore";
 import type { TeamMember } from "@/types/models";
 import { toast } from "@/store/useToastStore";
 import { useConfirmStore } from "@/store/useConfirmStore";
+import { cn } from "@/lib/utils";
 
 export function CompanyDashboardPage() {
   const { companyOrders } = useStore();
@@ -922,6 +923,13 @@ export function CompanyDocumentsPage() {
   const { companyDocuments } = useStore();
   const [docSearch, setDocSearch] = useState("");
   const [docStatusFilter, setDocStatusFilter] = useState<"All" | "Approved" | "Pending">("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [docSearch, docStatusFilter]);
 
   const filteredDocs = companyDocuments.filter((doc) => {
     const matchesSearch =
@@ -932,6 +940,9 @@ export function CompanyDocumentsPage() {
 
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredDocs.length / itemsPerPage);
+  const paginatedDocs = filteredDocs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="space-y-7">
@@ -960,13 +971,10 @@ export function CompanyDocumentsPage() {
             options={["All", "Approved", "Pending"]} 
             className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" 
           />
-          <div className="flex h-[50px] items-center justify-between rounded-[14px] border border-[#e5ebf5] bg-white px-4 text-sm text-ink-700">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-ink-400" />
-              <span>Date: Any time</span>
-            </div>
-            <ChevronDown className="h-4 w-4 text-ink-400" />
-          </div>
+          <Select 
+            options={["Date: Any time", "Last 7 Days", "Last 30 Days", "This Year"]} 
+            className="h-[50px] rounded-[14px] border-[#e5ebf5] bg-white" 
+          />
           <button onClick={() => { setDocSearch(""); setDocStatusFilter("All"); }} className="flex h-[50px] items-center justify-center rounded-[14px] border border-[#e5ebf5] bg-white text-brand-600 transition-colors hover:bg-[#f5f8ff]">
             <SlidersHorizontal className="h-4 w-4" />
           </button>
@@ -986,26 +994,35 @@ export function CompanyDocumentsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredDocs.map((doc) => (
-                <tr key={doc.id} className="border-t border-[#edf1f7]">
+              {paginatedDocs.map((doc) => (
+                <tr key={doc.id} className="border-t border-[#edf1f7] hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#fff3f3] text-danger-600">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#fff3f3] text-danger-600 shadow-sm">
                         <FileText className="h-4 w-4" />
                       </div>
                       <span className="text-[16px] font-semibold text-ink-900">{doc.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-[15px] text-ink-600">{doc.orderId.replace("ORD-", "ORD-")}</td>
+                  <td className="px-6 py-5 text-[15px] font-medium text-ink-600">{doc.orderId}</td>
                   <td className="px-6 py-5 text-[15px] text-ink-600">{doc.uploadDate}</td>
                   <td className="px-6 py-5 text-[15px] text-ink-600">{doc.size}</td>
                   <td className="px-6 py-5"><Badge status={doc.status} /></td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-5 text-brand-600">
-                      <Link to="/company/documents/closing-disclosure-final" aria-label={`View ${doc.name}`}>
+                      <Link 
+                        to={`/company/documents/${doc.id}`} 
+                        className="hover:text-brand-700 transition-colors"
+                        aria-label={`View ${doc.name}`}
+                      >
                         <Eye className="h-5 w-5" />
                       </Link>
-                      <button type="button" aria-label={`Download ${doc.name}`}>
+                      <button 
+                        type="button" 
+                        onClick={() => toast.info(`Downloading ${doc.name}...`)}
+                        className="hover:text-brand-700 transition-colors"
+                        aria-label={`Download ${doc.name}`}
+                      >
                         <Download className="h-5 w-5" />
                       </button>
                     </div>
@@ -1016,15 +1033,36 @@ export function CompanyDocumentsPage() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[#edf1f7] px-6 py-5 text-sm text-ink-500">
-          <span>Showing {filteredDocs.length} of {companyDocuments.length} documents</span>
-          <div className="flex items-center gap-4">
-            <button className="text-ink-500">
+          <span>
+            Showing <span className="font-bold text-ink-900">{Math.min(filteredDocs.length, (currentPage - 1) * itemsPerPage + 1)}-{Math.min(filteredDocs.length, currentPage * itemsPerPage)}</span> of <span className="font-bold text-ink-900">{filteredDocs.length}</span> documents
+          </span>
+          <div className="flex items-center gap-2">
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dfe6f2] text-ink-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+            >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-600 font-semibold text-white">1</span>
-            <span className="font-medium text-ink-700">2</span>
-            <span className="font-medium text-ink-700">3</span>
-            <button className="text-ink-500">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={cn(
+                  "flex h-9 w-9 items-center justify-center rounded-[10px] text-[14px] font-bold transition-all",
+                  currentPage === i + 1 
+                    ? "bg-brand-600 text-white shadow-lg shadow-brand-100" 
+                    : "text-ink-500 hover:bg-slate-50"
+                )}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dfe6f2] text-ink-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -1035,6 +1073,10 @@ export function CompanyDocumentsPage() {
 }
 
 export function CompanyDocumentsDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { companyDocuments } = useStore();
+  const doc = companyDocuments.find((d) => d.id === id) || companyDocuments[0];
+
   return (
     <div className="space-y-6">
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
@@ -1046,13 +1088,13 @@ export function CompanyDocumentsDetailPage() {
             </Link>
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <h1 className="text-[44px] font-extrabold tracking-[-0.045em] text-ink-900">
-                Closing_Disclosure_Final.pdf
+                {doc.name}
               </h1>
-              <Badge status="Approved" />
+              <Badge status={doc.status} />
             </div>
             <div className="mt-4 flex items-center gap-2 text-[16px] text-ink-500">
               <FileText className="h-4 w-4" />
-              Order ID: ORD-99281-TX
+              Order ID: {doc.orderId}
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -1147,19 +1189,19 @@ export function CompanyDocumentsDetailPage() {
               <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">File Details</div>
             </div>
             <div className="space-y-6">
-              <Detail label="FILE NAME" value="Closing_Disclosure_Final.pdf" />
+              <Detail label="FILE NAME" value={doc.name} />
               <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-2">
-                <Detail label="SIZE" value="2.4 MB" />
-                <Detail label="STATUS" value="Approved" valueClassName="text-brand-600" />
+                <Detail label="SIZE" value={doc.size} />
+                <Detail label="STATUS" value={doc.status} valueClassName="text-brand-600" />
               </div>
-              <Detail label="UPLOAD DATE" value="Feb 24, 2026" />
+              <Detail label="UPLOAD DATE" value={doc.uploadDate} />
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">UPLOADED BY</div>
                 <div className="mt-3 flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef4ff] text-[11px] font-bold text-brand-600">
-                    SJ
+                    {doc.uploadedBy.split(" ").pop()?.slice(0, 2).toUpperCase() || "NB"}
                   </div>
-                  <div className="text-[16px] font-semibold text-ink-900">Notary Sarah Jones</div>
+                  <div className="text-[16px] font-semibold text-ink-900">{doc.uploadedBy}</div>
                 </div>
               </div>
             </div>
@@ -1754,8 +1796,8 @@ export function CompanySettingsPage() {
                 placeholder="••••••••" 
                 type="password" 
                 disabled={!isEditMode}
-                value={passwords.current}
-                onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
@@ -1763,8 +1805,8 @@ export function CompanySettingsPage() {
                 placeholder="••••••••" 
                 type="password" 
                 disabled={!isEditMode}
-                value={passwords.new}
-                onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
@@ -1772,8 +1814,8 @@ export function CompanySettingsPage() {
                 placeholder="••••••••" 
                 type="password" 
                 disabled={!isEditMode}
-                value={passwords.confirm}
-                onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Button
@@ -1824,7 +1866,7 @@ export function CompanySettingsPage() {
         <Button 
           disabled={!isEditMode}
           className="h-[46px] rounded-[12px] px-8 text-[15px] font-semibold disabled:opacity-50" 
-          onClick={handleSave}
+          onClick={handleSaveSettings}
         >
           Save Changes
         </Button>

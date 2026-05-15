@@ -72,6 +72,14 @@ export const companyDocuments: DocumentRecord[] = [
   { id: "2", name: "Title_Commitment_Schedule_A.pdf", orderId: "ORD-99281", uploadDate: "Mar 17, 2026", size: "1.1 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
   { id: "3", name: "Wire_Instructions_Verified.pdf", orderId: "ORD-88210", uploadDate: "Mar 16, 2026", size: "450 KB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
   { id: "4", name: "Warranty_Deed_Draft.pdf", orderId: "ORD-99281", uploadDate: "Mar 15, 2026", size: "3.2 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "5", name: "Homeowners_Insurance_Proof.pdf", orderId: "ORD-92831", uploadDate: "Mar 14, 2026", size: "1.5 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "6", name: "Property_Tax_Verification.pdf", orderId: "ORD-92831", uploadDate: "Mar 13, 2026", size: "890 KB", status: "Pending", uploadedBy: "Notary Sarah Jones" },
+  { id: "7", name: "Closing_Package_V1.pdf", orderId: "ORD-92830", uploadDate: "Mar 12, 2026", size: "12.4 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "8", name: "Notary_Acknowledgment.pdf", orderId: "ORD-92830", uploadDate: "Mar 11, 2026", size: "320 KB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "9", name: "Buyer_ID_Copy.pdf", orderId: "ORD-92829", uploadDate: "Mar 10, 2026", size: "1.2 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "10", name: "Seller_Signed_Packet.pdf", orderId: "ORD-92828", uploadDate: "Mar 09, 2026", size: "8.7 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "11", name: "Escrow_Instruction_Letter.pdf", orderId: "ORD-92827", uploadDate: "Mar 08, 2026", size: "540 KB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
+  { id: "12", name: "Final_Settlement_Statement.pdf", orderId: "ORD-99281", uploadDate: "Mar 07, 2026", size: "2.1 MB", status: "Approved", uploadedBy: "Notary Sarah Jones" },
 ];
 
 export const teamMembers: TeamMember[] = [
