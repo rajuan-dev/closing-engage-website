@@ -1077,6 +1077,28 @@ export function CompanyDocumentsDetailPage() {
   const { companyDocuments } = useStore();
   const doc = companyDocuments.find((d) => d.id === id) || companyDocuments[0];
 
+  const [zoom, setZoom] = useState(100);
+  const [previewPage, setPreviewPage] = useState(1);
+  const totalPreviewPages = 5;
+
+  const handlePrint = () => {
+    toast.info("Preparing document for print...");
+    setTimeout(() => window.print(), 1000);
+  };
+
+  const handleDownload = () => {
+    toast.success(`Started downloading: ${doc.name}`);
+    // Simulate a real download experience
+    const dummyBlob = new Blob(["Mock PDF Content"], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(dummyBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", doc.name);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
@@ -1098,11 +1120,11 @@ export function CompanyDocumentsDetailPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" className="h-[50px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold">
+            <Button onClick={handlePrint} variant="outline" className="h-[50px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold">
               <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>
-            <Button className="h-[50px] rounded-[12px] px-6 text-[15px] font-semibold">
+            <Button onClick={handleDownload} className="h-[50px] rounded-[12px] px-6 text-[15px] font-semibold">
               <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
@@ -1115,65 +1137,98 @@ export function CompanyDocumentsDetailPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="flex items-center justify-between text-[15px] text-ink-600">
               <div className="flex items-center gap-6">
-                <button className="flex items-center gap-2 font-semibold text-ink-700">
+                <button 
+                  onClick={() => setZoom(prev => Math.max(50, prev - 10))}
+                  className="flex items-center gap-2 font-semibold text-ink-700 hover:text-brand-600 transition-colors"
+                >
                   <ZoomOut className="h-4 w-4" />
-                  100%
+                  {zoom}%
                 </button>
-                <button className="text-ink-500">
+                <button 
+                  onClick={() => setZoom(prev => Math.min(200, prev + 10))}
+                  className="text-ink-500 hover:text-brand-600 transition-colors"
+                >
                   <ZoomIn className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex items-center gap-5">
-                <button className="text-ink-500">
+                <button 
+                  disabled={previewPage === 1}
+                  onClick={() => setPreviewPage(p => p - 1)}
+                  className="text-ink-500 hover:text-brand-600 disabled:opacity-30 transition-all"
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <div className="flex items-center gap-3">
                   <span>Page</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f4f7fc] font-semibold text-ink-900">1</span>
-                  <span>of 5</span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-[#f4f7fc] font-bold text-ink-900 border border-[#e5ebf5]">{previewPage}</span>
+                  <span>of {totalPreviewPages}</span>
                 </div>
-                <button className="text-ink-500">
+                <button 
+                  disabled={previewPage === totalPreviewPages}
+                  onClick={() => setPreviewPage(p => p + 1)}
+                  className="text-ink-500 hover:text-brand-600 disabled:opacity-30 transition-all"
+                >
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex items-center gap-6">
-                <button className="text-ink-500">
+                <button onClick={() => toast.info("Searching document...")} className="text-ink-500 hover:text-brand-600 transition-colors">
                   <Search className="h-4 w-4" />
                 </button>
-                <button className="text-ink-500">
+                <button onClick={() => { setZoom(100); setPreviewPage(1); }} className="text-ink-500 hover:text-brand-600 transition-colors">
                   <RotateCw className="h-4 w-4" />
                 </button>
               </div>
             </div>
           </Surface>
 
-          <Surface className="rounded-[22px] border border-[#dfe6f2] bg-[#edf2f8] p-10 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+          <Surface className="printable-document rounded-[22px] border border-[#dfe6f2] bg-[#edf2f8] p-10 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mx-auto min-h-[1180px] max-w-[820px] bg-white px-12 py-12 shadow-[0_18px_38px_rgba(20,48,112,0.08)]">
-              <div className="relative overflow-hidden">
+              <div className="relative">
                 <div className="mb-12 flex justify-between">
-                  <div className="h-10 w-40 rounded-[2px] bg-[#edf2f8]" />
-                  <div className="space-y-3">
-                    <div className="h-4 w-32 rounded-[2px] bg-[#edf2f8]" />
-                    <div className="h-4 w-28 rounded-[2px] bg-[#f3f6fb]" />
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-brand-600" />
+                    <div className="text-xl font-bold tracking-tight text-ink-900">Closing Engage</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-ink-400">DOCUMENT ID</div>
+                    <div className="text-sm font-semibold text-ink-700">{doc.id}-{doc.orderId}</div>
                   </div>
                 </div>
-                <div className="h-8 w-[52%] rounded-[2px] bg-[#e7edf6]" />
-                <div className="mt-8 space-y-3">
-                  <div className="h-3 w-full rounded-[2px] bg-[#eff3f9]" />
-                  <div className="h-3 w-full rounded-[2px] bg-[#eff3f9]" />
-                  <div className="h-3 w-[84%] rounded-[2px] bg-[#eff3f9]" />
+                <div className="border-b border-ink-100 pb-8">
+                  <h2 className="text-3xl font-extrabold text-ink-900">{doc.name.replace(".pdf", "").replace(/_/g, " ")}</h2>
+                  <p className="mt-2 text-sm text-ink-500">Official Record of Transaction • {doc.uploadDate}</p>
                 </div>
-                <div className="mt-14 flex gap-8">
-                  <div className="h-4 w-24 rounded-[2px] bg-[#e8edf6]" />
-                  <div className="h-4 w-24 rounded-[2px] bg-[#e8edf6]" />
+                <div className="mt-10 space-y-6">
+                  <div className="space-y-3">
+                    <div className="text-[11px] font-bold uppercase tracking-widest text-ink-400">PARTIES INVOLVED</div>
+                    <div className="grid grid-cols-2 gap-8">
+                       <div className="rounded-xl border border-ink-100 bg-slate-50/50 p-4">
+                         <div className="text-[10px] font-bold text-ink-400">ISSUER</div>
+                         <div className="mt-1 font-bold text-ink-900">Estate Flux Title Company</div>
+                       </div>
+                       <div className="rounded-xl border border-ink-100 bg-slate-50/50 p-4">
+                         <div className="text-[10px] font-bold text-ink-400">RECIPIENT</div>
+                         <div className="mt-1 font-bold text-ink-900">Robert & Martha Henderson</div>
+                       </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4 pt-4">
+                    <div className="text-[11px] font-bold uppercase tracking-widest text-ink-400">LEGAL DISCLOSURE</div>
+                    <p className="text-[13px] leading-[1.8] text-ink-600">
+                      This document serves as an official record for the transaction associated with Order ID {doc.orderId}. 
+                      The information contained herein is confidential and intended solely for the use of the individual 
+                      or entity to whom they are addressed. If you have received this document in error, please notify 
+                      the system manager.
+                    </p>
+                    <div className="h-3 w-full rounded-full bg-slate-100" />
+                    <div className="h-3 w-[92%] rounded-full bg-slate-100" />
+                    <div className="h-3 w-[84%] rounded-full bg-slate-100" />
+                  </div>
                 </div>
-                <div className="mt-4 grid gap-8 md:grid-cols-2">
-                  <div className="h-20 rounded-[4px] border border-dashed border-[#dbe4f1] bg-[#fbfdff]" />
-                  <div className="h-20 rounded-[4px] border border-dashed border-[#dbe4f1] bg-[#fbfdff]" />
-                </div>
-                <div className="mt-14 h-36 rounded-[4px] bg-[#f1f5fa]" />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-                  <div className="rotate-[-52deg] text-[112px] font-extrabold tracking-[0.06em] text-[rgba(20,48,112,0.05)]">
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.03]">
+                  <div className="rotate-[-45deg] text-[140px] font-black tracking-tighter">
                     CONFIDENTIAL
                   </div>
                 </div>

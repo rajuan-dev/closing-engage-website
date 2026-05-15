@@ -81,3 +81,26 @@ textarea {
 .surface {
   @apply rounded-[16px] border border-white/70 bg-white shadow-[0_8px_30px_rgba(20,48,112,0.06)];
 }
+
+@media print {
+  body {
+    visibility: hidden;
+    background: white !important;
+  }
+  .printable-document, .printable-document * {
+    visibility: visible !important;
+  }
+  .printable-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  /* Ensure backgrounds are printed */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
