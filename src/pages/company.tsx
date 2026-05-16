@@ -522,8 +522,8 @@ export function CompanyOrdersNewPage() {
   };
 
   const handleSubmit = () => {
-    if (!formData.clientName || !formData.address) {
-      toast.error("Client Name and Property Address are required.");
+    if (!formData.title || !formData.clientName || !formData.address) {
+      toast.error("Order Title, Client Name, and Property Address are required.");
       return;
     }
 
@@ -536,7 +536,30 @@ export function CompanyOrdersNewPage() {
        date: formData.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     };
 
+    // Add order to global store
     useStore.getState().addCompanyOrder(newOrder as any);
+
+    // Add uploaded files to global documents store
+    uploadedFiles.forEach((file) => {
+      const docRecord = {
+        id: "DOC-" + (Math.floor(Math.random() * 90000) + 10000),
+        name: file.name,
+        orderId: newOrder.id.replace("#", ""),
+        uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
+        status: "Submitted" as const,
+        uploadedBy: "Alex Sterling"
+      };
+      useStore.getState().addCompanyDocument(docRecord);
+    });
+
+    // Push dynamic activity/notification entry
+    useStore.getState().addActivity({
+      title: "New Order Created",
+      description: `Order ${newOrder.id} has been successfully created for ${formData.clientName}.`,
+      time: "Just now"
+    });
+
     toast.success("Order created successfully!");
     navigate("/company/orders");
   };
