@@ -10,7 +10,27 @@ import { useConfirmStore } from "@/store/useConfirmStore";
 import { cn } from "@/lib/utils";
 
 export function CompanyDashboardPage() {
-  const { companyOrders } = useStore();
+  const { companyOrders, recentActivities } = useStore();
+
+  const activityItems = recentActivities.map((act) => {
+    let Icon = FileText;
+    let tone: "brand" | "warning" | "success" = "brand";
+    if (act.title.toLowerCase().includes("assign")) {
+      Icon = CircleDot;
+      tone = "brand";
+    } else if (act.title.toLowerCase().includes("status") || act.title.toLowerCase().includes("review")) {
+      Icon = Hourglass;
+      tone = "warning";
+    } else if (act.title.toLowerCase().includes("approve") || act.title.toLowerCase().includes("complete")) {
+      Icon = CheckCircle2;
+      tone = "success";
+    }
+    return {
+      ...act,
+      icon: Icon,
+      tone,
+    };
+  });
 
   const dashboardStats = [
     { title: "Total Orders", value: companyOrders.length.toString(), icon: FileText, tone: "brand" },
