@@ -136,7 +136,7 @@ export function CompanyDashboardPage() {
               <Icon className="h-5 w-5" />
             </div>
             <div className="text-[13px] font-semibold text-ink-400">{title}</div>
-            <div className="mt-2 text-[46px] font-extrabold leading-none tracking-[-0.05em] text-ink-900">
+            <div className="mt-2 text-[28px] font-bold tracking-tight text-ink-900">
               {value}
             </div>
           </Surface>
@@ -144,8 +144,8 @@ export function CompanyDashboardPage() {
       </div>
 
       <Surface className="overflow-hidden rounded-[18px] border border-[#e4ebf5] bg-white shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-        <div className="flex items-center justify-between px-7 py-6">
-          <h2 className="text-[30px] font-extrabold tracking-[-0.04em] text-ink-900">Recent Orders</h2>
+        <div className="flex items-center justify-between px-7 py-4">
+          <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Recent Orders</h2>
           <Link to="/company/orders" className="text-sm font-semibold text-brand-600">
             View All Orders
           </Link>
@@ -196,7 +196,7 @@ export function CompanyDashboardPage() {
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.7fr]">
         <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-[30px] font-extrabold tracking-[-0.04em] text-ink-900">Order Status Overview</h2>
+            <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Order Status Overview</h2>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-300">Monthly Progress</div>
           </div>
           <div className="mt-9 space-y-7">
@@ -215,7 +215,7 @@ export function CompanyDashboardPage() {
         </Surface>
 
         <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-          <h2 className="text-[30px] font-extrabold tracking-[-0.04em] text-ink-900">Recent Activities</h2>
+          <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Recent Activities</h2>
           <div className="mt-7 min-h-[300px] flex flex-col justify-center">
             {activityItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-center animate-in fade-in duration-500">
@@ -312,10 +312,10 @@ export function CompanyOrdersPage() {
     <div className="space-y-7">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-brand-600">
+          <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
             Orders
           </h1>
-          <p className="mt-2 text-[18px] leading-[1.7] text-ink-500">
+          <p className="mt-1 text-[13px] text-ink-500">
             Manage and track all your closing orders
           </p>
         </div>
@@ -374,7 +374,7 @@ export function CompanyOrdersPage() {
               <Icon className="h-5 w-5" />
             </div>
             <div className="text-[13px] font-semibold text-ink-400">{title}</div>
-            <div className="mt-2 text-[46px] font-extrabold leading-none tracking-[-0.05em] text-ink-900">
+            <div className="mt-2 text-[28px] font-bold tracking-tight text-ink-900">
               {value}
             </div>
           </Surface>
@@ -572,10 +572,10 @@ export function CompanyOrdersNewPage() {
             Orders <span className="mx-1 text-ink-200">•</span> Create New Order
           </div>
           <div className="mt-4">
-            <h1 className="text-[42px] font-extrabold leading-[1.04] tracking-[-0.045em] text-ink-900">
+            <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
               Create New Order
             </h1>
-            <p className="mt-2 text-[17px] leading-[1.7] text-ink-500">
+            <p className="mt-1 text-[13px] text-ink-500">
               Fill in the details below to initiate a new title closing process.
             </p>
           </div>
@@ -905,7 +905,7 @@ export function CompanyOrderDetailsPage() {
 
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-1 flex-wrap items-center gap-4">
-          <h1 className="text-[46px] font-extrabold leading-none tracking-[-0.05em] text-ink-900">
+          <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
             Order {order.id}
           </h1>
           <Badge status={order.status as any} />
@@ -1262,10 +1262,10 @@ export function CompanyDocumentsPage() {
   return (
     <div className="space-y-7">
       <div>
-        <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
+        <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
           Documents
         </h1>
-        <p className="mt-2 text-[18px] leading-[1.7] text-ink-500">
+        <p className="mt-1 text-[13px] text-ink-500">
           Access and download your approved files
         </p>
       </div>
@@ -1432,7 +1432,7 @@ export function CompanyDocumentsDetailPage() {
               Back to Documents
             </Link>
             <div className="mt-5 flex flex-wrap items-center gap-4">
-              <h1 className="text-[44px] font-extrabold tracking-[-0.045em] text-ink-900">
+              <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
                 {doc.name}
               </h1>
               <Badge status={doc.status} />
@@ -1696,10 +1696,10 @@ export function CompanyTeamPage() {
       <div className="space-y-7">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
-            <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
+            <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
               Team Management
             </h1>
-            <p className="mt-2 text-[18px] leading-[1.7] text-ink-500">
+            <p className="mt-1 text-[13px] text-ink-500">
               Manage your company team members and roles
             </p>
           </div>
@@ -2130,8 +2130,8 @@ export function CompanySettingsPage() {
               </div>
             </div>
             <div>
-              <div className="text-[34px] font-extrabold tracking-[-0.04em] text-ink-900">{personalInfo.fullName}</div>
-              <div className="mt-2 text-[15px] text-ink-500">{personalInfo.email}</div>
+              <div className="text-[24px] font-bold tracking-tight text-ink-900">{personalInfo.fullName}</div>
+              <div className="mt-1.5 text-[13px] text-ink-500">{personalInfo.email}</div>
               <div className="mt-1 text-[15px] text-ink-500">{companyInfo.companyName}</div>
             </div>
           </div>
@@ -2153,8 +2153,8 @@ export function CompanySettingsPage() {
       <div className="grid gap-6 xl:grid-cols-[1.18fr_0.56fr]">
         <div className="space-y-6">
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30_rgba(20,48,112,0.05)]">
-            <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Personal Information</div>
-            <div className="mt-6 grid gap-5 md:grid-cols-2">
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Personal Information</div>
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
               <Input 
                 label="FULL NAME" 
                 disabled={!isEditMode}

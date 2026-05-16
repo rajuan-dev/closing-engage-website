@@ -21,10 +21,10 @@ export function NotaryDashboardPage() {
     <div className="space-y-7">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
+          <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
             Assigned Workload
           </h1>
-          <p className="mt-2 max-w-[680px] text-[18px] leading-[1.7] text-ink-500">
+          <p className="mt-1 text-[13px] text-ink-500">
             Manage your active signing appointments and document verifications from a central atrium.
           </p>
         </div>
@@ -58,17 +58,17 @@ export function NotaryDashboardPage() {
                 {helper}
               </div>
             </div>
-            <div className="text-[46px] font-extrabold leading-none tracking-[-0.05em] text-ink-900">
+            <div className="text-[28px] font-bold tracking-tight text-ink-900">
               {value}
             </div>
-            <div className="mt-2 text-[14px] font-semibold text-ink-500">{title}</div>
+            <div className="mt-1.5 text-[13px] font-semibold text-ink-500">{title}</div>
           </Surface>
         ))}
       </div>
 
       <Surface className="overflow-hidden rounded-[18px] border border-[#e4ebf5] bg-white shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-        <div className="flex items-center justify-between px-6 py-5">
-          <div className="text-[30px] font-extrabold tracking-[-0.04em] text-ink-900">Assigned Orders</div>
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="text-[17px] font-bold tracking-tight text-ink-900">Assigned Orders</div>
           <div className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-brand-600">
             <span className="h-2 w-2 rounded-full bg-brand-600" />
             Live Updates
@@ -474,7 +474,7 @@ export function NotaryOrderDetailPage() {
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-[46px] font-extrabold tracking-[-0.045em] text-ink-900">Order ID {order.id}</h1>
+          <h1 className="text-[26px] font-bold tracking-tight text-ink-900">Order ID {order.id}</h1>
           <Badge status={orderStatus as any} />
         </div>
         <div className="flex gap-3">
@@ -817,10 +817,10 @@ export function NotaryUploadDocumentsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
+        <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
           Upload Documents
         </h1>
-        <p className="mt-2 max-w-[760px] text-[18px] leading-[1.7] text-ink-500">
+        <p className="mt-1 text-[13px] text-ink-500">
           Upload scanback documents for your assigned orders. Ensure all pages are legible and included in a single PDF file where possible.
         </p>
       </div>
@@ -875,10 +875,10 @@ export function NotaryUploadDocumentsPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[18px] bg-[#eaf0ff] text-brand-600">
               <CloudUpload className="h-7 w-7" />
             </div>
-            <div className="mt-6 text-[34px] font-extrabold tracking-[-0.04em] text-ink-900">
+            <div className="mt-4 text-[18px] font-bold tracking-tight text-ink-900">
               Drag & Drop Scanbacks
             </div>
-            <div className="mx-auto mt-3 max-w-[420px] text-[16px] leading-[1.7] text-ink-500">
+            <div className="mx-auto mt-2 max-w-[420px] text-[13px] text-ink-500">
               Drop your PDF files here or click to browse your computer.
             </div>
             <Button
@@ -1155,10 +1155,10 @@ export function NotarySettingsPage() {
         </div>
         <div>
           <div className="flex flex-wrap items-center gap-4">
-            <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
+            <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
               {fullName}
             </h1>
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#d9f8e7] px-4 py-1.5 text-[12px] font-extrabold uppercase tracking-[0.14em] text-[#138e59]">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#d9f8e7] px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#138e59]">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Verified Notary
             </div>
@@ -1176,10 +1176,10 @@ export function NotarySettingsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.12fr_0.48fr]">
         <div className="space-y-6">
-          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="mb-6 flex items-center gap-3">
-              <UserRound className="h-5 w-5 text-brand-600" />
-              <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Personal Information</div>
+          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+            <div className="mb-5 flex items-center gap-2.5">
+              <UserRound className="h-4.5 w-4.5 text-brand-600" />
+              <div className="text-[17px] font-bold tracking-tight text-ink-900">Personal Information</div>
             </div>
             <div className="grid gap-5 md:grid-cols-2">
               <Input 
@@ -1470,10 +1470,10 @@ export function NotaryCredentialsPage() {
     <div className="space-y-7">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
+          <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
             Notary Credentials
           </h1>
-          <p className="mt-2 text-[18px] leading-[1.7] text-ink-500">
+          <p className="mt-1 text-[13px] text-ink-500">
             View your license and verification details
           </p>
         </div>
@@ -1504,8 +1504,8 @@ export function NotaryCredentialsPage() {
                 <ShieldCheck className="h-7 w-7" />
               </div>
               <div>
-                <div className="text-[38px] font-extrabold tracking-[-0.04em] text-ink-900">Primary Commission</div>
-                <div className="mt-2 text-[18px] text-ink-500">California Secretary of State</div>
+                <div className="text-[18px] font-bold tracking-tight text-ink-900">Primary Commission</div>
+                <div className="mt-1 text-[13px] text-ink-500">California Secretary of State</div>
               </div>
             </div>
             <Badge status="Verified" />
@@ -1524,16 +1524,16 @@ export function NotaryCredentialsPage() {
             </div>
             <Badge status={notaryProfile.backgroundScreeningStatus} />
           </div>
-          <div className="text-[30px] font-extrabold tracking-[-0.03em] text-ink-900">Background Screening</div>
-          <div className="mt-4 text-[16px] leading-[1.8] text-ink-500 whitespace-pre-line">
+          <div className="text-[18px] font-bold tracking-tight text-ink-900">Background Screening</div>
+          <div className="mt-2 text-[13px] text-ink-500 whitespace-pre-line">
             {notaryProfile.backgroundScreeningDetail}
           </div>
         </Surface>
       </div>
 
       <Surface className="overflow-hidden rounded-[18px] border border-[#e4ebf5] bg-white shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-        <div className="flex items-center justify-between px-6 py-6">
-          <div className="text-[34px] font-extrabold tracking-[-0.04em] text-ink-900">Credential History</div>
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="text-[17px] font-bold tracking-tight text-ink-900">Credential History</div>
           <button
             type="button"
             onClick={() => setShowOnlyVerified((current) => !current)}
