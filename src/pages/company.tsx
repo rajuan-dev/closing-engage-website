@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, Download, Eye, FileText, FolderKanban, Hourglass, Info, MapPin, Pencil, Plus, Printer, RotateCw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserPlus, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Input, Modal, Select, Surface, Textarea } from "@/components/common";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
 import type { TeamMember } from "@/types/models";
 import { toast } from "@/store/useToastStore";
@@ -730,6 +731,7 @@ export function CompanyOrderDetailsPage() {
   const docs = companyDocuments.filter(d => d.orderId === order.id.replace("#", ""));
 
   const [showNotaryProfile, setShowNotaryProfile] = useState(false);
+  const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
 
   const statuses = ["Received", "Assigned", "Under Review", "Approved", "Completed"];
   const currentIdx = statuses.indexOf(order.status);
@@ -822,16 +824,29 @@ export function CompanyOrderDetailsPage() {
                   <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#fff1f1] text-danger-600">
                     <FileText className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <div className="text-[15px] font-semibold text-ink-900">{document.name}</div>
                     <div className="mt-1 text-[12px] text-ink-400">Uploaded {document.uploadDate} • {document.size}</div>
                   </div>
+                  <button 
+                    onClick={() => setViewingFile({ name: document.name, url: "#" })}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
                 </div>
               )) : (
                 <div className="text-center py-6 text-ink-400 text-sm">No documents uploaded yet</div>
               )}
             </div>
           </Surface>
+
+          <DocumentViewer 
+            isOpen={!!viewingFile}
+            onClose={() => setViewingFile(null)}
+            fileName={viewingFile?.name || ""}
+            fileUrl={viewingFile?.url || ""}
+          />
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-7 flex items-center gap-3">
@@ -977,6 +992,7 @@ export function CompanyDocumentsPage() {
   const [docSearch, setDocSearch] = useState("");
   const [docStatusFilter, setDocStatusFilter] = useState<"All" | "Approved" | "Pending">("All");
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const itemsPerPage = 10;
 
   // Reset to first page when filters change
@@ -1063,13 +1079,14 @@ export function CompanyDocumentsPage() {
                   <td className="px-6 py-5"><Badge status={doc.status} /></td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-5 text-brand-600">
-                      <Link 
-                        to={`/company/documents/${doc.id}`} 
+                      <button 
+                        type="button"
+                        onClick={() => setViewingFile({ name: doc.name, url: "#" })}
                         className="hover:text-brand-700 transition-colors"
                         aria-label={`View ${doc.name}`}
                       >
                         <Eye className="h-5 w-5" />
-                      </Link>
+                      </button>
                       <button 
                         type="button" 
                         onClick={() => toast.info(`Downloading ${doc.name}...`)}
@@ -1121,6 +1138,13 @@ export function CompanyDocumentsPage() {
           </div>
         </div>
       </Surface>
+
+      <DocumentViewer 
+        isOpen={!!viewingFile}
+        onClose={() => setViewingFile(null)}
+        fileName={viewingFile?.name || ""}
+        fileUrl={viewingFile?.url || ""}
+      />
     </div>
   );
 }

@@ -352,7 +352,9 @@ export function Modal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        {children}
+        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+          {children}
+        </div>
       </div>
     </div>
   );

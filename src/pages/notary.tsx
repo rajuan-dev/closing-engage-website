@@ -1,9 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CloudUpload, Download, Eye, FileBadge2, FileText, Filter, Flame, Info, MapPin, Paperclip, Pencil, Plus, Printer, Search, SendHorizontal, ShieldCheck, SlidersHorizontal, Trash2, UserRound, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, FooterBand, Input, Modal, Surface, Textarea } from "@/components/common";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import { chatMessages, credentialHistory } from "@/data/mock-data";
 import { useStore } from "@/store/useStore";
+import { useConfirmStore } from "@/store/useConfirmStore";
 
 import { toast } from "@/store/useToastStore";
 
@@ -12,8 +14,8 @@ export function NotaryDashboardPage() {
 
   const stats = [
     { title: "Total Assigned Orders", value: notaryOrders.length.toString().padStart(2, '0'), helper: "Global", icon: FileText, tone: "brand" },
-    { title: "In Progress", value: notaryOrders.filter(o => o.status === "In Progress" || o.status === "Assigned").length.toString().padStart(2, '0'), helper: "Active", icon: Flame, tone: "warning" },
-    { title: "Completed", value: notaryOrders.filter(o => o.status === "Submitted").length.toString().padStart(2, '0'), helper: "History", icon: CheckCircle2, tone: "success" },
+    { title: "In Progress", value: notaryOrders.filter(o => ["In Progress", "Assigned"].includes(o.status)).length.toString().padStart(2, '0'), helper: "Active", icon: Flame, tone: "warning" },
+    { title: "Completed", value: notaryOrders.filter(o => o.status === "Completed" || o.status === "Submitted").length.toString().padStart(2, '0'), helper: "History", icon: CheckCircle2, tone: "success" },
   ] as const;
 
   return (
@@ -85,15 +87,15 @@ export function NotaryDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {useStore().notaryOrders.map((order) => (
-                <tr key={order.id} className="border-t border-[#edf1f7]">
+              {notaryOrders.map((order) => (
+                <tr key={order.id} className="border-t border-[#edf1f7] hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2f8] text-[10px] font-bold text-ink-500">
-                        {order.clientName.split(" ").map((part) => part[0]).join("").slice(0, 2)}
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef2f8] text-[10px] font-bold text-brand-600 shadow-sm border border-brand-50">
+                        {order.clientName.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase()}
                       </div>
-                      <span className="text-[15px] font-semibold text-ink-900">{order.clientName}</span>
+                      <span className="text-[15px] font-bold text-ink-900">{order.clientName}</span>
                     </div>
                   </td>
                   <td className="px-6 py-5 text-[15px] text-ink-500">{order.location}</td>
@@ -102,10 +104,10 @@ export function NotaryDashboardPage() {
                     <div className="mt-1 text-[12px] text-ink-400">{order.time}</div>
                   </td>
                   <td className="px-6 py-5">
-                    <Badge status={order.status} />
+                    <Badge status={order.status as any} />
                   </td>
                   <td className="px-6 py-5">
-                    <Link to="/notary/orders/ord-88219" className="inline-flex items-center gap-2 text-[15px] font-semibold text-brand-600">
+                    <Link to={`/notary/orders/${order.id.replace("#", "")}`} className="inline-flex items-center gap-2 text-[15px] font-bold text-ink-900 hover:text-brand-600 transition-colors">
                       View
                       <ChevronRight className="h-4 w-4" />
                     </Link>
@@ -116,10 +118,10 @@ export function NotaryDashboardPage() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[#edf1f7] px-6 py-5 text-sm text-ink-500">
-          <span>Showing 4 of 24 results</span>
+          <span>Showing {notaryOrders.length} of {notaryOrders.length} results</span>
           <div className="flex items-center gap-5">
-            <span className="text-ink-300">Previous</span>
-            <span className="text-ink-500">Next</span>
+            <span className="cursor-not-allowed opacity-30">Previous</span>
+            <span className="cursor-not-allowed opacity-30">Next</span>
           </div>
         </div>
       </Surface>
@@ -247,7 +249,7 @@ export function NotaryOrdersPage() {
                     <Badge status={order.status} />
                   </td>
                   <td className="px-6 py-5">
-                    <Link to="/notary/orders/ord-88219" className="text-brand-600" aria-label={`View ${order.id}`}>
+                    <Link to={`/notary/orders/${order.id.replace("#", "")}`} className="text-brand-600 hover:text-brand-700" aria-label={`View ${order.id}`}>
                       <Eye className="h-5 w-5" />
                     </Link>
                   </td>
@@ -300,18 +302,36 @@ export function NotaryOrdersPage() {
 }
 
 export function NotaryOrderDetailPage() {
-  const [orderStatus, setOrderStatus] = useState<"Assigned" | "In Progress" | "Completed">("Assigned");
+  const { id } = useParams<{ id: string }>();
+  const { notaryOrders, notaryAssignedOrders } = useStore();
+  const confirm = useConfirmStore(state => state.confirm);
+  const navigate = useNavigate();
+
+  const allOrders = [...notaryOrders, ...notaryAssignedOrders];
+  const order = allOrders.find(o => o.id.replace("#", "") === id) || allOrders[0];
+
+  const [orderStatus, setOrderStatus] = useState(order.status);
   const [printedConfirmed, setPrintedConfirmed] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([
-    new File(["temporary"], "Scanback_Part1.pdf", { type: "application/pdf" }),
-  ]);
+  const [scanbacksConfirmed, setScanbacksConfirmed] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [scheduledDate, setScheduledDate] = useState("2024-10-24");
-  const [scheduledTime, setScheduledTime] = useState("14:00");
+  const [scheduledDate, setScheduledDate] = useState(order.date);
+  const [scheduledTime, setScheduledTime] = useState(order.time || "14:00");
   const [notaryNotes, setNotaryNotes] = useState("");
   const [isDragActive, setIsDragActive] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (viewingFile) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [viewingFile]);
 
   const appendFiles = (files: FileList | File[]) => {
     const accepted = Array.from(files).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
@@ -333,8 +353,8 @@ export function NotaryOrderDetailPage() {
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <h1 className="text-[46px] font-extrabold tracking-[-0.045em] text-ink-900">Order ID #ORD-88219</h1>
-          <Badge status={orderStatus === "Completed" ? "Submitted" : orderStatus} />
+          <h1 className="text-[46px] font-extrabold tracking-[-0.045em] text-ink-900">Order ID {order.id}</h1>
+          <Badge status={orderStatus as any} />
         </div>
         <div className="flex gap-3">
           <Button
@@ -348,13 +368,35 @@ export function NotaryOrderDetailPage() {
           <Button
             variant="outline"
             className="h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold"
-            onClick={() => setOrderStatus("In Progress")}
+            onClick={() => {
+              confirm({
+                title: "Mark as In Progress?",
+                message: "This will update the order status and notify the title company that you have begun the signing process.",
+                confirmLabel: "Update Status",
+                type: "warning",
+                onConfirm: () => {
+                  setOrderStatus("In Progress");
+                  toast.success("Order is now In Progress");
+                }
+              });
+            }}
           >
             Mark as In Progress
           </Button>
           <Button
             className="h-[44px] rounded-[12px] px-5 text-[14px] font-semibold"
-            onClick={() => setOrderStatus("Completed")}
+            onClick={() => {
+              confirm({
+                title: "Mark as Completed?",
+                message: "Please ensure all documents have been signed and uploaded before marking as completed.",
+                confirmLabel: "Yes, Completed",
+                type: "info",
+                onConfirm: () => {
+                  setOrderStatus("Completed");
+                  toast.success("Order marked as Completed");
+                }
+              });
+            }}
           >
             Mark as Completed
           </Button>
@@ -430,20 +472,23 @@ export function NotaryOrderDetailPage() {
             </button>
           </div>
           <div>
-            <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-[14px] ${uploadedFiles.length > 0 ? "border-2 border-[#cfd8e6] bg-white text-ink-400" : "border-2 border-[#d8dee9] bg-white text-ink-300"}`}>
-              <CloudUpload className="h-5 w-5" />
+            <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-[14px] ${scanbacksConfirmed ? "bg-brand-600 text-white" : uploadedFiles.length > 0 ? "border-2 border-brand-600 bg-white text-brand-600" : "border-2 border-[#d8dee9] bg-white text-ink-300"}`}>
+              {scanbacksConfirmed ? <CheckCircle2 className="h-5 w-5" /> : <CloudUpload className="h-5 w-5" />}
             </div>
             <div className={`mt-4 text-[16px] font-semibold ${uploadedFiles.length > 0 ? "text-ink-700" : "text-ink-400"}`}>Scanbacks Uploaded</div>
             <button
               type="button"
               disabled={uploadedFiles.length === 0}
-              className={`mt-4 rounded-full px-5 py-2 text-[13px] font-semibold ${
-                uploadedFiles.length > 0
-                  ? "border border-[#d0d8e5] bg-white text-ink-500"
-                  : "bg-[#eef2f7] text-ink-300"
+              onClick={() => setScanbacksConfirmed(prev => !prev)}
+              className={`mt-4 rounded-full px-5 py-2 text-[13px] font-semibold transition-all ${
+                scanbacksConfirmed
+                  ? "bg-brand-600 text-white shadow-lg shadow-brand-100"
+                  : uploadedFiles.length > 0
+                    ? "border border-brand-600 bg-white text-brand-600 hover:bg-brand-50"
+                    : "bg-[#eef2f7] text-ink-300 cursor-not-allowed"
               }`}
             >
-              Confirm
+              {scanbacksConfirmed ? "Confirmed" : "Confirm"}
             </button>
           </div>
         </div>
@@ -452,36 +497,55 @@ export function NotaryOrderDetailPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_0.68fr]">
         <div className="space-y-6">
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="mb-6 flex items-center gap-3">
-              <Info className="h-5 w-5 text-brand-600" />
-              <div className="text-[16px] font-extrabold uppercase tracking-[0.16em] text-ink-700">Order Information</div>
+            <div className="mb-7 flex items-center justify-between">
+              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Order Information</div>
             </div>
             <div className="grid gap-8 md:grid-cols-2">
-              <div><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">Client</div><div className="mt-3 text-[16px] font-semibold text-ink-900">Jonathan Aris</div></div>
-              <div><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">Signing Date & Time</div><div className="mt-3 text-[16px] font-semibold text-ink-900">Oct 24, 2023 at 2:00 PM</div></div>
-              <div><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">Property Address</div><div className="mt-3 text-[16px] font-semibold text-ink-900">123 Oak St, Austin, TX 78701</div></div>
-              <div><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">Property Address</div><div className="mt-3 text-[16px] font-semibold text-ink-900">San Francisco, CA</div></div>
+              <Detail label="CLIENT" value={order.clientName} />
+              <Detail label="SIGNING DATE & TIME" value={`${order.date}, ${order.time}`} />
+              <div className="md:col-span-2">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
+                  PROPERTY ADDRESS
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-[16px] font-semibold text-ink-900">
+                  <MapPin className="h-4 w-4 text-brand-600" />
+                  {order.location}
+                </div>
+              </div>
             </div>
           </Surface>
-          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f5f7fb] p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[16px] font-extrabold uppercase tracking-[0.16em] text-ink-700">Special Instructions</div>
-            <p className="mt-5 text-[15px] leading-[1.8] text-ink-700">Please ensure all signatures are in blue ink. Scan and upload the full package once completed.</p>
-          </Surface>
+
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[16px] font-extrabold uppercase tracking-[0.16em] text-ink-700">Provided Documents</div>
-            <div className="mt-5 space-y-4">
+            <div className="text-[20px] font-extrabold text-ink-900">Special Instructions</div>
+            <div className="mt-4 text-[14px] italic leading-[1.75] text-ink-500">
+              "Please ensure all signatures are in blue ink. Scan and upload the full package once completed."
+            </div>
+          </Surface>
+
+          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+            <div className="text-[20px] font-extrabold text-ink-900">Provided Documents</div>
+            <div className="mt-6 space-y-4">
               {[
-                ["Closing_Instructions.pdf", "1.2 MB"],
-                ["Signature_Package.pdf", "5.4 MB"],
-              ].map(([name, size]) => (
-                <div key={name} className="flex items-center justify-between rounded-[14px] bg-[#f7f9fd] px-4 py-4">
+                { name: "Closing_Instructions.pdf", size: "1.2 MB" },
+                { name: "Signature_Package.pdf", size: "5.4 MB" },
+              ].map((doc) => (
+                <div key={doc.name} className="flex items-center justify-between rounded-[14px] bg-[#f7f9fd] px-4 py-4">
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#fff3f3] text-danger-600">
                       <FileText className="h-4 w-4" />
                     </div>
-                    <div><div className="font-semibold text-ink-900">{name}</div><div className="text-sm text-ink-400">{size}</div></div>
+                    <div>
+                      <div className="font-semibold text-ink-900">{doc.name}</div>
+                      <div className="text-sm text-ink-400">{doc.size}</div>
+                    </div>
                   </div>
-                  <div className="flex gap-5 text-brand-600"><Eye className="h-4 w-4" /><Download className="h-4 w-4" /></div>
+                   <div className="flex gap-5 text-brand-600">
+                     <Eye 
+                       className="h-4 w-4 cursor-pointer" 
+                       onClick={() => setViewingFile({ name: doc.name, url: "#" })}
+                     />
+                     <Download className="h-4 w-4 cursor-pointer" />
+                   </div>
                 </div>
               ))}
             </div>
@@ -537,12 +601,25 @@ export function NotaryOrderDetailPage() {
                   </div>
                   <div>
                     <div className="font-semibold text-ink-900">{file.name}</div>
-                    <div className="text-ink-400">2.4 MB • Uploaded just now</div>
+                    <div className="text-ink-400">{(file.size / (1024 * 1024)).toFixed(1)} MB • Uploaded just now</div>
                   </div>
                 </div>
-                <button type="button" onClick={() => setUploadedFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
-                  <Trash2 className="h-4 w-4 text-danger-600" />
-                </button>
+                <div className="flex items-center gap-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setViewingFile({ name: file.name, url: URL.createObjectURL(file) })}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm hover:bg-brand-50"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setUploadedFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-danger-600 shadow-sm hover:bg-danger-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </Surface>
@@ -559,102 +636,6 @@ export function NotaryOrderDetailPage() {
       </div>
       <div className="flex justify-end">
         <div className="w-full max-w-[520px]">
-          <Modal
-            isOpen={showUploadModal}
-            onClose={() => setShowUploadModal(false)}
-            title="Upload Scanbacks"
-            subtitle="Drag and drop your completed closing documents for review"
-          >
-            <div className="px-7 pb-8">
-              <div
-                className={`rounded-[24px] border-2 border-dashed p-10 text-center transition-all ${
-                  isDragActive ? "border-brand-500 bg-brand-50" : "border-[#e2e8f3] bg-[#fbfcfe]"
-                }`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragActive(true);
-                }}
-                onDragLeave={() => setIsDragActive(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragActive(false);
-                  if (e.dataTransfer.files) {
-                    setUploadedFiles([...uploadedFiles, ...Array.from(e.dataTransfer.files)]);
-                  }
-                }}
-              >
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-brand-600 shadow-sm">
-                  <CloudUpload className="h-8 w-8" />
-                </div>
-                <div className="text-[20px] font-bold text-ink-900">Drop your files here</div>
-                <p className="mt-1 text-[14px] text-ink-500">Only PDF files are accepted</p>
-                <input
-                  type="file"
-                  multiple
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    if (e.target.files) {
-                      setUploadedFiles([...uploadedFiles, ...Array.from(e.target.files)]);
-                    }
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  className="mt-6 h-[44px] rounded-[10px]"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Browse Files
-                </Button>
-              </div>
-
-              {uploadedFiles.length > 0 && (
-                <div className="mt-6 space-y-3">
-                  {uploadedFiles.map((file, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between rounded-[14px] border border-[#edf2f8] bg-white p-3 shadow-sm"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f1f5fb] text-brand-600">
-                          <FileText className="h-5 w-5" />
-                        </div>
-                        <div className="max-w-[200px] truncate text-[14px] font-semibold text-ink-900">
-                          {file.name}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setUploadedFiles(uploadedFiles.filter((_, i) => i !== idx))}
-                        className="text-ink-300 hover:text-rose-500"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-8 flex gap-3">
-                <Button variant="outline" onClick={() => setShowUploadModal(false)} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    if (uploadedFiles.length === 0) {
-                      toast.error("Please upload at least one document.");
-                      return;
-                    }
-                    toast.success("Documents successfully submitted!");
-                    setUploadedFiles([]);
-                    setShowUploadModal(false);
-                  }}
-                >
-                  Submit Documents
-                </Button>
-              </div>
-            </div>
-          </Modal>
           <Button 
             className="h-[52px] w-full rounded-[12px] text-[18px] font-semibold"
             onClick={() => {
@@ -672,6 +653,12 @@ export function NotaryOrderDetailPage() {
           <div className="mt-4 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-300">Required fields must be completed before submission</div>
         </div>
       </div>
+      <DocumentViewer 
+        isOpen={!!viewingFile}
+        onClose={() => setViewingFile(null)}
+        fileName={viewingFile?.name || ""}
+        fileUrl={viewingFile?.url || ""}
+      />
       <FooterBand />
     </div>
   );
@@ -683,6 +670,7 @@ export function NotaryUploadDocumentsPage() {
     new File(["temporary"], "scanback_signed_final.pdf", { type: "application/pdf" }),
   ]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const appendFiles = (files: FileList | File[]) => {
@@ -792,9 +780,18 @@ export function NotaryUploadDocumentsPage() {
                     <div className="mt-1 text-[13px] text-ink-500">4.2 MB • Ready to Submit</div>
                   </div>
                 </div>
-                <button type="button" onClick={() => removeFile(index)} className="text-ink-400 hover:text-danger-600">
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setViewingFile({ name: file.name, url: URL.createObjectURL(file) })}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm hover:bg-brand-50"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => removeFile(index)} className="text-ink-400 hover:text-danger-600">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               <div className="mt-5 h-[4px] rounded-full bg-[#dff3e8]">
                 <div className="h-[4px] w-full rounded-full bg-[#1fc27e]" />
@@ -849,6 +846,12 @@ export function NotaryUploadDocumentsPage() {
           <ChevronRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
+      <DocumentViewer 
+        isOpen={!!viewingFile}
+        onClose={() => setViewingFile(null)}
+        fileName={viewingFile?.name || ""}
+        fileUrl={viewingFile?.url || ""}
+      />
       <FooterBand />
     </div>
   );
@@ -1098,6 +1101,7 @@ export function NotarySettingsPage() {
 
 export function NotaryCredentialsPage() {
   const [showOnlyVerified, setShowOnlyVerified] = useState(false);
+  const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const filteredCredentialHistory = credentialHistory.filter((row) =>
     showOnlyVerified ? row.action === "Auto-Verified" : true,
   );
@@ -1211,7 +1215,15 @@ export function NotaryCredentialsPage() {
                       {row.action === "Auto-Verified" ? "Auto-Verified" : "Manual Review"}
                     </div>
                   </td>
-                  <td className="px-6 py-5 text-[20px] text-ink-500">•••</td>
+                  <td className="px-6 py-5">
+                    <button 
+                      type="button"
+                      onClick={() => setViewingFile({ name: row.documentName, url: "#" })}
+                      className="text-brand-600 hover:text-brand-700"
+                    >
+                      <Eye className="h-5 w-5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1221,6 +1233,12 @@ export function NotaryCredentialsPage() {
           Load More Ledger Entries
         </div>
       </Surface>
+      <DocumentViewer 
+        isOpen={!!viewingFile}
+        onClose={() => setViewingFile(null)}
+        fileName={viewingFile?.name || ""}
+        fileUrl={viewingFile?.url || ""}
+      />
       <FooterBand />
     </div>
   );
