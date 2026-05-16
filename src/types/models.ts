@@ -54,6 +54,7 @@ export interface TeamMember {
   role: "Admin" | "Member";
   status: "Active" | "Pending Invite";
   joinedDate: string;
+  phone?: string;
 }
 
 export interface CredentialRecord {

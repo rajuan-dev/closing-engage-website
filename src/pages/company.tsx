@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, Download, Eye, FileText, FolderKanban, Hourglass, Info, MapPin, Pencil, Plus, Printer, RotateCw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserPlus, X, ZoomIn, ZoomOut } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleDot, Download, Eye, FileText, FolderKanban, Hourglass, Info, MapPin, Pencil, Plus, Printer, RotateCw, Search, ShieldCheck, SlidersHorizontal, Trash2, UserPlus, ZoomIn, ZoomOut } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Badge, Button, Input, Modal, Select, Surface, Textarea } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -1577,9 +1577,9 @@ export function CompanyDocumentsDetailPage() {
                 <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">UPLOADED BY</div>
                 <div className="mt-3 flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef4ff] text-[11px] font-bold text-brand-600">
-                    {doc.uploadedBy.split(" ").pop()?.slice(0, 2).toUpperCase() || "NB"}
+                    {doc.uploadedBy?.split(" ").pop()?.slice(0, 2).toUpperCase() || "NB"}
                   </div>
-                  <div className="text-[16px] font-semibold text-ink-900">{doc.uploadedBy}</div>
+                  <div className="text-[16px] font-semibold text-ink-900">{doc.uploadedBy || "Notary Partner"}</div>
                 </div>
               </div>
             </div>
@@ -2023,18 +2023,20 @@ export function CompanyTeamNewPage() {
 }
 
 export function CompanySettingsPage() {
+  const { companyProfile, updateCompanyProfile } = useStore();
   const [isEditMode, setIsEditMode] = useState(false);
+
   const [personalInfo, setPersonalInfo] = useState({
-    fullName: "Alex Thompson",
-    email: "alex.t@estateflux.com",
-    phone: "+1 (555) 902-4412",
+    fullName: companyProfile.fullName,
+    email: companyProfile.email,
+    phone: companyProfile.phone,
   });
 
   const [companyInfo, setCompanyInfo] = useState({
-    companyName: "Estate Flux Title",
-    companyEmail: "ops@estateflux.com",
-    contactNumber: "+1 (555) 200-1100",
-    businessAddress: "782 Commerce Blvd, Austin TX",
+    companyName: companyProfile.companyName,
+    companyEmail: companyProfile.companyEmail,
+    contactNumber: companyProfile.contactNumber,
+    businessAddress: companyProfile.businessAddress,
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
@@ -2042,10 +2044,38 @@ export function CompanySettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [notifications, setNotifications] = useState([
-    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: true },
-    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: true },
-    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: false },
+    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications.email },
+    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications.orders },
+    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications.documents },
   ]);
+
+  const resetForm = useCallback(() => {
+    setPersonalInfo({
+      fullName: companyProfile.fullName,
+      email: companyProfile.email,
+      phone: companyProfile.phone,
+    });
+    setCompanyInfo({
+      companyName: companyProfile.companyName,
+      companyEmail: companyProfile.companyEmail,
+      contactNumber: companyProfile.contactNumber,
+      businessAddress: companyProfile.businessAddress,
+    });
+    setNotifications([
+      { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications.email },
+      { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications.orders },
+      { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications.documents },
+    ]);
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }, [companyProfile]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      resetForm();
+    }
+  }, [isEditMode, resetForm]);
 
   const toggleNotification = (id: string) => {
     if (!isEditMode) return;
@@ -2055,6 +2085,20 @@ export function CompanySettingsPage() {
   };
 
   const handleSaveSettings = () => {
+    updateCompanyProfile({
+      fullName: personalInfo.fullName,
+      email: personalInfo.email,
+      phone: personalInfo.phone,
+      companyName: companyInfo.companyName,
+      companyEmail: companyInfo.companyEmail,
+      contactNumber: companyInfo.contactNumber,
+      businessAddress: companyInfo.businessAddress,
+      notifications: {
+        email: notifications.find((n) => n.id === "email")?.active ?? true,
+        orders: notifications.find((n) => n.id === "orders")?.active ?? true,
+        documents: notifications.find((n) => n.id === "documents")?.active ?? false,
+      },
+    });
     toast.success("Company settings saved successfully!");
     setIsEditMode(false);
   };
@@ -2094,7 +2138,12 @@ export function CompanySettingsPage() {
           <Button
             variant={isEditMode ? "ghost" : "outline"}
             className={`h-[44px] rounded-[12px] px-5 text-[14px] font-semibold ${isEditMode ? "text-danger-600 hover:bg-[#fff5f5]" : "border-[#dfe6f2] text-brand-600"}`}
-            onClick={() => setIsEditMode(!isEditMode)}
+            onClick={() => {
+              if (isEditMode) {
+                resetForm();
+              }
+              setIsEditMode(!isEditMode);
+            }}
           >
             {isEditMode ? "Discard Changes" : "Edit Profile"}
           </Button>
@@ -2217,6 +2266,7 @@ export function CompanySettingsPage() {
                     <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{n.body}</div>
                   </div>
                   <button 
+                    type="button"
                     disabled={!isEditMode}
                     onClick={() => toggleNotification(n.id)}
                     className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${!isEditMode ? "cursor-not-allowed opacity-60" : ""}`}
@@ -2236,7 +2286,7 @@ export function CompanySettingsPage() {
           className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"
           onClick={() => {
              setIsEditMode(false);
-             window.location.reload();
+             resetForm();
           }}
         >
           Cancel

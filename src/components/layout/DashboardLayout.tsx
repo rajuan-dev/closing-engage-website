@@ -3,21 +3,22 @@ import { Bell, ChevronDown, Plus, Repeat2, X, CheckCircle2, Hourglass, CircleDot
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Button, SearchField, SidebarNav } from "@/components/common";
 import { companyNav, notaryNav } from "@/data/mock-data";
-import { themeTokens } from "@/theme/tokens";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 
 export function DashboardLayout({ variant }: { variant: "company" | "notary" }) {
   const location = useLocation();
   const items = variant === "company" ? companyNav : notaryNav;
-  const profile = themeTokens[variant];
+  const { notaryProfile, companyProfile, recentActivities, clearActivities } = useStore();
+  const userName = variant === "company" ? companyProfile.fullName : notaryProfile.fullName;
+  const userRole = variant === "company" ? "Administrator" : "Notary Partner";
+  const userInitials = userName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const switchTarget = variant === "company"
     ? { href: "/notary/dashboard", label: "Switch to Notary Dashboard", helper: "Open your notary workspace" }
     : { href: "/company/dashboard", label: "Switch to Title Company Dashboard", helper: "Open your company workspace" };
-
-  const { recentActivities, clearActivities } = useStore();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
@@ -118,11 +119,11 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                 className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition-colors hover:bg-[#f6f8fd]"
               >
                 <div className="text-right">
-                  <div className="text-sm font-extrabold text-ink-900">{profile.name}</div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-400">{profile.label}</div>
+                  <div className="text-sm font-extrabold text-ink-900">{userName}</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-400">{userRole}</div>
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#18253f,#68506a)] text-xs font-bold text-white">
-                  AS
+                  {userInitials}
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 text-ink-400 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}
@@ -132,9 +133,9 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
               {menuOpen ? (
                 <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-[252px] overflow-hidden rounded-[18px] border border-[#dfe6f2] bg-white p-2.5 shadow-[0_18px_38px_rgba(20,48,112,0.11)]">
                   <div className="mb-2 rounded-[14px] bg-[#f7f9fe] px-3.5 py-3">
-                    <div className="text-[13px] font-extrabold text-ink-900">{profile.name}</div>
+                    <div className="text-[13px] font-extrabold text-ink-900">{userName}</div>
                     <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-400">
-                      {profile.label}
+                      {userRole}
                     </div>
                   </div>
                   <Link

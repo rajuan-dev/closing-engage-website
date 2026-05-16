@@ -17,11 +17,36 @@ export interface NotaryProfile {
   commissionExpiry: string;
   serviceArea: string;
   avatarUrl?: string;
+  eoCoverage: string;
+  backgroundScreeningStatus: "Pending" | "Verified" | "Failed";
+  backgroundScreeningDetail: string;
   notifications: {
     email: boolean;
     orders: boolean;
     documents: boolean;
   };
+}
+
+export interface CompanyProfile {
+  fullName: string;
+  email: string;
+  phone: string;
+  companyName: string;
+  companyEmail: string;
+  contactNumber: string;
+  businessAddress: string;
+  notifications: {
+    email: boolean;
+    orders: boolean;
+    documents: boolean;
+  };
+}
+
+export interface CredentialRecord {
+  documentName: string;
+  issuer: string;
+  uploadDate: string;
+  action: "Auto-Verified" | "Manual Review";
 }
 
 interface AppState {
@@ -42,6 +67,10 @@ interface AppState {
   clearActivities: () => void;
   notaryProfile: NotaryProfile;
   updateNotaryProfile: (updates: Partial<NotaryProfile>) => void;
+  notaryCredentials: CredentialRecord[];
+  addNotaryCredential: (credential: CredentialRecord) => void;
+  companyProfile: CompanyProfile;
+  updateCompanyProfile: (updates: Partial<CompanyProfile>) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -76,10 +105,13 @@ export const useStore = create<AppState>((set) => ({
     fullName: "Sarah Miller",
     email: "sarah.miller@title-experts.com",
     phone: "+1 (512) 555-0123",
-    licenseNumber: "TX-992031-NM",
-    commissionExpiry: "08/14/2026",
+    licenseNumber: "CA-8829-2024",
+    commissionExpiry: "2027-11-14",
     serviceArea: "Austin, TX & surrounding Travis County",
     avatarUrl: "",
+    eoCoverage: "$100,000.00",
+    backgroundScreeningStatus: "Pending",
+    backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
     notifications: {
       email: true,
       orders: true,
@@ -90,6 +122,35 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       notaryProfile: {
         ...state.notaryProfile,
+        ...updates,
+      },
+    })),
+  notaryCredentials: [
+    { documentName: "NNA Certification", issuer: "Nat. Notary Assoc.", uploadDate: "Oct 24, 2024", action: "Auto-Verified" },
+    { documentName: "Federal Ledger", issuer: "Identity Verification", uploadDate: "Sep 12, 2024", action: "Manual Review" },
+  ],
+  addNotaryCredential: (credential) =>
+    set((state) => ({
+      notaryCredentials: [credential, ...state.notaryCredentials],
+    })),
+  companyProfile: {
+    fullName: "Alex Sterling",
+    email: "alex.s@estateflux.com",
+    phone: "+1 (555) 902-4412",
+    companyName: "Estate Flux Title",
+    companyEmail: "ops@estateflux.com",
+    contactNumber: "+1 (555) 200-1100",
+    businessAddress: "782 Commerce Blvd, Austin TX",
+    notifications: {
+      email: true,
+      orders: true,
+      documents: false,
+    },
+  },
+  updateCompanyProfile: (updates) =>
+    set((state) => ({
+      companyProfile: {
+        ...state.companyProfile,
         ...updates,
       },
     })),
