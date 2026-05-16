@@ -12,6 +12,7 @@ import type { Order, DocumentRecord, TeamMember, ActivityItem } from "@/types/mo
 interface AppState {
   companyOrders: Order[];
   addCompanyOrder: (order: Order) => void;
+  updateCompanyOrder: (id: string, updates: Partial<Order>) => void;
   companyDocuments: DocumentRecord[];
   addCompanyDocument: (doc: DocumentRecord) => void;
   teamMembers: TeamMember[];
@@ -28,6 +29,10 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
   companyOrders: [...companyOrders],
   addCompanyOrder: (order) => set((state) => ({ companyOrders: [order, ...state.companyOrders] })),
+  updateCompanyOrder: (id, updates) =>
+    set((state) => ({
+      companyOrders: state.companyOrders.map((o) => (o.id === id ? { ...o, ...updates } : o)),
+    })),
   companyDocuments: [...companyDocuments],
   addCompanyDocument: (doc) => set((state) => ({ companyDocuments: [doc, ...state.companyDocuments] })),
   teamMembers: [...teamMembers],
