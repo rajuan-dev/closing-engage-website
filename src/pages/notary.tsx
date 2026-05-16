@@ -665,7 +665,11 @@ export function NotaryOrderDetailPage() {
 }
 
 export function NotaryUploadDocumentsPage() {
-  const [selectedOrder, setSelectedOrder] = useState("#CE-90210 - Jonathan Harker");
+  const navigate = useNavigate();
+  const { notaryOrders, addCompanyDocument, addActivity, updateCompanyOrder, updateNotaryOrder } = useStore();
+  const [selectedOrder, setSelectedOrder] = useState(
+    notaryOrders.length > 0 ? `${notaryOrders[0].id} - ${notaryOrders[0].clientName}` : "#CE-94012 - Jonathan Harker"
+  );
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([
     new File(["temporary"], "scanback_signed_final.pdf", { type: "application/pdf" }),
   ]);
@@ -712,9 +716,11 @@ export function NotaryUploadDocumentsPage() {
                 onChange={(event) => setSelectedOrder(event.target.value)}
                 className="h-full w-full bg-transparent text-[15px] text-ink-700 outline-none"
               >
-                <option>#CE-90210 - Jonathan Harker</option>
-                <option>#CE-93882 - Mina Stewart</option>
-                <option>#CE-92119 - Lucy Crawford</option>
+                {notaryOrders.map((o) => (
+                  <option key={o.id} value={`${o.id} - ${o.clientName}`}>
+                    {o.id} - {o.clientName}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -838,8 +844,37 @@ export function NotaryUploadDocumentsPage() {
               toast.error("Please upload at least one document.");
               return;
             }
+
+            const orderId = selectedOrder.split(" - ")[0].replace("#", "");
+
+            // Save uploaded files to the global documents list
+            uploadedFiles.forEach((file) => {
+              const docRecord = {
+                id: "DOC-" + (Math.floor(Math.random() * 90000) + 10000),
+                name: file.name,
+                orderId: orderId,
+                uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
+                status: "Submitted" as const,
+                uploadedBy: "You (Notary)"
+              };
+              addCompanyDocument(docRecord);
+            });
+
+            // Update status of the notary order and company order
+            updateNotaryOrder("#" + orderId, { status: "Submitted" });
+            updateCompanyOrder("#" + orderId, { status: "Under Review" });
+
+            // Dispatch dynamic activity update
+            addActivity({
+              title: "Scanback Uploaded",
+              description: `Notary uploaded ${uploadedFiles.length} file(s) for Order #${orderId}.`,
+              time: "Just now"
+            });
+
             toast.success("Documents successfully uploaded and submitted!");
             setUploadedFiles([]);
+            navigate("/notary/dashboard");
           }}
         >
           Upload & Submit

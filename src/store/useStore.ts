@@ -20,6 +20,7 @@ interface AppState {
   updateTeamMember: (email: string, updates: Partial<TeamMember>) => void;
   removeTeamMember: (email: string) => void;
   notaryOrders: Order[];
+  updateNotaryOrder: (id: string, updates: Partial<Order>) => void;
   notaryAssignedOrders: Order[];
   recentActivities: ActivityItem[];
   addActivity: (activity: ActivityItem) => void;
@@ -46,6 +47,10 @@ export const useStore = create<AppState>((set) => ({
       teamMembers: state.teamMembers.filter((m) => m.email !== email),
     })),
   notaryOrders: [...notaryOrders],
+  updateNotaryOrder: (id, updates) =>
+    set((state) => ({
+      notaryOrders: state.notaryOrders.map((o) => (o.id === id ? { ...o, ...updates } : o)),
+    })),
   notaryAssignedOrders: [...notaryAssignedOrders],
   recentActivities: [...recentActivities],
   addActivity: (activity) => set((state) => ({ recentActivities: [activity, ...state.recentActivities] })),
