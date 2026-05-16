@@ -6,8 +6,9 @@ import {
   notaryOrders,
   notaryAssignedOrders,
   recentActivities,
+  chatMessages,
 } from "@/data/mock-data";
-import type { Order, DocumentRecord, TeamMember, ActivityItem } from "@/types/models";
+import type { Order, DocumentRecord, TeamMember, ActivityItem, ChatMessage } from "@/types/models";
 
 export interface NotaryProfile {
   fullName: string;
@@ -71,6 +72,8 @@ interface AppState {
   addNotaryCredential: (credential: CredentialRecord) => void;
   companyProfile: CompanyProfile;
   updateCompanyProfile: (updates: Partial<CompanyProfile>) => void;
+  chatMessages: ChatMessage[];
+  addChatMessage: (msg: ChatMessage) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -153,5 +156,10 @@ export const useStore = create<AppState>((set) => ({
         ...state.companyProfile,
         ...updates,
       },
+    })),
+  chatMessages: [...chatMessages],
+  addChatMessage: (msg) =>
+    set((state) => ({
+      chatMessages: [...state.chatMessages, msg],
     })),
 }));
