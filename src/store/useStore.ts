@@ -9,6 +9,21 @@ import {
 } from "@/data/mock-data";
 import type { Order, DocumentRecord, TeamMember, ActivityItem } from "@/types/models";
 
+export interface NotaryProfile {
+  fullName: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  commissionExpiry: string;
+  serviceArea: string;
+  avatarUrl?: string;
+  notifications: {
+    email: boolean;
+    orders: boolean;
+    documents: boolean;
+  };
+}
+
 interface AppState {
   companyOrders: Order[];
   addCompanyOrder: (order: Order) => void;
@@ -25,6 +40,8 @@ interface AppState {
   recentActivities: ActivityItem[];
   addActivity: (activity: ActivityItem) => void;
   clearActivities: () => void;
+  notaryProfile: NotaryProfile;
+  updateNotaryProfile: (updates: Partial<NotaryProfile>) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -55,4 +72,25 @@ export const useStore = create<AppState>((set) => ({
   recentActivities: [...recentActivities],
   addActivity: (activity) => set((state) => ({ recentActivities: [activity, ...state.recentActivities] })),
   clearActivities: () => set({ recentActivities: [] }),
+  notaryProfile: {
+    fullName: "Sarah Miller",
+    email: "sarah.miller@title-experts.com",
+    phone: "+1 (512) 555-0123",
+    licenseNumber: "TX-992031-NM",
+    commissionExpiry: "08/14/2026",
+    serviceArea: "Austin, TX & surrounding Travis County",
+    avatarUrl: "",
+    notifications: {
+      email: true,
+      orders: true,
+      documents: false,
+    },
+  },
+  updateNotaryProfile: (updates) =>
+    set((state) => ({
+      notaryProfile: {
+        ...state.notaryProfile,
+        ...updates,
+      },
+    })),
 }));

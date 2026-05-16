@@ -1016,18 +1016,18 @@ export function NotaryUploadDocumentsPage() {
 }
 
 export function NotarySettingsPage() {
+  const { notaryProfile, updateNotaryProfile, addActivity } = useStore();
   const [isEditMode, setIsEditMode] = useState(false);
-  const [personalInfo, setPersonalInfo] = useState({
-    fullName: "Sarah Miller",
-    email: "sarah.miller@title-experts.com",
-    phone: "+1 (512) 555-0123",
-  });
 
-  const [professionalInfo, setProfessionalInfo] = useState({
-    licenseNumber: "TX-992031-NM",
-    commissionExpiry: "08/14/2026",
-    serviceArea: "Austin, TX & surrounding Travis County",
-  });
+  // Profile Draft States
+  const [fullName, setFullName] = useState(notaryProfile.fullName);
+  const [email, setEmail] = useState(notaryProfile.email);
+  const [phone, setPhone] = useState(notaryProfile.phone);
+  
+  const [licenseNumber, setLicenseNumber] = useState(notaryProfile.licenseNumber);
+  const [commissionExpiry, setCommissionExpiry] = useState(notaryProfile.commissionExpiry);
+  const [serviceArea, setServiceArea] = useState(notaryProfile.serviceArea);
+  const [avatarUrl, setAvatarUrl] = useState(notaryProfile.avatarUrl || "");
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -1036,10 +1036,45 @@ export function NotarySettingsPage() {
   });
 
   const [notifications, setNotifications] = useState([
-    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: true },
-    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: true },
-    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: false },
+    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications.email },
+    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: notaryProfile.notifications.orders },
+    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: notaryProfile.notifications.documents },
   ]);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Sync state if store updates or edit mode is toggled (revert)
+  useEffect(() => {
+    setFullName(notaryProfile.fullName);
+    setEmail(notaryProfile.email);
+    setPhone(notaryProfile.phone);
+    setLicenseNumber(notaryProfile.licenseNumber);
+    setCommissionExpiry(notaryProfile.commissionExpiry);
+    setServiceArea(notaryProfile.serviceArea);
+    setAvatarUrl(notaryProfile.avatarUrl || "");
+    setNotifications([
+      { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications.email },
+      { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: notaryProfile.notifications.orders },
+      { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: notaryProfile.notifications.documents },
+    ]);
+  }, [notaryProfile, isEditMode]);
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAvatarUrl(url);
+      if (!isEditMode) {
+        updateNotaryProfile({ avatarUrl: url });
+        addActivity({
+          title: "Avatar Updated",
+          description: "You successfully updated your profile picture.",
+          time: "Just Now",
+        });
+        toast.success("Profile avatar updated successfully!");
+      }
+    }
+  };
 
   const toggleNotification = (id: string) => {
     if (!isEditMode) return;
@@ -1049,13 +1084,28 @@ export function NotarySettingsPage() {
   };
 
   const handleSave = () => {
-    const payload = {
-      personal: personalInfo,
-      professional: professionalInfo,
-      notificationSettings: notifications.reduce((acc, curr) => ({ ...acc, [curr.id]: curr.active }), {}),
-    };
-    console.log("Saving notary settings to backend...", payload);
-    toast.success("Notary settings saved successfully!");
+    updateNotaryProfile({
+      fullName,
+      email,
+      phone,
+      licenseNumber,
+      commissionExpiry,
+      serviceArea,
+      avatarUrl,
+      notifications: {
+        email: notifications.find((n) => n.id === "email")?.active ?? true,
+        orders: notifications.find((n) => n.id === "orders")?.active ?? true,
+        documents: notifications.find((n) => n.id === "documents")?.active ?? false,
+      },
+    });
+
+    addActivity({
+      title: "Profile Updated",
+      description: "You successfully updated your notary profile settings.",
+      time: "Just Now",
+    });
+
+    toast.success("Profile settings saved successfully!");
     setIsEditMode(false);
   };
 
@@ -1068,6 +1118,13 @@ export function NotarySettingsPage() {
       toast.error("New passwords do not match.");
       return;
     }
+
+    addActivity({
+      title: "Password Updated",
+      description: "Your security credentials have been updated.",
+      time: "Just Now",
+    });
+
     toast.success("Password updated successfully!");
     setPasswords({ current: "", new: "", confirm: "" });
   };
@@ -1075,25 +1132,40 @@ export function NotarySettingsPage() {
   return (
     <div className="space-y-7">
       <div className="flex flex-wrap items-start gap-6">
-        <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#101622,#2a3449)] text-white shadow-[0_18px_38px_rgba(20,48,112,0.14)]">
-          <span className="text-[28px] font-bold">
-            {personalInfo.fullName.split(" ").map(n => n[0]).join("")}
-          </span>
-          <button className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-white shadow-[0_10px_24px_rgba(24,90,188,0.2)]">
-            <Camera className="h-4 w-4" />
+        <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#101622,#2a3449)] text-white shadow-[0_18px_38px_rgba(20,48,112,0.14)] overflow-hidden">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-[28px] font-bold">
+              {fullName.split(" ").map((n) => n[0]).join("")}
+            </span>
+          )}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleAvatarChange}
+          />
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white shadow-[0_5px_12px_rgba(24,90,188,0.3)] hover:bg-brand-700 transition-colors"
+          >
+            <Camera className="h-3.5 w-3.5" />
           </button>
         </div>
         <div>
           <div className="flex flex-wrap items-center gap-4">
             <h1 className="text-[44px] font-extrabold leading-[1.02] tracking-[-0.045em] text-ink-900">
-              {personalInfo.fullName}
+              {fullName}
             </h1>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#d9f8e7] px-4 py-1.5 text-[12px] font-extrabold uppercase tracking-[0.14em] text-[#138e59]">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Verified Notary
             </div>
           </div>
-          <div className="mt-3 text-[16px] text-ink-500">{personalInfo.email}</div>
+          <div className="mt-3 text-[16px] text-ink-500">{email}</div>
           <Button
             variant={isEditMode ? "ghost" : "outline"}
             className={`mt-4 h-[44px] rounded-[12px] px-5 text-[14px] font-semibold ${isEditMode ? "text-danger-600 hover:bg-[#fff5f5]" : "border-[#dfe6f2] text-brand-600"}`}
@@ -1115,22 +1187,22 @@ export function NotarySettingsPage() {
               <Input 
                 label="FULL NAME" 
                 disabled={!isEditMode}
-                value={personalInfo.fullName}
-                onChange={(e) => setPersonalInfo({ ...personalInfo, fullName: e.target.value })}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
                 label="PHONE NUMBER" 
                 disabled={!isEditMode}
-                value={personalInfo.phone}
-                onChange={(e) => setPersonalInfo({ ...personalInfo, phone: e.target.value })}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
                 label="EMAIL ADDRESS" 
                 disabled={!isEditMode}
-                value={personalInfo.email}
-                onChange={(e) => setPersonalInfo({ ...personalInfo, email: e.target.value })}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] md:col-span-2 ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
             </div>
@@ -1145,22 +1217,22 @@ export function NotarySettingsPage() {
               <Input 
                 label="LICENSE NUMBER" 
                 disabled={!isEditMode}
-                value={professionalInfo.licenseNumber}
-                onChange={(e) => setProfessionalInfo({ ...professionalInfo, licenseNumber: e.target.value })}
+                value={licenseNumber}
+                onChange={(e) => setLicenseNumber(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
                 label="COMMISSION EXPIRY" 
                 disabled={!isEditMode}
-                value={professionalInfo.commissionExpiry}
-                onChange={(e) => setProfessionalInfo({ ...professionalInfo, commissionExpiry: e.target.value })}
+                value={commissionExpiry}
+                onChange={(e) => setCommissionExpiry(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
                 label="SERVICE AREA" 
                 disabled={!isEditMode}
-                value={professionalInfo.serviceArea}
-                onChange={(e) => setProfessionalInfo({ ...professionalInfo, serviceArea: e.target.value })}
+                value={serviceArea}
+                onChange={(e) => setServiceArea(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] md:col-span-2 ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
             </div>
@@ -1239,7 +1311,6 @@ export function NotarySettingsPage() {
           className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"
           onClick={() => {
             setIsEditMode(false);
-            window.location.reload();
           }}
         >
           Cancel
