@@ -59,6 +59,16 @@ export const companyOrders: Order[] = [
   { id: "#ORD-92829", clientName: "Emily Rodriguez", propertyAddress: "45 Pine Ave, Long Beach", notary: "Robert Vance", status: "Under Review", date: "Feb 22, 2026" },
   { id: "#ORD-92828", clientName: "Jordan Smith", propertyAddress: "880 Oak Lane, Denver", notary: "Elena Wright", status: "Approved", date: "Feb 22, 2026" },
   { id: "#ORD-92827", clientName: "Laura Palmer", propertyAddress: "704 Twin Peaks Dr, Snoqualmie", notary: "Gordon Cole", status: "Completed", date: "Feb 21, 2026" },
+  { id: "#ORD-92826", clientName: "David Davidson", propertyAddress: "1428 Elm St, Springwood", notary: "Nancy Thompson", status: "Received", date: "Feb 20, 2026" },
+  { id: "#ORD-92825", clientName: "John Connor", propertyAddress: "1000 S Hope St, Los Angeles", notary: "Sarah Connor", status: "Assigned", date: "Feb 19, 2026" },
+  { id: "#ORD-92824", clientName: "Bruce Wayne", propertyAddress: "1007 Mountain Drive, Gotham", notary: "Alfred Pennyworth", status: "Under Review", date: "Feb 18, 2026" },
+  { id: "#ORD-92823", clientName: "Clark Kent", propertyAddress: "327 Clinton St, Metropolis", notary: "Lois Lane", status: "Approved", date: "Feb 17, 2026" },
+  { id: "#ORD-92822", clientName: "Peter Parker", propertyAddress: "20 Ingram St, Queens", notary: "May Parker", status: "Completed", date: "Feb 16, 2026" },
+  { id: "#ORD-92821", clientName: "Tony Stark", propertyAddress: "10880 Malibu Point, Malibu", notary: "Pepper Potts", status: "Received", date: "Feb 15, 2026" },
+  { id: "#ORD-92820", clientName: "Diana Prince", propertyAddress: "700 Gateway Dr, Washington", notary: "Steve Trevor", status: "Assigned", date: "Feb 14, 2026" },
+  { id: "#ORD-92819", clientName: "Arthur Dent", propertyAddress: "155 Country Lane, Cottington", notary: "Ford Prefect", status: "Under Review", date: "Feb 13, 2026" },
+  { id: "#ORD-92818", clientName: "Luke Skywalker", propertyAddress: "Lars Homestead, Tatooine", notary: "Obi-Wan Kenobi", status: "Completed", date: "Feb 12, 2026" },
+  { id: "#ORD-92817", clientName: "Frodo Baggins", propertyAddress: "3 Bagshot Row, Hobbiton", notary: "Gandalf Grey", status: "Approved", date: "Feb 11, 2026" },
 ];
 
 export const recentActivities: ActivityItem[] = [

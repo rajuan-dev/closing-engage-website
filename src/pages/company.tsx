@@ -10,7 +10,26 @@ import { useConfirmStore } from "@/store/useConfirmStore";
 import { cn } from "@/lib/utils";
 
 export function CompanyDashboardPage() {
-  const { companyOrders, recentActivities } = useStore();
+  const { companyOrders, recentActivities, clearActivities } = useStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
+
+  useEffect(() => {
+    // Simulate high-fidelity REST API fetch delay for backend-readiness
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleClear = () => {
+    setIsClearing(true);
+    setTimeout(() => {
+      clearActivities();
+      setIsClearing(false);
+      toast.success("Notifications cleared successfully!");
+    }, 500); // 500ms matching transition duration
+  };
 
   const activityItems = recentActivities.map((act) => {
     let Icon = FileText;
@@ -38,6 +57,46 @@ export function CompanyDashboardPage() {
     { title: "Pending Review", value: companyOrders.filter(o => o.status === "Under Review").length.toString(), icon: Hourglass, tone: "warning" },
     { title: "Completed Orders", value: companyOrders.filter(o => ["Completed", "Approved"].includes(o.status)).length.toString(), icon: CheckCircle2, tone: "success" },
   ] as const;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Stats Grid Skeleton */}
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Surface key={i} className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+              <div className="mb-9 h-12 w-12 rounded-[14px] bg-slate-100" />
+              <div className="h-4 w-24 rounded bg-slate-100" />
+              <div className="mt-3 h-10 w-16 rounded bg-slate-100" />
+            </Surface>
+          ))}
+        </div>
+
+        {/* Table & Status Skeleton */}
+        <div className="grid gap-6 xl:grid-cols-[1.45fr_0.7fr]">
+          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+            <div className="flex items-center justify-between pb-6">
+              <div className="h-8 w-48 rounded bg-slate-100" />
+              <div className="h-5 w-24 rounded bg-slate-100" />
+            </div>
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-16 rounded-[14px] bg-slate-50" />
+              ))}
+            </div>
+          </Surface>
+          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+            <div className="h-8 w-32 rounded bg-slate-100 mb-6" />
+            <div className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="h-12 rounded-[14px] bg-slate-50" />
+              ))}
+            </div>
+          </Surface>
+        </div>
+      </div>
+    );
+  }
 
   const total = companyOrders.length || 1;
   const getPercent = (count: number) => `${Math.round((count / total) * 100)}%`;
@@ -157,30 +216,47 @@ export function CompanyDashboardPage() {
 
         <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
           <h2 className="text-[30px] font-extrabold tracking-[-0.04em] text-ink-900">Recent Activities</h2>
-          <div className="mt-7 space-y-6">
-            {activityItems.map(({ title, description, time, icon: Icon, tone }) => (
-              <div key={title} className="flex items-start gap-4">
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                    tone === "warning"
-                      ? "bg-[#fff7ea] text-[#f0a11d]"
-                      : tone === "success"
-                        ? "bg-[#edf9f2] text-[#38b36b]"
-                        : "bg-[#eef4ff] text-brand-600"
-                  }`}
-                >
-                  <Icon className="h-4.5 w-4.5" />
+          <div className="mt-7 min-h-[300px] flex flex-col justify-center">
+            {activityItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center animate-in fade-in duration-500">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f0f9f4] text-[#34c759] border border-[#d2f3dc] shadow-sm mb-4">
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
-                <div>
-                  <div className="text-[15px] font-bold leading-[1.45] text-ink-900">{title}</div>
-                  <div className="mt-1 text-[14px] leading-[1.6] text-ink-500">{description}</div>
-                  <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-300">{time}</div>
-                </div>
+                <div className="text-[17px] font-bold text-ink-900">All caught up!</div>
+                <p className="mt-2 max-w-[200px] text-[13px] text-ink-400 leading-relaxed">There are no new notifications or activities to display.</p>
               </div>
-            ))}
+            ) : (
+              <div className={`space-y-6 flex-1 flex flex-col justify-start transition-all duration-500 ease-in-out ${isClearing ? "opacity-0 -translate-y-4 scale-95 blur-[2px]" : "opacity-100 translate-y-0 scale-100"}`}>
+                {activityItems.map(({ title, description, time, icon: Icon, tone }) => (
+                  <div key={title} className="flex items-start gap-4">
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                        tone === "warning"
+                          ? "bg-[#fff7ea] text-[#f0a11d]"
+                          : tone === "success"
+                            ? "bg-[#edf9f2] text-[#38b36b]"
+                            : "bg-[#eef4ff] text-brand-600"
+                      }`}
+                    >
+                      <Icon className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <div className="text-[15px] font-bold leading-[1.45] text-ink-900">{title}</div>
+                      <div className="mt-1 text-[14px] leading-[1.6] text-ink-500">{description}</div>
+                      <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-300">{time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <button className="mt-9 h-[48px] w-full rounded-[12px] border border-[#e4ebf5] bg-white text-[14px] font-semibold text-ink-500 transition-colors hover:bg-[#f8fafe]">
-            Clear Notifications
+          <button 
+            type="button"
+            onClick={handleClear}
+            disabled={recentActivities.length === 0 || isClearing}
+            className="mt-9 h-[48px] w-full rounded-[12px] border border-[#e4ebf5] bg-white text-[14px] font-semibold text-ink-500 transition-colors hover:bg-[#f8fafe] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isClearing ? "Clearing..." : "Clear Notifications"}
           </button>
         </Surface>
       </div>

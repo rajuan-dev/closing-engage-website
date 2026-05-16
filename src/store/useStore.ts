@@ -22,6 +22,7 @@ interface AppState {
   notaryAssignedOrders: Order[];
   recentActivities: ActivityItem[];
   addActivity: (activity: ActivityItem) => void;
+  clearActivities: () => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -43,4 +44,5 @@ export const useStore = create<AppState>((set) => ({
   notaryAssignedOrders: [...notaryAssignedOrders],
   recentActivities: [...recentActivities],
   addActivity: (activity) => set((state) => ({ recentActivities: [activity, ...state.recentActivities] })),
+  clearActivities: () => set({ recentActivities: [] }),
 }));
