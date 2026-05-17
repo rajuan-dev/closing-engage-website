@@ -619,7 +619,7 @@ export function NotaryOrderDetailPage() {
         <div className="space-y-6">
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-7 flex items-center justify-between">
-              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Order Information</div>
+              <div className="text-[18px] font-bold tracking-tight text-ink-900">Order Information</div>
             </div>
             <div className="grid gap-8 md:grid-cols-2">
               <Detail label="CLIENT" value={order.clientName} />
@@ -637,14 +637,14 @@ export function NotaryOrderDetailPage() {
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[20px] font-extrabold text-ink-900">Special Instructions</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Special Instructions</div>
             <div className="mt-4 text-[14px] italic leading-[1.75] text-ink-500">
               "Please ensure all signatures are in blue ink. Scan and upload the full package once completed."
             </div>
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[20px] font-extrabold text-ink-900">Provided Documents</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Provided Documents</div>
             <div className="mt-6 space-y-4">
               {[
                 { name: "Closing_Instructions.pdf", size: "1.2 MB" },
@@ -1209,7 +1209,7 @@ export function NotarySettingsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-6 flex items-center gap-3">
               <FileText className="h-5 w-5 text-brand-600" />
-              <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Professional Details</div>
+              <div className="text-[17px] font-bold tracking-tight text-ink-900">Professional Details</div>
             </div>
             <div className="grid gap-5 md:grid-cols-2">
               <Input 
@@ -1239,7 +1239,7 @@ export function NotarySettingsPage() {
 
         <div className="space-y-6">
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Security Settings</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Security Settings</div>
             <div className="mt-6 space-y-5">
               <Input 
                 label="CURRENT PASSWORD" 
@@ -1280,7 +1280,7 @@ export function NotarySettingsPage() {
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Notification Preferences</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Notification Preferences</div>
             <div className="mt-6 space-y-6">
               {notifications.map((n) => (
                 <div key={n.id} className="flex items-center justify-between gap-4">

@@ -925,7 +925,7 @@ export function CompanyOrderDetailsPage() {
         <div className="space-y-6">
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-7 flex items-center justify-between">
-              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Order Information</div>
+              <div className="text-[18px] font-bold tracking-tight text-ink-900">Order Information</div>
               {!isEditing && (
                 <button 
                   onClick={() => setIsEditing(true)}
@@ -1049,7 +1049,7 @@ export function CompanyOrderDetailsPage() {
                 <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
                   <FileText className="h-4 w-4" />
                 </div>
-                <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Documents</div>
+                <div className="text-[18px] font-bold tracking-tight text-ink-900">Documents</div>
               </div>
               <div className="text-[13px] font-semibold text-brand-600">2 Files Total</div>
             </div>
@@ -1088,7 +1088,7 @@ export function CompanyOrderDetailsPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
                 <CircleDot className="h-4 w-4" />
               </div>
-              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Activity Log</div>
+              <div className="text-[18px] font-bold tracking-tight text-ink-900">Activity Log</div>
             </div>
             <div className="space-y-7">
               {activityLog.map(([title, body, time], index) => (
@@ -1143,7 +1143,7 @@ export function CompanyOrderDetailsPage() {
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f6f6fd] p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Order Status</div>
+            <div className="text-[18px] font-bold tracking-tight text-ink-900">Order Status</div>
             <div className="mt-7 space-y-6">
               {orderTimeline.map((item, index) => (
                 <button
@@ -1169,7 +1169,7 @@ export function CompanyOrderDetailsPage() {
                   >
                     {item.current ? <div className="h-2.5 w-2.5 rounded-full bg-brand-600" /> : null}
                   </div>
-                  <div className={`text-[22px] font-extrabold tracking-[-0.03em] transition-colors ${item.active ? "text-ink-900 group-hover:text-brand-600" : "text-ink-300 group-hover:text-ink-400"}`}>
+                  <div className={`text-[16px] font-bold tracking-tight transition-colors ${item.active ? "text-ink-900 group-hover:text-brand-600" : "text-ink-300 group-hover:text-ink-400"}`}>
                     {item.title}
                   </div>
                   <div className={`mt-1 text-[13px] transition-colors ${item.current ? "font-semibold text-brand-600" : item.active ? "text-ink-500" : "text-ink-300"}`}>
@@ -1564,7 +1564,7 @@ export function CompanyDocumentsDetailPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-6 flex items-center gap-3">
               <Info className="h-5 w-5 text-brand-600" />
-              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">File Details</div>
+              <div className="text-[18px] font-bold tracking-tight text-ink-900">File Details</div>
             </div>
             <div className="space-y-6">
               <Detail label="FILE NAME" value={doc.name} />
@@ -1588,7 +1588,7 @@ export function CompanyDocumentsDetailPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-6 flex items-center gap-3">
               <FolderKanban className="h-5 w-5 text-brand-600" />
-              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Order Information</div>
+              <div className="text-[18px] font-bold tracking-tight text-ink-900">Order Information</div>
             </div>
             <div className="space-y-6">
               <Detail label="CLIENT NAME" value="Robert & Martha Henderson" />
@@ -1599,7 +1599,7 @@ export function CompanyDocumentsDetailPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="mb-6 flex items-center gap-3">
               <RotateCw className="h-5 w-5 text-brand-600" />
-              <div className="text-[28px] font-extrabold tracking-[-0.03em] text-ink-900">Recent Activity</div>
+              <div className="text-[18px] font-bold tracking-tight text-ink-900">Recent Activity</div>
             </div>
             <div className="space-y-6">
               <div className="flex items-start gap-3">
@@ -2130,7 +2130,7 @@ export function CompanySettingsPage() {
               </div>
             </div>
             <div>
-              <div className="text-[24px] font-bold tracking-tight text-ink-900">{personalInfo.fullName}</div>
+              <div className="text-[20px] font-bold tracking-tight text-ink-900">{personalInfo.fullName}</div>
               <div className="mt-1.5 text-[13px] text-ink-500">{personalInfo.email}</div>
               <div className="mt-1 text-[15px] text-ink-500">{companyInfo.companyName}</div>
             </div>
@@ -2180,7 +2180,7 @@ export function CompanySettingsPage() {
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Company Information</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Company Information</div>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
               <Input 
                 label="COMPANY NAME" 
@@ -2216,7 +2216,7 @@ export function CompanySettingsPage() {
 
         <div className="space-y-6">
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Security Settings</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Security Settings</div>
             <div className="mt-6 space-y-5">
               <Input 
                 label="CURRENT PASSWORD" 
@@ -2257,7 +2257,7 @@ export function CompanySettingsPage() {
           </Surface>
 
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">Notification Preferences</div>
+            <div className="text-[17px] font-bold tracking-tight text-ink-900">Notification Preferences</div>
             <div className="mt-6 space-y-6">
               {notifications.map((n) => (
                 <div key={n.id} className="flex items-center justify-between gap-4">
