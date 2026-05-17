@@ -118,8 +118,8 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                 onClick={() => setMenuOpen((open) => !open)}
                 className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition-colors hover:bg-[#f6f8fd]"
               >
-                <div className="text-right">
-                  <div className="text-sm font-extrabold text-ink-900">{userName}</div>
+                <div className="text-right w-[140px] hidden md:block truncate">
+                  <div className="text-sm font-extrabold text-ink-900 truncate">{userName}</div>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-400">{userRole}</div>
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#18253f,#68506a)] text-xs font-bold text-white">

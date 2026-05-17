@@ -4,13 +4,11 @@ import { Link, useParams } from "react-router-dom";
 import { Badge, Button, FooterBand, Input, Modal, Surface, Textarea } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
-import { useConfirmStore } from "@/store/useConfirmStore";
 import { toast } from "@/store/useToastStore";
 
 export function NotaryOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { notaryOrders, notaryAssignedOrders } = useStore();
-  const confirm = useConfirmStore(state => state.confirm);
 
   const allOrders = [...notaryOrders, ...notaryAssignedOrders];
   const order = allOrders.find(o => o.id.replace("#", "") === id) || allOrders[0];
@@ -64,43 +62,27 @@ export function NotaryOrderDetailPage() {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            className="h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold"
+            className="w-[180px] h-[44px] justify-center rounded-[12px] border-brand-300 text-brand-600 bg-brand-50/50 hover:bg-brand-50 px-0 text-[14px] font-semibold"
             onClick={() => setShowScheduleModal(true)}
           >
-            <CalendarDays className="mr-2 h-4 w-4" />
+            <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-brand-500" />
             Schedule Closing
           </Button>
           <Button
             variant="outline"
-            className="h-[44px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold"
+            className="w-[180px] h-[44px] justify-center rounded-[12px] border-amber-200 text-amber-600 bg-amber-50/30 hover:bg-amber-50 px-0 text-[14px] font-semibold"
             onClick={() => {
-              confirm({
-                title: "Mark as In Progress?",
-                message: "This will update the order status and notify the title company that you have begun the signing process.",
-                confirmLabel: "Update Status",
-                type: "warning",
-                onConfirm: () => {
-                  setOrderStatus("In Progress");
-                  toast.success("Order is now In Progress");
-                }
-              });
+              setOrderStatus("In Progress");
+              toast.success("Order is now In Progress");
             }}
           >
             Mark as In Progress
           </Button>
           <Button
-            className="h-[44px] rounded-[12px] px-5 text-[14px] font-semibold"
+            className="w-[180px] h-[44px] justify-center rounded-[12px] bg-emerald-600 text-white shadow-[0_8px_18px_rgba(16,185,129,0.22)] hover:bg-emerald-700 transition px-0 text-[14px] font-semibold"
             onClick={() => {
-              confirm({
-                title: "Mark as Completed?",
-                message: "Please ensure all documents have been signed and uploaded before marking as completed.",
-                confirmLabel: "Yes, Completed",
-                type: "info",
-                onConfirm: () => {
-                  setOrderStatus("Completed");
-                  toast.success("Order marked as Completed");
-                }
-              });
+              setOrderStatus("Completed");
+              toast.success("Order marked as Completed");
             }}
           >
             Mark as Completed
