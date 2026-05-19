@@ -93,9 +93,30 @@ export const companyDocuments: DocumentRecord[] = [
 ];
 
 export const teamMembers: TeamMember[] = [
-  { name: "John Doe", email: "john.doe@closingengage.com", role: "Admin", status: "Active", joinedDate: "Feb 12, 2026" },
-  { name: "Sarah Chen", email: "s.chen@legalpartners.com", role: "Member", status: "Pending Invite", joinedDate: "—" },
-  { name: "Marcus Bell", email: "m.bell@titlepro.net", role: "Member", status: "Active", joinedDate: "Feb 05, 2026" },
+  {
+    name: "John Doe",
+    email: "john.doe@closingengage.com",
+    role: "Admin",
+    status: "Active",
+    joinedDate: "Feb 12, 2026",
+    permissions: { createOrders: true, viewOrders: true, downloadDocuments: true },
+  },
+  {
+    name: "Sarah Chen",
+    email: "s.chen@legalpartners.com",
+    role: "Member",
+    status: "Pending Invite",
+    joinedDate: "—",
+    permissions: { createOrders: true, viewOrders: true, downloadDocuments: false },
+  },
+  {
+    name: "Marcus Bell",
+    email: "m.bell@titlepro.net",
+    role: "Member",
+    status: "Active",
+    joinedDate: "Feb 05, 2026",
+    permissions: { createOrders: true, viewOrders: true, downloadDocuments: false },
+  },
 ];
 
 export const notaryMetrics: MetricCard[] = [

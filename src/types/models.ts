@@ -55,6 +55,11 @@ export interface TeamMember {
   status: "Active" | "Pending Invite";
   joinedDate: string;
   phone?: string;
+  permissions?: {
+    createOrders: boolean;
+    viewOrders: boolean;
+    downloadDocuments: boolean;
+  };
 }
 
 export interface CredentialRecord {

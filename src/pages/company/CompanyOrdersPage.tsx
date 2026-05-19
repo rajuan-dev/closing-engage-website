@@ -4,9 +4,11 @@ import { Link } from "react-router-dom";
 import { Badge, Button, Select, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
+import { hasPortalPermission } from "@/utils/portalPermissions";
 
 export function CompanyOrdersPage() {
   const { companyOrders } = useStore();
+  const canCreateOrders = hasPortalPermission("createOrders");
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [dateFilter, setDateFilter] = useState<string>("Date: Any time");
@@ -60,12 +62,14 @@ export function CompanyOrdersPage() {
             Manage and track all your closing orders
           </p>
         </div>
-        <Link to="/company/orders/new">
-          <Button className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]">
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Order
-          </Button>
-        </Link>
+        {canCreateOrders ? (
+          <Link to="/company/orders/new">
+            <Button className="h-[48px] rounded-[14px] px-5 text-[15px] font-semibold shadow-[0_14px_32px_rgba(24,90,188,0.18)]">
+              <Plus className="mr-2 h-4 w-4" />
+              Create New Order
+            </Button>
+          </Link>
+        ) : null}
       </div>
 
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f9fbff] p-4 shadow-[0_12px_30px_rgba(20,48,112,0.04)]">

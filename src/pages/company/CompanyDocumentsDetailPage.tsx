@@ -4,11 +4,13 @@ import { Link, useParams } from "react-router-dom";
 import { Badge, Button, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { hasPortalPermission } from "@/utils/portalPermissions";
 
 export function CompanyDocumentsDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { companyDocuments } = useStore();
   const doc = companyDocuments.find((d) => d.id === id) || companyDocuments[0];
+  const canDownloadDocuments = hasPortalPermission("downloadDocuments");
 
   const [zoom, setZoom] = useState(100);
   const [previewPage, setPreviewPage] = useState(1);
@@ -20,6 +22,11 @@ export function CompanyDocumentsDetailPage() {
   };
 
   const handleDownload = () => {
+    if (!canDownloadDocuments) {
+      toast.error("You do not have permission to download documents.");
+      return;
+    }
+
     toast.success(`Started downloading: ${doc.name}`);
     // Simulate a real download experience
     const dummyBlob = new Blob(["Mock PDF Content"], { type: "application/pdf" });
@@ -57,10 +64,12 @@ export function CompanyDocumentsDetailPage() {
               <Printer className="mr-2 h-4 w-4" />
               Print
             </Button>
-            <Button onClick={handleDownload} className="h-[50px] rounded-[12px] px-6 text-[15px] font-semibold">
-              <Download className="mr-2 h-4 w-4" />
-              Download
-            </Button>
+            {canDownloadDocuments ? (
+              <Button onClick={handleDownload} className="h-[50px] rounded-[12px] px-6 text-[15px] font-semibold">
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+            ) : null}
           </div>
         </div>
       </Surface>

@@ -1,13 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Pencil, Search, Trash2, UserPlus } from "lucide-react";
 import { Badge, Button, Input, Modal, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { useConfirmStore } from "@/store/useConfirmStore";
 import { toast } from "@/store/useToastStore";
+import { teamService } from "@/services/teamService";
 import type { TeamMember } from "@/types/models";
 
 export function CompanyTeamPage() {
-  const { teamMembers, addTeamMember, updateTeamMember, removeTeamMember } = useStore();
+  const { teamMembers, setTeamMembers, addTeamMember, updateTeamMember, removeTeamMember } = useStore();
+  const defaultPermissions = {
+    createOrders: true,
+    viewOrders: true,
+    downloadDocuments: false,
+  };
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedMemberRole, setSelectedMemberRole] = useState<"Admin" | "Member">("Admin");
   const [teamSearch, setTeamSearch] = useState("");
@@ -17,6 +23,9 @@ export function CompanyTeamPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [permissions, setPermissions] = useState(defaultPermissions);
+  const [sendInvite, setSendInvite] = useState(true);
+  const [isSavingMember, setIsSavingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
 
   const { confirm } = useConfirmStore();
@@ -27,9 +36,14 @@ export function CompanyTeamPage() {
       message: "Are you sure you want to remove this team member? This action cannot be undone.",
       confirmLabel: "Remove Member",
       type: "danger",
-      onConfirm: () => {
-        removeTeamMember(email);
-        toast.success("Member successfully removed.");
+      onConfirm: async () => {
+        try {
+          await teamService.deleteMember(email);
+          removeTeamMember(email);
+          toast.success("Member successfully removed.");
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Unable to remove team member.");
+        }
       },
     });
   };
@@ -40,8 +54,23 @@ export function CompanyTeamPage() {
     setEmail(member.email);
     setPhone(member.phone || "");
     setSelectedMemberRole(member.role);
+    setPermissions(member.permissions || defaultPermissions);
+    setSendInvite(false);
     setShowAddMemberModal(true);
   };
+
+  useEffect(() => {
+    const loadTeamMembers = async () => {
+      try {
+        const members = await teamService.getMembers();
+        setTeamMembers(members);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load team members.");
+      }
+    };
+
+    void loadTeamMembers();
+  }, [setTeamMembers]);
 
   const teamAvatars: Record<string, string> = {
     "John Doe": "from-[#23334d] to-[#1e2940]",
@@ -80,6 +109,8 @@ export function CompanyTeamPage() {
               setEmail(isEmail ? teamSearch : "");
               setPhone("");
               setSelectedMemberRole("Member");
+              setPermissions(defaultPermissions);
+              setSendInvite(true);
               setEditingMember(null);
               setShowAddMemberModal(true);
             }}
@@ -217,36 +248,65 @@ export function CompanyTeamPage() {
         subtitle={editingMember ? "Update the details for this team member" : "Invite a team member to your company account"}
       >
         <form 
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             if (!name || !email) {
               toast.error("Full name and email are required.");
               return;
             }
 
+            setIsSavingMember(true);
             if (editingMember) {
-              updateTeamMember(editingMember.email, {
-                name,
-                email,
-                phone,
-                role: selectedMemberRole,
-              });
-              toast.success(`${name} has been updated!`);
+              try {
+                const updatedMember = await teamService.updateMember(editingMember.email, {
+                  name,
+                  email,
+                  phone,
+                  role: selectedMemberRole,
+                  permissions,
+                });
+                updateTeamMember(editingMember.email, updatedMember);
+                toast.success(`${name} has been updated!`);
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to update member.");
+                setIsSavingMember(false);
+                return;
+              }
             } else {
-              addTeamMember({
-                name: name,
-                email: email,
-                phone: phone,
-                role: selectedMemberRole,
-                status: "Pending Invite",
-                joinedDate: new Date().toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "2-digit",
-                  year: "numeric",
-                }),
-              });
-              toast.success(`${name} has been invited!`);
+              const existingMember = teamMembers.find(
+                (member) => member.email.trim().toLowerCase() === email.trim().toLowerCase()
+              );
+
+              if (existingMember) {
+                toast.error("This email is already on your team. Use the edit button to update permissions or role.");
+                setIsSavingMember(false);
+                return;
+              }
+
+              try {
+                const result = await teamService.createMember({
+                  name,
+                  email,
+                  phone,
+                  role: selectedMemberRole,
+                  status: "Pending Invite",
+                  joinedDate: "—",
+                  permissions,
+                  sendInvite,
+                });
+                addTeamMember(result.member);
+                toast.success(
+                  result.inviteDelivered
+                    ? `${name} has been invited!`
+                    : `${name} was created. Temporary password: ${result.temporaryPassword}`
+                );
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to invite member.");
+                setIsSavingMember(false);
+                return;
+              }
             }
+            setIsSavingMember(false);
             setShowAddMemberModal(false);
           }}
         >
@@ -322,8 +382,54 @@ export function CompanyTeamPage() {
               </div>
             </div>
 
+            <div>
+              <div className="mb-4 text-[13px] font-bold uppercase tracking-[0.08em] text-ink-400">
+                Permissions
+              </div>
+              <div className="grid gap-4 rounded-[18px] border border-[#e5ebf5] bg-[#f7f9fd] p-5 md:grid-cols-2">
+                <label className="flex items-center gap-3 text-[15px] font-semibold text-ink-700">
+                  <input
+                    type="checkbox"
+                    checked={permissions.createOrders}
+                    onChange={(e) =>
+                      setPermissions((current) => ({ ...current, createOrders: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-[#cfd8e6] text-brand-600"
+                  />
+                  Create Orders
+                </label>
+                <label className="flex items-center gap-3 text-[15px] font-semibold text-ink-700">
+                  <input
+                    type="checkbox"
+                    checked={permissions.viewOrders}
+                    onChange={(e) =>
+                      setPermissions((current) => ({ ...current, viewOrders: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-[#cfd8e6] text-brand-600"
+                  />
+                  View Orders
+                </label>
+                <label className="flex items-center gap-3 text-[15px] font-semibold text-ink-700 md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={permissions.downloadDocuments}
+                    onChange={(e) =>
+                      setPermissions((current) => ({ ...current, downloadDocuments: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-[#cfd8e6] text-brand-600"
+                  />
+                  Download Documents
+                </label>
+              </div>
+            </div>
+
             <label className="flex items-center gap-3 rounded-[16px] bg-[#eef4ff] px-4 py-4 text-[16px] font-semibold text-brand-600">
-              <input defaultChecked type="checkbox" className="h-4 w-4" />
+              <input
+                checked={sendInvite}
+                onChange={(e) => setSendInvite(e.target.checked)}
+                type="checkbox"
+                className="h-4 w-4"
+              />
               Send invitation email to this user
             </label>
           </div>
@@ -338,9 +444,10 @@ export function CompanyTeamPage() {
             </Button>
             <Button
               type="submit"
+              disabled={isSavingMember}
               className="h-[46px] rounded-[12px] px-6 text-[15px] font-semibold"
             >
-              {editingMember ? "Save Changes" : "Add Member"}
+              {isSavingMember ? "Saving..." : editingMember ? "Save Changes" : "Add Member"}
             </Button>
           </div>
         </form>

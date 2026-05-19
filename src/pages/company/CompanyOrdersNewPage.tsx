@@ -4,9 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button, Input, Select, Surface, Textarea } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { hasPortalPermission } from "@/utils/portalPermissions";
 
 export function CompanyOrdersNewPage() {
   const navigate = useNavigate();
+  const canCreateOrders = hasPortalPermission("createOrders");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -59,6 +61,12 @@ export function CompanyOrdersNewPage() {
   };
 
   const handleSubmit = () => {
+    if (!canCreateOrders) {
+      toast.error("You do not have permission to create orders.");
+      navigate("/company/orders");
+      return;
+    }
+
     if (!formData.title || !formData.clientName || !formData.address) {
       toast.error("Order Title, Client Name, and Property Address are required.");
       return;
@@ -103,6 +111,11 @@ export function CompanyOrdersNewPage() {
 
   return (
     <div className="space-y-7">
+      {!canCreateOrders ? (
+        <Surface className="rounded-[18px] border border-[#f1d7d7] bg-[#fff7f7] p-5 text-[14px] font-semibold text-danger-600">
+          You do not have permission to create orders.
+        </Surface>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-ink-300">

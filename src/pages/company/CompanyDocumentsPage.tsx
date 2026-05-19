@@ -5,9 +5,11 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { cn } from "@/lib/utils";
+import { hasPortalPermission } from "@/utils/portalPermissions";
 
 export function CompanyDocumentsPage() {
   const { companyDocuments } = useStore();
+  const canDownloadDocuments = hasPortalPermission("downloadDocuments");
   const [docSearch, setDocSearch] = useState("");
   const [docStatusFilter, setDocStatusFilter] = useState<"All" | "Approved" | "Pending">("All");
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,14 +108,16 @@ export function CompanyDocumentsPage() {
                       >
                         <Eye className="h-5 w-5" />
                       </button>
-                      <button 
-                        type="button" 
-                        onClick={() => toast.info(`Downloading ${doc.name}...`)}
-                        className="hover:text-brand-700 transition-colors"
-                        aria-label={`Download ${doc.name}`}
-                      >
-                        <Download className="h-5 w-5" />
-                      </button>
+                      {canDownloadDocuments ? (
+                        <button 
+                          type="button" 
+                          onClick={() => toast.info(`Downloading ${doc.name}...`)}
+                          className="hover:text-brand-700 transition-colors"
+                          aria-label={`Download ${doc.name}`}
+                        >
+                          <Download className="h-5 w-5" />
+                        </button>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

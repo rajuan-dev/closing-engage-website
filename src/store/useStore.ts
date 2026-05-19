@@ -57,6 +57,7 @@ interface AppState {
   companyDocuments: DocumentRecord[];
   addCompanyDocument: (doc: DocumentRecord) => void;
   teamMembers: TeamMember[];
+  setTeamMembers: (members: TeamMember[]) => void;
   addTeamMember: (member: TeamMember) => void;
   updateTeamMember: (email: string, updates: Partial<TeamMember>) => void;
   removeTeamMember: (email: string) => void;
@@ -86,6 +87,7 @@ export const useStore = create<AppState>((set) => ({
   companyDocuments: [...companyDocuments],
   addCompanyDocument: (doc) => set((state) => ({ companyDocuments: [doc, ...state.companyDocuments] })),
   teamMembers: [...teamMembers],
+  setTeamMembers: (members) => set({ teamMembers: members }),
   addTeamMember: (member) => set((state) => ({ teamMembers: [member, ...state.teamMembers] })),
   updateTeamMember: (email, updates) =>
     set((state) => ({

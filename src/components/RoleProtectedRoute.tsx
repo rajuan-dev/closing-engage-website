@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { portalAuthService } from "@/services/portalAuthService";
+import { portalAuthService, PortalApiError } from "@/services/portalAuthService";
 
 export function RoleProtectedRoute({ role }: { role: "company" | "notary" }) {
   const location = useLocation();
@@ -23,10 +23,16 @@ export function RoleProtectedRoute({ role }: { role: "company" | "notary" }) {
         await portalAuthService.fetchMe(role);
         if (!mounted) return;
         setIsSessionValid(true);
-      } catch {
-        portalAuthService.clearSession();
+      } catch (error) {
+        if (error instanceof PortalApiError && (error.status === 401 || error.status === 403)) {
+          portalAuthService.clearSession();
+          if (!mounted) return;
+          setIsSessionValid(false);
+          return;
+        }
+
         if (!mounted) return;
-        setIsSessionValid(false);
+        setIsSessionValid(true);
       } finally {
         if (mounted) setIsCheckingSession(false);
       }

@@ -30,7 +30,7 @@ export function CompanyTeamNewPage() {
           <div className="mt-4 grid gap-4 md:grid-cols-3 text-sm">
             <label className="flex items-center gap-2"><input defaultChecked type="checkbox" />Create Orders</label>
             <label className="flex items-center gap-2"><input defaultChecked type="checkbox" />View Orders</label>
-            <label className="flex items-center gap-2"><input defaultChecked type="checkbox" />Download Documents</label>
+            <label className="flex items-center gap-2"><input type="checkbox" />Download Documents</label>
           </div>
         </div>
         <label className="mt-6 flex items-center gap-2 text-sm font-semibold text-ink-700"><input defaultChecked type="checkbox" />Send invitation email to this user</label>
