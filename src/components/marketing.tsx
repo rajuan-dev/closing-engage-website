@@ -2,10 +2,11 @@ import { useState, type ReactNode } from "react";
 import { ArrowRight, Building2, CheckCircle2, ChevronRight, KeyRound, Lock, Mail, MapPin, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "@/store/useToastStore";
+import { portalAuthService } from "@/services/portalAuthService";
+import { passwordResetService } from "@/services/passwordResetService";
 import clsx from "clsx";
 import { Button, Input, SectionTitle, Surface } from "@/components/common";
 import { publicNav, reliabilityCards, serviceCards } from "@/data/mock-data";
-import { placeholderAction } from "@/lib/utils";
 import { themeTokens } from "@/theme/tokens";
 
 export function PublicHeader() {
@@ -504,23 +505,23 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast.error("Please enter a username or email.");
       return;
     }
-    
-    // Simple logic for the demo: 
-    // 'admin' -> admin dashboard
-    // contains 'notary' -> notary dashboard
-    // everything else -> company dashboard
-    if (email.toLowerCase() === "admin") {
-      navigate("/admin/dashboard");
-    } else if (email.toLowerCase().includes("notary")) {
-      navigate("/notary/dashboard");
-    } else {
-      navigate("/company/dashboard");
+    if (!password) {
+      toast.error("Please enter your password.");
+      return;
+    }
+
+    try {
+      const session = await portalAuthService.login(email, password);
+      toast.success("Login successful.");
+      navigate(session.redirectTo, { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Invalid email or password.");
     }
   };
 
@@ -529,7 +530,7 @@ export function LoginForm() {
       <Input
         label="Email or Username"
         icon={<Mail className="h-5 w-5 text-ink-400" />}
-        placeholder="Enter your email or 'admin'"
+        placeholder="Enter your email or username"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
@@ -559,22 +560,50 @@ export function LoginForm() {
 }
 
 export function ForgotPasswordForm() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!email.trim()) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      await passwordResetService.forgotPassword(email.trim());
+      sessionStorage.setItem("password_reset_email", email.trim());
+      toast.success("Verification code sent. Check your email.");
+      navigate(`/verify-email-otp?email=${encodeURIComponent(email.trim())}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to send verification code.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-[680px] space-y-6">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-[680px] space-y-6">
       <Input
         label="Email"
         icon={<Mail className="h-5 w-5 text-ink-400" />}
         placeholder="Enter your email address"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <p className="text-[15px] leading-[1.8] text-ink-500">
         We will send a six-digit verification code to your email so you can securely continue the password reset process.
       </p>
       <Button
+        type="submit"
+        disabled={isSending}
         className="h-[60px] w-full rounded-[16px] text-[20px] font-bold shadow-[0_18px_36px_rgba(24,90,188,0.2)]"
-        onClick={() => window.location.assign("/verify-email-otp")}
       >
-        Send Verification Code
+        {isSending ? "Sending Code..." : "Send Verification Code"}
       </Button>
       <div className="text-center text-[15px] text-ink-500">
         Remember your password?{" "}
@@ -582,28 +611,101 @@ export function ForgotPasswordForm() {
           Back to Login
         </Link>
       </div>
-    </div>
+    </form>
   );
 }
 
 export function OtpVerificationForm() {
+  const navigate = useNavigate();
+  const params = new URLSearchParams(window.location.search);
+  const initialEmail = params.get("email") || sessionStorage.getItem("password_reset_email") || "";
+  const [email, setEmail] = useState(initialEmail);
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!email.trim() || !otp.trim() || !newPassword || !confirmPassword) {
+      toast.error("Please complete all password reset fields.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await passwordResetService.resetPassword(email.trim(), otp.trim(), newPassword, confirmPassword);
+      sessionStorage.removeItem("password_reset_email");
+      toast.success("Password reset successfully. You can now log in.");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Password reset failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email.trim()) {
+      toast.error("Enter your email first.");
+      return;
+    }
+
+    try {
+      await passwordResetService.forgotPassword(email.trim());
+      toast.success("A new verification code has been sent.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to resend verification code.");
+    }
+  };
+
   return (
-    <div className="mx-auto max-w-[680px] space-y-6">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-[680px] space-y-6">
+      <Input
+        label="Email"
+        icon={<Mail className="h-5 w-5 text-ink-400" />}
+        placeholder="Enter your email address"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
+      />
       <Input
         label="Verification Code"
         icon={<KeyRound className="h-5 w-5 text-ink-400" />}
         placeholder="Enter 6-digit code"
         inputMode="numeric"
+        value={otp}
+        onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+        className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
+      />
+      <Input
+        label="New Password"
+        icon={<ShieldCheck className="h-5 w-5 text-ink-400" />}
+        placeholder="Enter new password"
+        type="password"
+        value={newPassword}
+        onChange={(event) => setNewPassword(event.target.value)}
+        className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
+      />
+      <Input
+        label="Confirm Password"
+        icon={<ShieldCheck className="h-5 w-5 text-ink-400" />}
+        placeholder="Confirm new password"
+        type="password"
+        value={confirmPassword}
+        onChange={(event) => setConfirmPassword(event.target.value)}
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <p className="text-[15px] leading-[1.8] text-ink-500">
         Enter the code sent to your email address to verify your identity and continue resetting your password.
       </p>
       <Button
+        type="submit"
+        disabled={isSubmitting}
         className="h-[60px] w-full rounded-[16px] text-[20px] font-bold shadow-[0_18px_36px_rgba(24,90,188,0.2)]"
-        onClick={placeholderAction("Verify OTP")}
       >
-        Verify Email
+        {isSubmitting ? "Resetting Password..." : "Reset Password"}
       </Button>
       <div className="flex items-center justify-between gap-4 text-[15px] text-ink-500">
         <Link to="/forgot-password" className="font-semibold text-brand-600 transition-colors hover:text-brand-700">
@@ -612,12 +714,12 @@ export function OtpVerificationForm() {
         <button
           type="button"
           className="font-semibold text-brand-600 transition-colors hover:text-brand-700"
-          onClick={placeholderAction("Resend verification code")}
+          onClick={handleResend}
         >
           Resend Code
         </button>
       </div>
-    </div>
+    </form>
   );
 }
 

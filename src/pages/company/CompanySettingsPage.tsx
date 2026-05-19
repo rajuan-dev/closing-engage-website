@@ -1,11 +1,39 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Input, Surface } from "@/components/common";
+import { portalAuthService } from "@/services/portalAuthService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+
+interface CompanySessionUser {
+  contactPerson?: string;
+  businessEmail?: string;
+  email?: string;
+  phone?: string;
+  companyName?: string;
+  contactEmail?: string;
+  address?: string;
+}
+
+const mapSessionToProfile = (user: unknown) => {
+  const company = user as CompanySessionUser | null;
+  if (!company) return null;
+
+  return {
+    fullName: company.contactPerson || "",
+    email: company.contactEmail || company.email || company.businessEmail || "",
+    phone: company.phone || "",
+    companyName: company.companyName || "",
+    companyEmail: company.businessEmail || company.email || "",
+    contactNumber: company.phone || "",
+    businessAddress: company.address || "",
+  };
+};
 
 export function CompanySettingsPage() {
   const { companyProfile, updateCompanyProfile } = useStore();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
 
   const [personalInfo, setPersonalInfo] = useState({
     fullName: companyProfile.fullName,
@@ -58,6 +86,28 @@ export function CompanySettingsPage() {
     }
   }, [isEditMode, resetForm]);
 
+  useEffect(() => {
+    const hydrateProfile = async () => {
+      try {
+        const cachedUser = portalAuthService.getUser();
+        const cachedProfile = mapSessionToProfile(cachedUser);
+        if (cachedProfile) {
+          updateCompanyProfile(cachedProfile);
+        }
+
+        const user = await portalAuthService.fetchMe("company");
+        const profile = mapSessionToProfile(user);
+        if (profile) {
+          updateCompanyProfile(profile);
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load company profile.");
+      }
+    };
+
+    void hydrateProfile();
+  }, [updateCompanyProfile]);
+
   const toggleNotification = (id: string) => {
     if (!isEditMode) return;
     setNotifications((prev) =>
@@ -65,26 +115,50 @@ export function CompanySettingsPage() {
     );
   };
 
-  const handleSaveSettings = () => {
-    updateCompanyProfile({
-      fullName: personalInfo.fullName,
-      email: personalInfo.email,
-      phone: personalInfo.phone,
-      companyName: companyInfo.companyName,
-      companyEmail: companyInfo.companyEmail,
-      contactNumber: companyInfo.contactNumber,
-      businessAddress: companyInfo.businessAddress,
-      notifications: {
-        email: notifications.find((n) => n.id === "email")?.active ?? true,
-        orders: notifications.find((n) => n.id === "orders")?.active ?? true,
-        documents: notifications.find((n) => n.id === "documents")?.active ?? false,
-      },
-    });
-    toast.success("Company settings saved successfully!");
-    setIsEditMode(false);
+  const handleSaveSettings = async () => {
+    const selectedPhone =
+      companyInfo.contactNumber !== companyProfile.contactNumber
+        ? companyInfo.contactNumber
+        : personalInfo.phone;
+
+    setIsSaving(true);
+    try {
+      const user = await portalAuthService.updateCompanyProfile({
+        contactPerson: personalInfo.fullName,
+        contactEmail: personalInfo.email,
+        phone: selectedPhone,
+        companyName: companyInfo.companyName,
+        businessEmail: companyInfo.companyEmail,
+        address: companyInfo.businessAddress,
+      });
+
+      const profile = mapSessionToProfile(user);
+      updateCompanyProfile({
+        ...(profile || {
+          fullName: personalInfo.fullName,
+          email: personalInfo.email,
+          phone: selectedPhone,
+          companyName: companyInfo.companyName,
+          companyEmail: companyInfo.companyEmail,
+          contactNumber: selectedPhone,
+          businessAddress: companyInfo.businessAddress,
+        }),
+        notifications: {
+          email: notifications.find((n) => n.id === "email")?.active ?? true,
+          orders: notifications.find((n) => n.id === "orders")?.active ?? true,
+          documents: notifications.find((n) => n.id === "documents")?.active ?? false,
+        },
+      });
+      toast.success("Company settings saved successfully!");
+      setIsEditMode(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save company settings.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error("Please fill in all password fields.");
       return;
@@ -93,10 +167,23 @@ export function CompanySettingsPage() {
       toast.error("New passwords do not match.");
       return;
     }
-    toast.success("Password updated successfully!");
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+
+    setIsPasswordSaving(true);
+    try {
+      await portalAuthService.updateCompanyPassword({
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      });
+      toast.success("Password updated successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update password.");
+    } finally {
+      setIsPasswordSaving(false);
+    }
   };
 
   return (
@@ -203,7 +290,7 @@ export function CompanySettingsPage() {
                 label="CURRENT PASSWORD" 
                 placeholder="••••••••" 
                 type="password" 
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
@@ -212,7 +299,7 @@ export function CompanySettingsPage() {
                 label="NEW PASSWORD" 
                 placeholder="••••••••" 
                 type="password" 
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
@@ -221,18 +308,18 @@ export function CompanySettingsPage() {
                 label="CONFIRM NEW PASSWORD" 
                 placeholder="••••••••" 
                 type="password" 
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Button
                 variant="outline"
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 className="h-[44px] w-full rounded-[12px] border-[#dfe6f2] text-[14px] font-semibold text-brand-600 disabled:opacity-50"
                 onClick={handleUpdatePassword}
               >
-                Update Password
+                {isPasswordSaving ? "Updating..." : "Update Password"}
               </Button>
             </div>
           </Surface>
@@ -273,11 +360,11 @@ export function CompanySettingsPage() {
           Cancel
         </Button>
         <Button 
-          disabled={!isEditMode}
+          disabled={!isEditMode || isSaving}
           className="h-[46px] rounded-[12px] px-8 text-[15px] font-semibold disabled:opacity-50" 
           onClick={handleSaveSettings}
         >
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
     </div>

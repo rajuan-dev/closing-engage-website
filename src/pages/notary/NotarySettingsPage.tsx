@@ -1,12 +1,40 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, FileText, UserRound } from "lucide-react";
 import { Button, FooterBand, Input, Surface } from "@/components/common";
+import { portalAuthService } from "@/services/portalAuthService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+
+interface NotarySessionUser {
+  fullName?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  license?: string;
+  expiry?: string;
+  serviceArea?: string;
+  specialty?: string;
+}
+
+const mapSessionToProfile = (user: unknown) => {
+  const notary = user as NotarySessionUser | null;
+  if (!notary) return null;
+
+  return {
+    fullName: notary.fullName || notary.name || "",
+    email: notary.email || "",
+    phone: notary.phone || "",
+    licenseNumber: notary.license || "",
+    commissionExpiry: notary.expiry || "",
+    serviceArea: notary.serviceArea || "",
+  };
+};
 
 export function NotarySettingsPage() {
   const { notaryProfile, updateNotaryProfile, addActivity } = useStore();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
 
   // Profile Draft States
   const [fullName, setFullName] = useState(notaryProfile.fullName);
@@ -48,6 +76,28 @@ export function NotarySettingsPage() {
     ]);
   }, [notaryProfile, isEditMode]);
 
+  useEffect(() => {
+    const hydrateProfile = async () => {
+      try {
+        const cachedUser = portalAuthService.getUser();
+        const cachedProfile = mapSessionToProfile(cachedUser);
+        if (cachedProfile) {
+          updateNotaryProfile(cachedProfile);
+        }
+
+        const user = await portalAuthService.fetchMe("notary");
+        const profile = mapSessionToProfile(user);
+        if (profile) {
+          updateNotaryProfile(profile);
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load notary profile.");
+      }
+    };
+
+    void hydrateProfile();
+  }, [updateNotaryProfile]);
+
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -72,33 +122,52 @@ export function NotarySettingsPage() {
     );
   };
 
-  const handleSave = () => {
-    updateNotaryProfile({
-      fullName,
-      email,
-      phone,
-      licenseNumber,
-      commissionExpiry,
-      serviceArea,
-      avatarUrl,
-      notifications: {
-        email: notifications.find((n) => n.id === "email")?.active ?? true,
-        orders: notifications.find((n) => n.id === "orders")?.active ?? true,
-        documents: notifications.find((n) => n.id === "documents")?.active ?? false,
-      },
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const user = await portalAuthService.updateNotaryProfile({
+        fullName,
+        email,
+        phone,
+        license: licenseNumber,
+        expiry: commissionExpiry,
+        serviceArea,
+      });
 
-    addActivity({
-      title: "Profile Updated",
-      description: "You successfully updated your notary profile settings.",
-      time: "Just Now",
-    });
+      const profile = mapSessionToProfile(user);
+      updateNotaryProfile({
+        ...(profile || {
+          fullName,
+          email,
+          phone,
+          licenseNumber,
+          commissionExpiry,
+          serviceArea,
+        }),
+        avatarUrl,
+        notifications: {
+          email: notifications.find((n) => n.id === "email")?.active ?? true,
+          orders: notifications.find((n) => n.id === "orders")?.active ?? true,
+          documents: notifications.find((n) => n.id === "documents")?.active ?? false,
+        },
+      });
 
-    toast.success("Profile settings saved successfully!");
-    setIsEditMode(false);
+      addActivity({
+        title: "Profile Updated",
+        description: "You successfully updated your notary profile settings.",
+        time: "Just Now",
+      });
+
+      toast.success("Profile settings saved successfully!");
+      setIsEditMode(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save notary settings.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!passwords.current || !passwords.new || !passwords.confirm) {
       toast.error("Please fill in all password fields.");
       return;
@@ -108,14 +177,27 @@ export function NotarySettingsPage() {
       return;
     }
 
-    addActivity({
-      title: "Password Updated",
-      description: "Your security credentials have been updated.",
-      time: "Just Now",
-    });
+    setIsPasswordSaving(true);
+    try {
+      await portalAuthService.updateNotaryPassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+        confirmPassword: passwords.confirm,
+      });
 
-    toast.success("Password updated successfully!");
-    setPasswords({ current: "", new: "", confirm: "" });
+      addActivity({
+        title: "Password Updated",
+        description: "Your security credentials have been updated.",
+        time: "Just Now",
+      });
+
+      toast.success("Password updated successfully!");
+      setPasswords({ current: "", new: "", confirm: "" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update password.");
+    } finally {
+      setIsPasswordSaving(false);
+    }
   };
 
   return (
@@ -236,7 +318,7 @@ export function NotarySettingsPage() {
                 label="CURRENT PASSWORD" 
                 placeholder="••••••••" 
                 type="password" 
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 value={passwords.current}
                 onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
@@ -245,7 +327,7 @@ export function NotarySettingsPage() {
                 label="NEW PASSWORD" 
                 placeholder="••••••••" 
                 type="password" 
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 value={passwords.new}
                 onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
@@ -254,18 +336,18 @@ export function NotarySettingsPage() {
                 label="CONFIRM NEW PASSWORD" 
                 placeholder="••••••••" 
                 type="password" 
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 value={passwords.confirm}
                 onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
               <Button
                 variant="outline"
-                disabled={!isEditMode}
+                disabled={!isEditMode || isPasswordSaving}
                 className="h-[44px] w-full rounded-[12px] border-[#dfe6f2] text-[14px] font-semibold text-brand-600 disabled:opacity-50"
                 onClick={handleUpdatePassword}
               >
-                Update Password
+                {isPasswordSaving ? "Updating..." : "Update Password"}
               </Button>
             </div>
           </Surface>
@@ -305,11 +387,11 @@ export function NotarySettingsPage() {
           Cancel
         </Button>
         <Button
-          disabled={!isEditMode}
+          disabled={!isEditMode || isSaving}
           className="h-[46px] rounded-[12px] px-8 text-[15px] font-semibold disabled:opacity-50"
           onClick={handleSave}
         >
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
       <FooterBand />

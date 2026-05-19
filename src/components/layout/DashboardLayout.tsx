@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, ChevronDown, Plus, Repeat2, X, CheckCircle2, Hourglass, CircleDot, FileText } from "lucide-react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button, SearchField, SidebarNav } from "@/components/common";
 import { companyNav, notaryNav } from "@/data/mock-data";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { portalAuthService } from "@/services/portalAuthService";
 
 export function DashboardLayout({ variant }: { variant: "company" | "notary" }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const items = variant === "company" ? companyNav : notaryNav;
   const { notaryProfile, companyProfile, recentActivities, clearActivities } = useStore();
   const userName = variant === "company" ? companyProfile.fullName : notaryProfile.fullName;
@@ -16,9 +18,6 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const switchTarget = variant === "company"
-    ? { href: "/notary/dashboard", label: "Switch to Notary Dashboard", helper: "Open your notary workspace" }
-    : { href: "/company/dashboard", label: "Switch to Title Company Dashboard", helper: "Open your company workspace" };
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
 
@@ -138,19 +137,23 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                       {userRole}
                     </div>
                   </div>
-                  <Link
-                    to={switchTarget.href}
-                    onClick={() => setMenuOpen(false)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      portalAuthService.clearSession();
+                      setMenuOpen(false);
+                      navigate("/login", { replace: true });
+                    }}
                     className="flex items-start gap-3 rounded-[14px] px-3.5 py-3 text-left transition-colors hover:bg-[#f6f8fd]"
                   >
                     <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
                       <Repeat2 className="h-4.5 w-4.5" />
                     </div>
                     <div>
-                      <div className="text-[13px] font-bold leading-[1.4] text-ink-900">{switchTarget.label}</div>
-                      <div className="mt-1 text-[12px] leading-[1.55] text-ink-500">{switchTarget.helper}</div>
+                      <div className="text-[13px] font-bold leading-[1.4] text-ink-900">Sign out</div>
+                      <div className="mt-1 text-[12px] leading-[1.55] text-ink-500">End this protected portal session</div>
                     </div>
-                  </Link>
+                  </button>
                 </div>
               ) : null}
               </div>

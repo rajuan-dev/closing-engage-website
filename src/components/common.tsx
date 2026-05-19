@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Check, ChevronDown, Search, UploadCloud } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Check, ChevronDown, Search, UploadCloud, Eye, EyeOff } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { MetricCard, NavItem } from "@/types/models";
@@ -48,26 +48,40 @@ export function Input({
   label,
   icon,
   className,
+  type,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   icon?: ReactNode;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPasswordType = type === "password";
+
   return (
     <label className="block" htmlFor={props.id}>
       {label ? <span className="mb-2 block text-sm font-semibold text-ink-900">{label}</span> : null}
       <span
         className={cn(
-          "flex h-13 items-center gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 text-sm text-ink-500 focus-within:border-brand-200 focus-within:bg-white",
+          "relative flex h-13 items-center gap-3 rounded-xl border border-ink-100 bg-ink-50 px-4 text-sm text-ink-500 focus-within:border-brand-200 focus-within:bg-white",
           className,
         )}
       >
         {icon}
         <input 
           id={props.id}
-          className="h-full w-full bg-transparent outline-none placeholder:text-ink-300" 
+          type={isPasswordType ? (showPassword ? "text" : "password") : type}
+          className="h-full w-full bg-transparent outline-none placeholder:text-ink-300 pr-10" 
           {...props} 
         />
+        {isPasswordType && (
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-4 text-ink-400 hover:text-ink-600 transition-colors focus:outline-none"
+          >
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+        )}
       </span>
     </label>
   );

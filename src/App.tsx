@@ -36,6 +36,7 @@ import {
 
 import { ToastContainer } from "@/components/ToastContainer";
 import { GlobalConfirmModal } from "@/components/GlobalConfirmModal";
+import { RoleProtectedRoute } from "@/components/RoleProtectedRoute";
 
 export default function App() {
   return (
@@ -55,26 +56,30 @@ export default function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signup/role-selection" element={<RoleSelectionPage />} />
 
-        <Route element={<DashboardLayout variant="company" />}>
-          <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
-          <Route path="/company/orders" element={<CompanyOrdersPage />} />
-          <Route path="/company/orders/new" element={<CompanyOrdersNewPage />} />
-          <Route path="/company/orders/:id" element={<CompanyOrderDetailsPage />} />
-          <Route path="/company/documents" element={<CompanyDocumentsPage />} />
-          <Route path="/company/documents/:id" element={<CompanyDocumentsDetailPage />} />
-          <Route path="/company/team" element={<CompanyTeamPage />} />
-          <Route path="/company/team/new" element={<CompanyTeamNewPage />} />
-          <Route path="/company/settings" element={<CompanySettingsPage />} />
+        <Route element={<RoleProtectedRoute role="company" />}>
+          <Route element={<DashboardLayout variant="company" />}>
+            <Route path="/company/dashboard" element={<CompanyDashboardPage />} />
+            <Route path="/company/orders" element={<CompanyOrdersPage />} />
+            <Route path="/company/orders/new" element={<CompanyOrdersNewPage />} />
+            <Route path="/company/orders/:id" element={<CompanyOrderDetailsPage />} />
+            <Route path="/company/documents" element={<CompanyDocumentsPage />} />
+            <Route path="/company/documents/:id" element={<CompanyDocumentsDetailPage />} />
+            <Route path="/company/team" element={<CompanyTeamPage />} />
+            <Route path="/company/team/new" element={<CompanyTeamNewPage />} />
+            <Route path="/company/settings" element={<CompanySettingsPage />} />
+          </Route>
         </Route>
 
-        <Route element={<DashboardLayout variant="notary" />}>
-          <Route path="/notary/dashboard" element={<NotaryDashboardPage />} />
-          <Route path="/notary/orders" element={<NotaryOrdersPage />} />
-          <Route path="/notary/orders/:id" element={<NotaryOrderDetailPage />} />
-          <Route path="/notary/upload-documents" element={<NotaryUploadDocumentsPage />} />
-          <Route path="/notary/settings" element={<NotarySettingsPage />} />
-          <Route path="/notary/credentials" element={<NotaryCredentialsPage />} />
-          <Route path="/notary/communications" element={<NotaryCommunicationsPage />} />
+        <Route element={<RoleProtectedRoute role="notary" />}>
+          <Route element={<DashboardLayout variant="notary" />}>
+            <Route path="/notary/dashboard" element={<NotaryDashboardPage />} />
+            <Route path="/notary/orders" element={<NotaryOrdersPage />} />
+            <Route path="/notary/orders/:id" element={<NotaryOrderDetailPage />} />
+            <Route path="/notary/upload-documents" element={<NotaryUploadDocumentsPage />} />
+            <Route path="/notary/settings" element={<NotarySettingsPage />} />
+            <Route path="/notary/credentials" element={<NotaryCredentialsPage />} />
+            <Route path="/notary/communications" element={<NotaryCommunicationsPage />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
