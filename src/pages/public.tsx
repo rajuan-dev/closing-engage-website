@@ -23,6 +23,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "@/store/useToastStore";
+import { accessRequestService } from "@/services/accessRequestService";
 import {
   HomeAudienceSection,
   HomeCTASection,
@@ -886,18 +887,15 @@ export function SignupPage() {
   }
 
   if (role === "company") {
-    const handleRequestAccess = (e: React.FormEvent) => {
+    const handleRequestAccess = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!fullName || !email) {
         toast.error("Please fill in all required fields (Full Name and Email).");
         return;
       }
 
-      // Capture request in localStorage for Admin Dashboard live integration
       try {
-        const existingReqs = JSON.parse(localStorage.getItem("registration_requests") || "[]");
-        const newReq = {
-          id: `REQ-${Date.now()}`,
+        await accessRequestService.createCompanyRequest({
           role: "company",
           fullName,
           email,
@@ -906,17 +904,14 @@ export function SignupPage() {
           contactType: contactType || "Title Company",
           requestType: requestType || "Access Request",
           coverageArea: coverageArea || "N/A",
-          status: "Pending",
-          createdDate: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-          message: message || "No additional comments."
-        };
-        localStorage.setItem("registration_requests", JSON.stringify([newReq, ...existingReqs]));
-      } catch (err) {
-        console.error("Failed to write request to localStorage:", err);
-      }
+          message: message || "No additional comments.",
+        });
 
-      toast.success("Access request submitted successfully! A representative will reach out shortly.");
-      navigate("/company/dashboard");
+        toast.success("Access request submitted successfully! A representative will reach out shortly.");
+        navigate("/company/dashboard");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to submit access request.");
+      }
     };
 
     return (
@@ -1095,18 +1090,15 @@ export function SignupPage() {
   }
 
   // Else, role === "notary", render beautiful professional Notary Request Access layout
-  const handleNotaryRequestAccess = (e: React.FormEvent) => {
+  const handleNotaryRequestAccess = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notaryFullName || !notaryEmail) {
       toast.error("Please fill in all required fields (Full Name and Email).");
       return;
     }
 
-    // Capture request in localStorage for Admin Dashboard live integration
     try {
-      const existingReqs = JSON.parse(localStorage.getItem("registration_requests") || "[]");
-      const newReq = {
-        id: `REQ-${Date.now()}`,
+      await accessRequestService.createNotaryRequest({
         role: "notary",
         fullName: notaryFullName,
         email: notaryEmail,
@@ -1116,17 +1108,14 @@ export function SignupPage() {
         eoInsurance: eoInsurance || "N/A",
         certifications: certifications || "N/A",
         coverageArea: notaryCoverageArea || "N/A",
-        status: "Pending",
-        createdDate: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-        message: notaryMessage || "No additional comments."
-      };
-      localStorage.setItem("registration_requests", JSON.stringify([newReq, ...existingReqs]));
-    } catch (err) {
-      console.error("Failed to write request to localStorage:", err);
-    }
+        message: notaryMessage || "No additional comments.",
+      });
 
-    toast.success("Notary application submitted successfully! Our compliance team will verify your credentials.");
-    navigate("/notary/dashboard");
+      toast.success("Notary application submitted successfully! Our compliance team will verify your credentials.");
+      navigate("/notary/dashboard");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit notary application.");
+    }
   };
 
   return (
