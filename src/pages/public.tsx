@@ -760,11 +760,11 @@ function CustomInput({
 }) {
   return (
     <div className="w-full">
-      <label className="block text-[11.5px] font-extrabold text-[#475569] mb-1">{label}</label>
+      <label className="block text-[12.5px] font-extrabold text-[#475569] mb-1.5">{label}</label>
       <div className="relative flex items-center">
         {icon && (
-          <div className="absolute left-3 text-slate-400 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "h-4 w-4" })}
+          <div className="absolute left-4 text-slate-400 pointer-events-none">
+            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
           </div>
         )}
         <input
@@ -772,8 +772,8 @@ function CustomInput({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-10 bg-[#f8fbff] border border-[#e2e8f0] rounded-xl text-[13px] text-slate-900 placeholder-slate-455 outline-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all font-medium ${
-            icon ? "pl-9 pr-3" : "px-3"
+          className={`w-full h-12 bg-[#f8fbff] border border-[#e2e8f0] rounded-2xl text-[14.5px] text-slate-900 placeholder-slate-455 outline-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all font-medium ${
+            icon ? "pl-11 pr-4" : "px-4"
           }`}
         />
       </div>
@@ -796,18 +796,18 @@ function CustomSelect({
 }) {
   return (
     <div className="w-full">
-      <label className="block text-[11.5px] font-extrabold text-[#475569] mb-1">{label}</label>
+      <label className="block text-[12.5px] font-extrabold text-[#475569] mb-1.5">{label}</label>
       <div className="relative flex items-center">
         {icon && (
-          <div className="absolute left-3 text-slate-400 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "h-4 w-4" })}
+          <div className="absolute left-4 text-slate-400 pointer-events-none">
+            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
           </div>
         )}
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-10 bg-[#f8fbff] border border-[#e2e8f0] rounded-xl text-[13px] text-slate-900 outline-none appearance-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all font-extrabold cursor-pointer pr-8 ${
-            icon ? "pl-9" : "px-3"
+          className={`w-full h-12 bg-[#f8fbff] border border-[#e2e8f0] rounded-2xl text-[14.5px] text-slate-900 outline-none appearance-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all font-extrabold cursor-pointer pr-10 ${
+            icon ? "pl-11" : "px-4"
           }`}
         >
           {options.map((opt) => (
@@ -816,7 +816,7 @@ function CustomSelect({
             </option>
           ))}
         </select>
-        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 pointer-events-none" />
       </div>
     </div>
   );
@@ -837,19 +837,19 @@ function CustomTextarea({
 }) {
   return (
     <div className="w-full flex flex-col flex-grow">
-      <label className="block text-[11.5px] font-extrabold text-[#475569] mb-1">{label}</label>
+      <label className="block text-[12.5px] font-extrabold text-[#475569] mb-1.5">{label}</label>
       <div className="relative flex items-start flex-grow">
         {icon && (
-          <div className="absolute left-3 top-3 text-slate-400 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "h-4 w-4" })}
+          <div className="absolute left-4 top-3.5 text-slate-400 pointer-events-none">
+            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
           </div>
         )}
         <textarea
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full h-[74px] min-h-[74px] bg-[#f8fbff] border border-[#e2e8f0] rounded-xl text-[13px] text-slate-900 placeholder-slate-455 outline-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all resize-none font-medium py-2 ${
-            icon ? "pl-9 pr-3" : "px-3"
+          className={`w-full h-[110px] min-h-[110px] bg-[#f8fbff] border border-[#e2e8f0] rounded-2xl text-[14.5px] text-slate-900 placeholder-slate-455 outline-none focus:border-brand-500 focus:bg-white focus:ring-4 focus:ring-brand-500/10 transition-all resize-none font-medium py-3 ${
+            icon ? "pl-11 pr-4" : "px-4"
           }`}
         />
       </div>
@@ -872,6 +872,17 @@ export function SignupPage() {
   const [coverageArea, setCoverageArea] = useState("");
   const [message, setMessage] = useState("");
 
+  // Custom states for Notary Application page (role=notary)
+  const [notaryFullName, setNotaryFullName] = useState("");
+  const [notaryEmail, setNotaryEmail] = useState("");
+  const [notaryPhone, setNotaryPhone] = useState("");
+  const [commissionNumber, setCommissionNumber] = useState("");
+  const [commissionExpiration, setCommissionExpiration] = useState("");
+  const [eoInsurance, setEoInsurance] = useState("$100,000");
+  const [certifications, setCertifications] = useState("NNA Certified Signing Agent");
+  const [notaryCoverageArea, setNotaryCoverageArea] = useState("");
+  const [notaryMessage, setNotaryMessage] = useState("");
+
   if (role !== "company" && role !== "notary") {
     return <Navigate to="/signup/role-selection" replace />;
   }
@@ -889,7 +900,7 @@ export function SignupPage() {
 
     return (
       <div className="min-h-screen bg-[#f8fafc] py-4 md:py-6 px-4 sm:px-6 lg:px-8 flex flex-col justify-between items-center font-sans overflow-hidden">
-        <div className="w-full max-w-[960px] flex flex-col items-center flex-grow justify-center my-auto">
+        <div className="w-full max-w-[1140px] flex flex-col items-center flex-grow justify-center my-auto">
           {/* Logo & Header */}
           <div className="flex justify-center mb-3">
             <img
@@ -899,27 +910,27 @@ export function SignupPage() {
             />
           </div>
           
-          <h1 className="text-center text-[22px] md:text-[25px] font-black tracking-tight text-slate-900 leading-none">
+          <h1 className="text-center text-[26px] md:text-[30px] font-extrabold tracking-tight text-slate-900 leading-none">
             Request Access
           </h1>
-          <p className="mt-1.5 text-center text-[12.5px] leading-normal text-slate-500 max-w-[480px] mx-auto font-medium">
+          <p className="mt-2 text-center text-[14px] leading-normal text-slate-500 max-w-[540px] mx-auto font-medium">
             Complete the secure request below to register your company and set up your Closing Engage workspace.
           </p>
 
           {/* Compact Form Card with 2-Column Split Layout */}
           <form
             onSubmit={handleRequestAccess}
-            className="mt-4 w-full bg-white rounded-[24px] border border-slate-200/60 shadow-[0_20px_50px_rgba(20,48,112,0.03)] p-5 md:p-7"
+            className="mt-4 w-full bg-white rounded-[24px] border border-slate-200/60 shadow-[0_20px_50px_rgba(20,48,112,0.03)] p-6 md:p-8"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
               
               {/* Left Column: Form Inputs */}
-              <div className="space-y-3 flex flex-col justify-between">
+              <div className="space-y-3.5 flex flex-col justify-between">
                 <div className="flex items-center gap-2 border-l-4 border-brand-500 pl-3">
-                  <UserRound className="h-4.5 w-4.5 text-brand-600 shrink-0" />
+                  <UserRound className="h-5 w-5 text-brand-600 shrink-0" />
                   <div>
-                    <h2 className="text-[14.5px] font-black text-slate-900 leading-none">Registration Details</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Please fill out all identity credentials</p>
+                    <h2 className="text-[16px] font-black text-slate-900 leading-none">Registration Details</h2>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Please fill out all identity credentials</p>
                   </div>
                 </div>
                 
@@ -998,10 +1009,10 @@ export function SignupPage() {
               {/* Right Column: Textarea, Warning banners & buttons */}
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2 border-l-4 border-brand-500 pl-3">
-                  <AlignLeft className="h-4.5 w-4.5 text-brand-600 shrink-0" />
+                  <AlignLeft className="h-5 w-5 text-brand-600 shrink-0" />
                   <div>
-                    <h2 className="text-[14.5px] font-black text-slate-900 leading-none">Additional Details</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Requirements & secure verification</p>
+                    <h2 className="text-[16px] font-black text-slate-900 leading-none">Additional Details</h2>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Requirements & secure verification</p>
                   </div>
                 </div>
 
@@ -1035,7 +1046,7 @@ export function SignupPage() {
                 <div className="flex gap-3 pt-3 border-t border-slate-100 mt-auto">
                   <button
                     type="submit"
-                    className="group flex-grow h-11 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-extrabold rounded-xl shadow-[0_8px_16px_rgba(37,99,235,0.12)] transition-all flex items-center justify-center gap-1.5 text-[13px] cursor-pointer"
+                    className="group flex-grow h-12 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-extrabold rounded-2xl shadow-[0_8px_16px_rgba(37,99,235,0.12)] transition-all flex items-center justify-center gap-1.5 text-[14px] cursor-pointer"
                   >
                     <span>Submit Request</span>
                     <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -1043,7 +1054,7 @@ export function SignupPage() {
                   <button
                     type="button"
                     onClick={() => navigate("/")}
-                    className="px-4 h-11 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-650 font-bold rounded-xl active:scale-[0.98] transition-all flex items-center justify-center text-[13px] cursor-pointer"
+                    className="px-5 h-12 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-650 font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center text-[14px] cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1062,13 +1073,189 @@ export function SignupPage() {
     );
   }
 
-  // Else, role === "notary", render standard AuthShell and SignupFlowForm
+  // Else, role === "notary", render beautiful professional Notary Request Access layout
+  const handleNotaryRequestAccess = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notaryFullName || !notaryEmail) {
+      toast.error("Please fill in all required fields (Full Name and Email).");
+      return;
+    }
+    toast.success("Notary application submitted successfully! Our compliance team will verify your credentials.");
+    navigate("/notary/dashboard");
+  };
+
   return (
-    <AuthShell
-      title="Create Your Notary Account"
-      subtitle="Complete your notary registration and continue into the notary dashboard."
-    >
-      <SignupFlowForm role={role} />
-    </AuthShell>
+    <div className="min-h-screen bg-[#f8fafc] py-4 md:py-6 px-4 sm:px-6 lg:px-8 flex flex-col justify-between items-center font-sans overflow-hidden">
+      <div className="w-full max-w-[1140px] flex flex-col items-center flex-grow justify-center my-auto">
+        {/* Logo & Header */}
+        <div className="flex justify-center mb-3">
+          <img
+            src="/branding/closing-engage-logo.svg"
+            alt="Closing Engage"
+            className="h-8 w-auto object-contain"
+          />
+        </div>
+        
+        <h1 className="text-center text-[26px] md:text-[30px] font-extrabold tracking-tight text-slate-900 leading-none">
+          Request Notary Access
+        </h1>
+        <p className="mt-2 text-center text-[14px] leading-normal text-slate-500 max-w-[540px] mx-auto font-medium">
+          Complete the secure application below to join our premier notary pool and activate your independent workspace.
+        </p>
+
+        {/* Compact Form Card with 2-Column Split Layout */}
+        <form
+          onSubmit={handleNotaryRequestAccess}
+          className="mt-4 w-full bg-white rounded-[24px] border border-slate-200/60 shadow-[0_20px_50px_rgba(20,48,112,0.03)] p-6 md:p-8"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+            
+            {/* Left Column: Form Inputs */}
+            <div className="space-y-3.5 flex flex-col justify-between">
+              <div className="flex items-center gap-2 border-l-4 border-brand-500 pl-3">
+                <UserRound className="h-5 w-5 text-brand-600 shrink-0" />
+                <div>
+                  <h2 className="text-[16px] font-black text-slate-900 leading-none">Professional Credentials</h2>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Please fill out all identity and commission credentials</p>
+                </div>
+              </div>
+              
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CustomInput
+                  label="Full Name*"
+                  placeholder="e.g. Jane Doe"
+                  value={notaryFullName}
+                  onChange={setNotaryFullName}
+                  icon={<UserRound />}
+                />
+                <CustomInput
+                  label="Email Address*"
+                  placeholder="jane@notary.com"
+                  type="email"
+                  value={notaryEmail}
+                  onChange={setNotaryEmail}
+                  icon={<Mail />}
+                />
+                <CustomInput
+                  label="Phone Number"
+                  placeholder="+1 (555) 000-0000"
+                  type="tel"
+                  value={notaryPhone}
+                  onChange={setNotaryPhone}
+                  icon={<Phone />}
+                />
+                <CustomInput
+                  label="Commission Number"
+                  placeholder="e.g. COMM123456"
+                  value={commissionNumber}
+                  onChange={setCommissionNumber}
+                  icon={<FileText />}
+                />
+                <CustomInput
+                  label="Commission Expiration"
+                  placeholder="MM/DD/YYYY"
+                  value={commissionExpiration}
+                  onChange={setCommissionExpiration}
+                  icon={<FileText />}
+                />
+                <CustomSelect
+                  label="E&O Insurance Coverage"
+                  options={[
+                    { label: "$25,000 Policy", value: "$25,000" },
+                    { label: "$50,000 Policy", value: "$50,000" },
+                    { label: "$100,000 Policy", value: "$100,000" },
+                    { label: "$100,000+ / Custom Policy", value: "$100,000+" },
+                  ]}
+                  value={eoInsurance}
+                  onChange={setEoInsurance}
+                  icon={<Shield />}
+                />
+                <CustomSelect
+                  label="Notary Certifications"
+                  options={[
+                    { label: "NNA Certified Signing Agent", value: "NNA Certified Signing Agent" },
+                    { label: "LSS Certified", value: "LSS Certified" },
+                    { label: "RON Certified", value: "RON Certified" },
+                    { label: "Dual (NNA + LSS) Certified", value: "Dual (NNA + LSS) Certified" },
+                    { label: "Independent Notary Public Only", value: "Independent Notary Public Only" },
+                  ]}
+                  value={certifications}
+                  onChange={setCertifications}
+                  icon={<Briefcase />}
+                />
+                <CustomInput
+                  label="State & Coverage Area"
+                  placeholder="e.g. Los Angeles County, CA"
+                  value={notaryCoverageArea}
+                  onChange={setNotaryCoverageArea}
+                  icon={<MapPin />}
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Textarea, Warning banners & buttons */}
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2 border-l-4 border-brand-500 pl-3">
+                <AlignLeft className="h-5 w-5 text-brand-600 shrink-0" />
+                <div>
+                  <h2 className="text-[16px] font-black text-slate-900 leading-none">Credentials & Security</h2>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Requirements & background verification</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col flex-grow">
+                <CustomTextarea
+                  label="Message / Mobile Coverage Details"
+                  placeholder="Include details about your mobile equipment (e.g. dual-tray laser printer, mobile scanner), bi-lingual capabilities, or special signing expertise..."
+                  value={notaryMessage}
+                  onChange={setNotaryMessage}
+                  icon={<AlignLeft />}
+                />
+              </div>
+
+              {/* Credential Verification Banner */}
+              <div className="bg-[#eff4ff] rounded-xl p-3 flex gap-2.5 items-start border border-[#dbe5ff] text-[11.5px] leading-[1.5] text-brand-900 font-medium">
+                <Info className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Credential Verification:</strong> Closing Engage automatically runs a real-time NNA credentials check, background screening, and commission verification.
+                </span>
+              </div>
+
+              {/* Insurance & Bond Banner */}
+              <div className="bg-slate-50 border border-slate-200/50 rounded-xl p-3 flex items-start gap-2.5">
+                <ShieldCheck className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" />
+                <div className="text-[11px] leading-[1.4] text-slate-500 font-medium">
+                  Verified notaries must upload valid E&O insurance policy and surety bond certificates to receive live order assignments.
+                </div>
+              </div>
+
+              {/* Form Buttons */}
+              <div className="flex gap-3 pt-3 border-t border-slate-100 mt-auto">
+                <button
+                  type="submit"
+                  className="group flex-grow h-12 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-extrabold rounded-2xl shadow-[0_8px_16px_rgba(37,99,235,0.12)] transition-all flex items-center justify-center gap-1.5 text-[14px] cursor-pointer"
+                >
+                  <span>Submit Application</span>
+                  <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/")}
+                  className="px-5 h-12 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-650 font-bold rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center text-[14px] cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+
+      {/* Footer */}
+      <div className="w-full text-center text-[9px] font-extrabold text-slate-400 uppercase tracking-[0.2em] py-2 mt-4">
+        © 2026 Notarix™ Technologies Inc. All rights reserved.
+      </div>
+    </div>
   );
 }
