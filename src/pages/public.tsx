@@ -894,6 +894,29 @@ export function SignupPage() {
         toast.error("Please fill in all required fields (Full Name and Email).");
         return;
       }
+
+      // Capture request in localStorage for Admin Dashboard live integration
+      try {
+        const existingReqs = JSON.parse(localStorage.getItem("registration_requests") || "[]");
+        const newReq = {
+          id: `REQ-${Date.now()}`,
+          role: "company",
+          fullName,
+          email,
+          phone: phone || "N/A",
+          companyName: companyName || "Independent Escrow LLC",
+          contactType: contactType || "Title Company",
+          requestType: requestType || "Access Request",
+          coverageArea: coverageArea || "N/A",
+          status: "Pending",
+          createdDate: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+          message: message || "No additional comments."
+        };
+        localStorage.setItem("registration_requests", JSON.stringify([newReq, ...existingReqs]));
+      } catch (err) {
+        console.error("Failed to write request to localStorage:", err);
+      }
+
       toast.success("Access request submitted successfully! A representative will reach out shortly.");
       navigate("/company/dashboard");
     };
@@ -1080,6 +1103,30 @@ export function SignupPage() {
       toast.error("Please fill in all required fields (Full Name and Email).");
       return;
     }
+
+    // Capture request in localStorage for Admin Dashboard live integration
+    try {
+      const existingReqs = JSON.parse(localStorage.getItem("registration_requests") || "[]");
+      const newReq = {
+        id: `REQ-${Date.now()}`,
+        role: "notary",
+        fullName: notaryFullName,
+        email: notaryEmail,
+        phone: notaryPhone || "N/A",
+        commissionNumber: commissionNumber || "N/A",
+        commissionExpiration: commissionExpiration || "N/A",
+        eoInsurance: eoInsurance || "N/A",
+        certifications: certifications || "N/A",
+        coverageArea: notaryCoverageArea || "N/A",
+        status: "Pending",
+        createdDate: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+        message: notaryMessage || "No additional comments."
+      };
+      localStorage.setItem("registration_requests", JSON.stringify([newReq, ...existingReqs]));
+    } catch (err) {
+      console.error("Failed to write request to localStorage:", err);
+    }
+
     toast.success("Notary application submitted successfully! Our compliance team will verify your credentials.");
     navigate("/notary/dashboard");
   };
