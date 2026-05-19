@@ -37,8 +37,6 @@ import {
   ForgotPasswordForm,
   LoginForm,
   OtpVerificationForm,
-  RoleCard,
-  SignupFlowForm,
   ServicesGrid,
 } from "@/components/marketing";
 import { Button, Input, Surface, Textarea } from "@/components/common";
@@ -764,7 +762,7 @@ function CustomInput({
       <div className="relative flex items-center">
         {icon && (
           <div className="absolute left-4 text-slate-400 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
+            {React.cloneElement(icon as React.ReactElement<any>, { className: "h-5 w-5" })}
           </div>
         )}
         <input
@@ -800,7 +798,7 @@ function CustomSelect({
       <div className="relative flex items-center">
         {icon && (
           <div className="absolute left-4 text-slate-400 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
+            {React.cloneElement(icon as React.ReactElement<any>, { className: "h-5 w-5" })}
           </div>
         )}
         <select
@@ -841,7 +839,7 @@ function CustomTextarea({
       <div className="relative flex items-start flex-grow">
         {icon && (
           <div className="absolute left-4 top-3.5 text-slate-400 pointer-events-none">
-            {React.cloneElement(icon as React.ReactElement, { className: "h-5 w-5" })}
+            {React.cloneElement(icon as React.ReactElement<any>, { className: "h-5 w-5" })}
           </div>
         )}
         <textarea

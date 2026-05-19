@@ -104,30 +104,52 @@ export const useStore = create<AppState>((set) => ({
   recentActivities: [...recentActivities],
   addActivity: (activity) => set((state) => ({ recentActivities: [activity, ...state.recentActivities] })),
   clearActivities: () => set({ recentActivities: [] }),
-  notaryProfile: {
-    fullName: "Sarah Miller",
-    email: "sarah.miller@title-experts.com",
-    phone: "+1 (512) 555-0123",
-    licenseNumber: "CA-8829-2024",
-    commissionExpiry: "2027-11-14",
-    serviceArea: "Austin, TX & surrounding Travis County",
-    avatarUrl: "",
-    eoCoverage: "$100,000.00",
-    backgroundScreeningStatus: "Pending",
-    backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
-    notifications: {
-      email: true,
-      orders: true,
-      documents: false,
-    },
-  },
+  notaryProfile: (() => {
+    const saved = localStorage.getItem("website_notary_profile");
+    try {
+      return saved ? JSON.parse(saved) : {
+        fullName: "Sarah Miller",
+        email: "sarah.miller@title-experts.com",
+        phone: "+1 (512) 555-0123",
+        licenseNumber: "CA-8829-2024",
+        commissionExpiry: "2027-11-14",
+        serviceArea: "Austin, TX & surrounding Travis County",
+        avatarUrl: "",
+        eoCoverage: "$100,000.00",
+        backgroundScreeningStatus: "Pending",
+        backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
+        notifications: {
+          email: true,
+          orders: true,
+          documents: false,
+        },
+      };
+    } catch {
+      return {
+        fullName: "Sarah Miller",
+        email: "sarah.miller@title-experts.com",
+        phone: "+1 (512) 555-0123",
+        licenseNumber: "CA-8829-2024",
+        commissionExpiry: "2027-11-14",
+        serviceArea: "Austin, TX & surrounding Travis County",
+        avatarUrl: "",
+        eoCoverage: "$100,000.00",
+        backgroundScreeningStatus: "Pending",
+        backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
+        notifications: {
+          email: true,
+          orders: true,
+          documents: false,
+        },
+      };
+    }
+  })(),
   updateNotaryProfile: (updates) =>
-    set((state) => ({
-      notaryProfile: {
-        ...state.notaryProfile,
-        ...updates,
-      },
-    })),
+    set((state) => {
+      const newProfile = { ...state.notaryProfile, ...updates };
+      localStorage.setItem("website_notary_profile", JSON.stringify(newProfile));
+      return { notaryProfile: newProfile };
+    }),
   notaryCredentials: [
     { documentName: "NNA Certification", issuer: "Nat. Notary Assoc.", uploadDate: "Oct 24, 2024", action: "Auto-Verified" },
     { documentName: "Federal Ledger", issuer: "Identity Verification", uploadDate: "Sep 12, 2024", action: "Manual Review" },
@@ -136,27 +158,46 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       notaryCredentials: [credential, ...state.notaryCredentials],
     })),
-  companyProfile: {
-    fullName: "Alex Sterling",
-    email: "alex.s@estateflux.com",
-    phone: "+1 (555) 902-4412",
-    companyName: "Estate Flux Title",
-    companyEmail: "ops@estateflux.com",
-    contactNumber: "+1 (555) 200-1100",
-    businessAddress: "782 Commerce Blvd, Austin TX",
-    notifications: {
-      email: true,
-      orders: true,
-      documents: false,
-    },
-  },
+  companyProfile: (() => {
+    const saved = localStorage.getItem("website_company_profile");
+    try {
+      return saved ? JSON.parse(saved) : {
+        fullName: "Alex Sterling",
+        email: "alex.s@estateflux.com",
+        phone: "+1 (555) 902-4412",
+        companyName: "Estate Flux Title",
+        companyEmail: "ops@estateflux.com",
+        contactNumber: "+1 (555) 200-1100",
+        businessAddress: "782 Commerce Blvd, Austin TX",
+        notifications: {
+          email: true,
+          orders: true,
+          documents: false,
+        },
+      };
+    } catch {
+      return {
+        fullName: "Alex Sterling",
+        email: "alex.s@estateflux.com",
+        phone: "+1 (555) 902-4412",
+        companyName: "Estate Flux Title",
+        companyEmail: "ops@estateflux.com",
+        contactNumber: "+1 (555) 200-1100",
+        businessAddress: "782 Commerce Blvd, Austin TX",
+        notifications: {
+          email: true,
+          orders: true,
+          documents: false,
+        },
+      };
+    }
+  })(),
   updateCompanyProfile: (updates) =>
-    set((state) => ({
-      companyProfile: {
-        ...state.companyProfile,
-        ...updates,
-      },
-    })),
+    set((state) => {
+      const newProfile = { ...state.companyProfile, ...updates };
+      localStorage.setItem("website_company_profile", JSON.stringify(newProfile));
+      return { companyProfile: newProfile };
+    }),
   chatMessages: [...chatMessages],
   addChatMessage: (msg) =>
     set((state) => ({
