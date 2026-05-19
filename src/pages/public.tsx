@@ -5,6 +5,7 @@ import {
   BarChart3,
   Briefcase,
   Building2,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -21,6 +22,7 @@ import {
   Shield,
   ShieldCheck,
   UserRound,
+  X,
 } from "lucide-react";
 import { toast } from "@/store/useToastStore";
 import { accessRequestService } from "@/services/accessRequestService";
@@ -856,10 +858,83 @@ function CustomTextarea({
   );
 }
 
+function AccessRequestSuccessModal({
+  role,
+  email,
+  onClose,
+  onHome,
+}: {
+  role: "company" | "notary";
+  email: string;
+  onClose: () => void;
+  onHome: () => void;
+}) {
+  const title = role === "company" ? "Access request sent" : "Notary application sent";
+  const body =
+    role === "company"
+      ? "Your company access request has been submitted for admin review. The Closing Engage team will contact you after your workspace is approved."
+      : "Your notary application has been submitted for compliance review. The Closing Engage team will contact you after your credentials are reviewed.";
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="access-request-success-title"
+        className="relative w-full max-w-[460px] overflow-hidden rounded-[24px] border border-white/70 bg-white shadow-[0_32px_90px_rgba(15,23,42,0.28)]"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close confirmation"
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="px-7 pb-7 pt-8 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#eaf8ef] text-[#1f9d55] ring-8 ring-[#f4fbf6]">
+            <CheckCircle2 className="h-8 w-8" strokeWidth={2.4} />
+          </div>
+          <h2 id="access-request-success-title" className="mt-6 text-[24px] font-extrabold tracking-[-0.025em] text-slate-950">
+            {title}
+          </h2>
+          <p className="mx-auto mt-3 max-w-[360px] text-[14px] font-medium leading-6 text-slate-500">
+            {body}
+          </p>
+
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left">
+            <div className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-slate-400">Submitted email</div>
+            <div className="mt-1 break-all text-[14px] font-bold text-slate-800">{email}</div>
+          </div>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onHome}
+              className="h-12 rounded-2xl bg-brand-600 px-5 text-[14px] font-extrabold text-white shadow-[0_12px_22px_rgba(37,99,235,0.18)] transition hover:bg-brand-700 active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-brand-500/20"
+            >
+              Back to Home
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-5 text-[14px] font-extrabold text-slate-650 transition hover:bg-slate-50 active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-slate-200"
+            >
+              Stay Here
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SignupPage() {
   const [searchParams] = useSearchParams();
   const role = searchParams.get("role");
   const navigate = useNavigate();
+  const [successModal, setSuccessModal] = useState<null | { role: "company" | "notary"; email: string }>(null);
 
   // Custom states for Request Access page (role=company)
   const [fullName, setFullName] = useState("");
@@ -907,8 +982,7 @@ export function SignupPage() {
           message: message || "No additional comments.",
         });
 
-        toast.success("Access request submitted successfully! A representative will reach out shortly.");
-        navigate("/company/dashboard");
+        setSuccessModal({ role: "company", email });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to submit access request.");
       }
@@ -916,6 +990,14 @@ export function SignupPage() {
 
     return (
       <div className="min-h-screen bg-[#f8fafc] py-4 md:py-6 px-4 sm:px-6 lg:px-8 flex flex-col justify-between items-center font-sans overflow-hidden">
+        {successModal ? (
+          <AccessRequestSuccessModal
+            role={successModal.role}
+            email={successModal.email}
+            onClose={() => setSuccessModal(null)}
+            onHome={() => navigate("/")}
+          />
+        ) : null}
         <div className="w-full max-w-[1140px] flex flex-col items-center flex-grow justify-center my-auto">
           {/* Logo & Header */}
           <div className="flex justify-center mb-3">
@@ -1111,8 +1193,7 @@ export function SignupPage() {
         message: notaryMessage || "No additional comments.",
       });
 
-      toast.success("Notary application submitted successfully! Our compliance team will verify your credentials.");
-      navigate("/notary/dashboard");
+      setSuccessModal({ role: "notary", email: notaryEmail });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit notary application.");
     }
@@ -1120,6 +1201,14 @@ export function SignupPage() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] py-4 md:py-6 px-4 sm:px-6 lg:px-8 flex flex-col justify-between items-center font-sans overflow-hidden">
+      {successModal ? (
+        <AccessRequestSuccessModal
+          role={successModal.role}
+          email={successModal.email}
+          onClose={() => setSuccessModal(null)}
+          onHome={() => navigate("/")}
+        />
+      ) : null}
       <div className="w-full max-w-[1140px] flex flex-col items-center flex-grow justify-center my-auto">
         {/* Logo & Header */}
         <div className="flex justify-center mb-3">
