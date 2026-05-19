@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, ChevronDown, Plus, Repeat2, X, CheckCircle2, Hourglass, CircleDot, FileText } from "lucide-react";
+import { Bell, ChevronDown, Plus, User, LogOut, CheckCircle2, Hourglass, CircleDot, FileText } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button, SearchField, SidebarNav } from "@/components/common";
 import { companyNav, notaryNav } from "@/data/mock-data";
@@ -12,25 +12,39 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const navigate = useNavigate();
   const items = variant === "company" ? companyNav : notaryNav;
   const { notaryProfile, companyProfile, recentActivities, clearActivities } = useStore();
-  const userName = variant === "company" ? companyProfile.fullName : notaryProfile.fullName;
-  const userRole = variant === "company" ? "Administrator" : "Notary Partner";
+  const sessionUser = portalAuthService.getUser() as {
+    name?: string;
+    fullName?: string;
+    email?: string;
+    memberRole?: "Admin" | "Member";
+    accountType?: string;
+  } | null;
+  const userName = sessionUser?.fullName || sessionUser?.name || (variant === "company" ? companyProfile.fullName : notaryProfile.fullName);
+  const userEmail = sessionUser?.email || (variant === "company" ? companyProfile.email : notaryProfile.email);
+  const userRole =
+    variant === "company"
+      ? sessionUser?.memberRole || (sessionUser?.accountType === "team-member" ? "Member" : "Administrator")
+      : "Notary Partner";
   const userInitials = userName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [readActivityKeys, setReadActivityKeys] = useState<Set<string>>(new Set());
 
   const handleClear = () => {
     setIsClearing(true);
     setTimeout(() => {
       clearActivities();
+      setReadActivityKeys(new Set());
       setIsClearing(false);
       toast.success("Notifications cleared successfully!");
     }, 500);
   };
 
-  const activityItems = recentActivities.map((act) => {
+  const activityItems = recentActivities.map((act, index) => {
     let Icon = FileText;
     let tone: "brand" | "warning" | "success" = "brand";
     if (act.title.toLowerCase().includes("assign")) {
@@ -45,23 +59,30 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     }
     return {
       ...act,
+      key: `${act.title}-${act.time}-${index}`,
       icon: Icon,
       tone,
+      read: readActivityKeys.has(`${act.title}-${act.time}-${index}`),
     };
   });
+  const unreadCount = activityItems.filter((act) => !act.read).length;
+  const profilePath = variant === "company" ? "/company/settings" : "/notary/settings";
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuOpen && !notifOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) {
         setMenuOpen(false);
       }
+      if (!notifRef.current?.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [menuOpen]);
+  }, [menuOpen, notifOpen]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -99,18 +120,89 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
               <SearchField />
             </div>
             <div className="flex shrink-0 items-center gap-5 border-l border-[#e5ebf5] pl-5">
-              <button 
-                onClick={() => setIsNotificationsOpen(true)}
-                className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e5ebf5] bg-white text-ink-500 hover:bg-[#f8fafe] transition-colors"
-              >
-                <Bell className="h-4 w-4" />
-                {recentActivities.length > 0 && (
-                  <span className="absolute top-2 right-2 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-danger-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-danger-500"></span>
-                  </span>
-                )}
-              </button>
+              <div ref={notifRef} className="relative">
+                <button 
+                  onClick={() => setNotifOpen((open) => !open)}
+                  className="relative rounded-lg p-2 text-ink-600 transition hover:bg-[#f8fafe] focus:outline-none"
+                  aria-label="Open notifications"
+                >
+                  <Bell className="h-[18px] w-[18px]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {notifOpen ? (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-[380px] overflow-hidden rounded-2xl border border-[#e2e8f3] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.15)] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between border-b border-[#edf1f7] px-5 py-4">
+                      <h3 className="text-[15px] font-semibold text-ink-900">Notifications</h3>
+                      {unreadCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setReadActivityKeys(new Set(activityItems.map((act) => act.key)))}
+                          className="text-[12px] font-semibold text-brand-600 transition hover:text-brand-700 focus:outline-none"
+                        >
+                          Mark all read
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="max-h-[360px] overflow-y-auto divide-y divide-[#f2f5fa]">
+                      {activityItems.length === 0 ? (
+                        <div className="px-5 py-8 text-center">
+                          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#edf9f2] text-[#38b36b]">
+                            <CheckCircle2 className="h-5 w-5" />
+                          </div>
+                          <div className="mt-3 text-[14px] font-bold text-ink-900">All caught up</div>
+                          <p className="mt-1 text-[12px] leading-5 text-ink-400">There are no new notifications or activities to display.</p>
+                        </div>
+                      ) : (
+                        activityItems.map((act) => (
+                          <button
+                            key={act.key}
+                            type="button"
+                            onClick={() => setReadActivityKeys((current) => new Set(current).add(act.key))}
+                            className={`flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-[#f8fafd] focus:outline-none ${
+                              !act.read ? "bg-[#f5f9ff]/50" : ""
+                            }`}
+                          >
+                            <div className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${!act.read ? "bg-brand-600" : "bg-transparent"}`} />
+                            <div
+                              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                                act.tone === "warning"
+                                  ? "bg-[#fff7ea] text-[#f0a11d]"
+                                  : act.tone === "success"
+                                    ? "bg-[#edf9f2] text-[#38b36b]"
+                                    : "bg-[#eef4ff] text-brand-600"
+                              }`}
+                            >
+                              <act.icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-[13px] font-semibold text-ink-900">{act.title}</div>
+                              <div className="mt-0.5 text-[12px] leading-5 text-ink-500">{act.description}</div>
+                              <div className="mt-1 text-[11px] font-medium text-ink-300">{act.time}</div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                    {activityItems.length > 0 ? (
+                      <div className="border-t border-[#edf1f7] bg-[#fbfcff] px-5 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={handleClear}
+                          disabled={isClearing}
+                          className="w-full text-[13px] font-semibold text-brand-600 transition hover:text-brand-700 disabled:opacity-50 focus:outline-none"
+                        >
+                          {isClearing ? "Clearing..." : "Clear All Notifications"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
               <div ref={menuRef} className="relative hidden sm:block">
               <button
                 type="button"
@@ -130,30 +222,38 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
               </button>
 
               {menuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+10px)] z-30 w-[252px] overflow-hidden rounded-[18px] border border-[#dfe6f2] bg-white p-2.5 shadow-[0_18px_38px_rgba(20,48,112,0.11)]">
-                  <div className="mb-2 rounded-[14px] bg-[#f7f9fe] px-3.5 py-3">
-                    <div className="text-[13px] font-extrabold text-ink-900">{userName}</div>
-                    <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-400">
-                      {userRole}
-                    </div>
+                <div className="absolute right-0 top-full z-50 mt-2 w-[220px] overflow-hidden rounded-2xl border border-[#e2e8f3] bg-white py-2 shadow-[0_20px_60px_rgba(15,23,42,0.15)] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="border-b border-[#edf1f7] bg-[#fbfcff] px-4 py-3">
+                    <p className="truncate text-[13px] font-bold text-ink-900">{userName}</p>
+                    <p className="truncate text-[11px] font-medium text-ink-400">{userEmail}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      portalAuthService.clearSession();
-                      setMenuOpen(false);
-                      navigate("/login", { replace: true });
-                    }}
-                    className="flex items-start gap-3 rounded-[14px] px-3.5 py-3 text-left transition-colors hover:bg-[#f6f8fd]"
-                  >
-                    <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
-                      <Repeat2 className="h-4.5 w-4.5" />
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-bold leading-[1.4] text-ink-900">Sign out</div>
-                      <div className="mt-1 text-[12px] leading-[1.55] text-ink-500">End this protected portal session</div>
-                    </div>
-                  </button>
+                  <div className="space-y-0.5 px-1.5 py-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate(profilePath);
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-semibold text-ink-700 transition hover:bg-[#f6f8fd] focus:outline-none"
+                    >
+                      <User className="h-[15px] w-[15px] text-ink-400" />
+                      My Profile
+                    </button>
+                  </div>
+                  <div className="border-t border-[#edf1f7] px-1.5 pb-0.5 pt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        portalAuthService.clearSession();
+                        setMenuOpen(false);
+                        navigate("/login", { replace: true });
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-semibold text-danger-600 transition hover:bg-[#fff5f5] focus:outline-none"
+                    >
+                      <LogOut className="h-[15px] w-[15px] text-danger-500" />
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
               ) : null}
               </div>
@@ -168,87 +268,6 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
         </main>
       </div>
 
-      {/* Notifications Side Drawer */}
-      {isNotificationsOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          {/* Backdrop */}
-          <div 
-            onClick={() => setIsNotificationsOpen(false)}
-            className="fixed inset-0 bg-black/35 backdrop-blur-[2px] transition-opacity duration-300 animate-in fade-in"
-          />
-          
-          {/* Drawer Body */}
-          <aside className="relative z-50 flex h-full w-[380px] sm:w-[420px] flex-col border-l border-[#e5ebf5] bg-white shadow-[0_0_50px_rgba(0,0,0,0.12)] animate-in slide-in-from-right duration-300">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#e5ebf5] px-6 py-5">
-              <div className="flex items-center gap-3">
-                <h2 className="text-[20px] font-extrabold text-ink-900">Notifications</h2>
-                {recentActivities.length > 0 && (
-                  <span className="flex h-5 px-2 items-center justify-center rounded-full bg-[#fff0f0] text-[11px] font-extrabold text-danger-600 border border-[#ffe0e0]">
-                    {recentActivities.length}
-                  </span>
-                )}
-              </div>
-              <button 
-                onClick={() => setIsNotificationsOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-slate-100 transition-colors text-ink-400 hover:text-ink-900"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* List */}
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {activityItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500 h-full">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f0f9f4] text-[#34c759] border border-[#d2f3dc] shadow-sm mb-4">
-                    <CheckCircle2 className="h-7 w-7" />
-                  </div>
-                  <div className="text-[18px] font-bold text-ink-900">All caught up!</div>
-                  <p className="mt-2 max-w-[220px] text-[13px] text-ink-400 leading-relaxed">There are no new notifications or activities to display.</p>
-                </div>
-              ) : (
-                <div className={`space-y-5 transition-all duration-500 ease-in-out ${isClearing ? "opacity-0 -translate-y-4 scale-95 blur-[2px]" : "opacity-100 translate-y-0 scale-100"}`}>
-                  {activityItems.map((act, index) => (
-                    <div key={`${act.title}-${index}`} className="flex items-start gap-4 border-b border-[#f7fafe] pb-4 last:border-0 last:pb-0">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          act.tone === "warning"
-                            ? "bg-[#fff7ea] text-[#f0a11d]"
-                            : act.tone === "success"
-                              ? "bg-[#edf9f2] text-[#38b36b]"
-                              : "bg-[#eef4ff] text-brand-600"
-                        }`}
-                      >
-                        <act.icon className="h-4.5 w-4.5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-[14px] font-bold leading-[1.4] text-ink-900">{act.title}</div>
-                        <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{act.description}</div>
-                        <div className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">{act.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            {recentActivities.length > 0 && (
-              <div className="border-t border-[#e5ebf5] p-5 bg-[#fcfdff]">
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  disabled={isClearing}
-                  className="flex h-[48px] w-full items-center justify-center rounded-[12px] border border-[#e4ebf5] bg-white text-[14px] font-semibold text-ink-600 transition-colors hover:bg-[#f8fafe] disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                >
-                  {isClearing ? "Clearing..." : "Clear All Notifications"}
-                </button>
-              </div>
-            )}
-          </aside>
-        </div>
-      )}
     </div>
   );
 }
