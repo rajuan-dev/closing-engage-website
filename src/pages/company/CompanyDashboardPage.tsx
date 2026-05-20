@@ -236,12 +236,12 @@ export function CompanyDashboardPage() {
       </Surface>
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.7fr]">
-        <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+        <Surface className="flex h-[620px] flex-col rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
           <div className="flex items-center justify-between">
             <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Order Status Overview</h2>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-300">Monthly Progress</div>
           </div>
-          <div className="mt-9 space-y-7">
+          <div className="mt-9 flex-1 space-y-7">
             {statusRows.map((row) => (
               <div key={row.label}>
                 <div className="mb-2.5 flex items-center justify-between text-[14px] font-semibold text-ink-600">
@@ -256,11 +256,11 @@ export function CompanyDashboardPage() {
           </div>
         </Surface>
 
-        <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+        <Surface className="flex h-[620px] flex-col rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
           <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Recent Notifications</h2>
-          <div className="mt-7 min-h-[300px] flex flex-col justify-center">
+          <div className="mt-7 flex-1 overflow-hidden">
             {activityItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center animate-in fade-in duration-500">
+              <div className="flex h-full flex-col items-center justify-center py-6 text-center animate-in fade-in duration-500">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f0f9f4] text-[#34c759] border border-[#d2f3dc] shadow-sm mb-4">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
@@ -268,7 +268,8 @@ export function CompanyDashboardPage() {
                 <p className="mt-2 max-w-[200px] text-[13px] text-ink-400 leading-relaxed">There are no new notifications or activities to display.</p>
               </div>
             ) : (
-              <div className={`space-y-6 flex-1 flex flex-col justify-start transition-all duration-500 ease-in-out ${isMarkingAllRead ? "opacity-70" : "opacity-100 translate-y-0 scale-100"}`}>
+              <div className={`h-full overflow-y-auto pr-2 transition-all duration-500 ease-in-out ${isMarkingAllRead ? "opacity-70" : "opacity-100 translate-y-0 scale-100"}`}>
+                <div className="space-y-6">
                 {activityItems.map(({ id, title, message, time, icon: Icon, tone, read }) => (
                   <div key={id} className="flex items-start gap-4">
                     <div
@@ -292,6 +293,7 @@ export function CompanyDashboardPage() {
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             )}
           </div>
