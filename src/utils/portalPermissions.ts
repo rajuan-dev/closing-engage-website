@@ -8,7 +8,7 @@ type PermissionedUser = {
 };
 
 export const hasPortalPermission = (permission: PermissionKey): boolean => {
-  const user = portalAuthService.getUser() as PermissionedUser | null;
+  const user = portalAuthService.getUser("company") as PermissionedUser | null;
 
   if (!user?.permissions) return true;
   return user.permissions[permission] !== false;

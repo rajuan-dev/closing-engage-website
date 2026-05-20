@@ -4,16 +4,15 @@ import { portalAuthService, PortalApiError } from "@/services/portalAuthService"
 
 export function RoleProtectedRoute({ role }: { role: "company" | "notary" }) {
   const location = useLocation();
-  const token = portalAuthService.getToken();
-  const currentRole = portalAuthService.getRole();
-  const [isCheckingSession, setIsCheckingSession] = useState(Boolean(token && currentRole === role));
+  const token = portalAuthService.getToken(role);
+  const [isCheckingSession, setIsCheckingSession] = useState(Boolean(token));
   const [isSessionValid, setIsSessionValid] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     const verifySession = async () => {
-      if (!token || currentRole !== role) {
+      if (!token) {
         setIsCheckingSession(false);
         setIsSessionValid(false);
         return;
@@ -25,7 +24,7 @@ export function RoleProtectedRoute({ role }: { role: "company" | "notary" }) {
         setIsSessionValid(true);
       } catch (error) {
         if (error instanceof PortalApiError && (error.status === 401 || error.status === 403)) {
-          portalAuthService.clearSession();
+          portalAuthService.clearSession(role);
           if (!mounted) return;
           setIsSessionValid(false);
           return;
@@ -43,14 +42,10 @@ export function RoleProtectedRoute({ role }: { role: "company" | "notary" }) {
     return () => {
       mounted = false;
     };
-  }, [currentRole, role, token]);
+  }, [role, token]);
 
-  if (!token || !currentRole) {
+  if (!token) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
-
-  if (currentRole !== role) {
-    return <Navigate to={currentRole === "company" ? "/company/dashboard" : "/notary/dashboard"} replace />;
   }
 
   if (isCheckingSession) {

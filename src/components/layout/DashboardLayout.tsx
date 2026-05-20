@@ -20,7 +20,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     markNotificationRead,
     markAllNotificationsRead,
   } = useStore();
-  const sessionUser = portalAuthService.getUser() as {
+  const sessionUser = portalAuthService.getUser(variant) as {
     name?: string;
     fullName?: string;
     email?: string;
@@ -289,7 +289,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                     <button
                       type="button"
                       onClick={() => {
-                        portalAuthService.clearSession();
+                        portalAuthService.clearSession(variant);
                         setMenuOpen(false);
                         navigate("/login", { replace: true });
                       }}

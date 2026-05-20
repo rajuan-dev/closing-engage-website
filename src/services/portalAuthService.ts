@@ -1,9 +1,9 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
   "http://localhost:5000/api/v1";
 
-const TOKEN_KEY = "portal_auth_token";
-const ROLE_KEY = "portal_auth_role";
-const USER_KEY = "portal_auth_user";
+const ACTIVE_ROLE_KEY = "portal_auth_active_role";
+const roleTokenKey = (role: PortalRole) => `portal_auth_token_${role}`;
+const roleUserKey = (role: PortalRole) => `portal_auth_user_${role}`;
 
 type PortalRole = "company" | "notary";
 
@@ -66,20 +66,36 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
 };
 
 export const portalAuthService = {
-  tokenKey: TOKEN_KEY,
-  roleKey: ROLE_KEY,
+  tokenKey: ACTIVE_ROLE_KEY,
+  roleKey: ACTIVE_ROLE_KEY,
 
-  getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
+  inferRole(preferredRole?: PortalRole): PortalRole | null {
+    if (preferredRole) return preferredRole;
+
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      if (path.startsWith("/company/")) return "company";
+      if (path.startsWith("/notary/")) return "notary";
+    }
+
+    const activeRole = localStorage.getItem(ACTIVE_ROLE_KEY);
+    return activeRole === "company" || activeRole === "notary" ? activeRole : null;
   },
 
-  getRole(): PortalRole | null {
-    const role = localStorage.getItem(ROLE_KEY);
-    return role === "company" || role === "notary" ? role : null;
+  getToken(role?: PortalRole): string | null {
+    const resolvedRole = this.inferRole(role);
+    return resolvedRole ? localStorage.getItem(roleTokenKey(resolvedRole)) : null;
   },
 
-  getUser(): unknown | null {
-    const saved = localStorage.getItem(USER_KEY);
+  getRole(preferredRole?: PortalRole): PortalRole | null {
+    return this.inferRole(preferredRole);
+  },
+
+  getUser(role?: PortalRole): unknown | null {
+    const resolvedRole = this.inferRole(role);
+    if (!resolvedRole) return null;
+
+    const saved = localStorage.getItem(roleUserKey(resolvedRole));
     if (!saved) return null;
     try {
       return JSON.parse(saved);
@@ -89,19 +105,36 @@ export const portalAuthService = {
   },
 
   setSession(session: PortalLoginResponse): void {
-    localStorage.setItem(TOKEN_KEY, session.token);
-    localStorage.setItem(ROLE_KEY, session.role);
-    localStorage.setItem(USER_KEY, JSON.stringify(session.user));
+    localStorage.setItem(roleTokenKey(session.role), session.token);
+    localStorage.setItem(roleUserKey(session.role), JSON.stringify(session.user));
+    localStorage.setItem(ACTIVE_ROLE_KEY, session.role);
   },
 
-  setUser(user: unknown): void {
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  setUser(user: unknown, role?: PortalRole): void {
+    const resolvedRole = this.inferRole(role);
+    if (!resolvedRole) return;
+
+    localStorage.setItem(roleUserKey(resolvedRole), JSON.stringify(user));
   },
 
-  clearSession(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(USER_KEY);
+  clearSession(role?: PortalRole): void {
+    const resolvedRole = this.inferRole(role);
+    if (!resolvedRole) {
+      localStorage.removeItem(ACTIVE_ROLE_KEY);
+      return;
+    }
+
+    localStorage.removeItem(roleTokenKey(resolvedRole));
+    localStorage.removeItem(roleUserKey(resolvedRole));
+
+    const otherRole: PortalRole = resolvedRole === "company" ? "notary" : "company";
+    const nextRole = localStorage.getItem(roleTokenKey(otherRole)) ? otherRole : null;
+
+    if (nextRole) {
+      localStorage.setItem(ACTIVE_ROLE_KEY, nextRole);
+    } else {
+      localStorage.removeItem(ACTIVE_ROLE_KEY);
+    }
   },
 
   async login(email: string, password: string): Promise<PortalLoginResponse> {
@@ -119,7 +152,7 @@ export const portalAuthService = {
   },
 
   async fetchMe(role: PortalRole): Promise<unknown> {
-    const token = this.getToken();
+    const token = this.getToken(role);
     if (!token) throw new Error("Missing portal token");
 
     const response = await fetch(`${API_BASE_URL}/auth/${role}/me`, {
@@ -130,12 +163,12 @@ export const portalAuthService = {
 
     const data = await parseResponse<Record<PortalRole, unknown>>(response);
     const user = data[role];
-    this.setUser(user);
+    this.setUser(user, role);
     return user;
   },
 
   async updateCompanyProfile(payload: CompanyProfilePayload): Promise<unknown> {
-    const token = this.getToken();
+    const token = this.getToken("company");
     if (!token) throw new Error("Missing portal token");
 
     const response = await fetch(`${API_BASE_URL}/auth/company/profile`, {
@@ -148,12 +181,12 @@ export const portalAuthService = {
     });
 
     const data = await parseResponse<{ company: unknown }>(response);
-    this.setUser(data.company);
+    this.setUser(data.company, "company");
     return data.company;
   },
 
   async updateNotaryProfile(payload: NotaryProfilePayload): Promise<unknown> {
-    const token = this.getToken();
+    const token = this.getToken("notary");
     if (!token) throw new Error("Missing portal token");
 
     const response = await fetch(`${API_BASE_URL}/auth/notary/profile`, {
@@ -166,12 +199,12 @@ export const portalAuthService = {
     });
 
     const data = await parseResponse<{ notary: unknown }>(response);
-    this.setUser(data.notary);
+    this.setUser(data.notary, "notary");
     return data.notary;
   },
 
   async updateCompanyPassword(payload: PasswordPayload): Promise<void> {
-    const token = this.getToken();
+    const token = this.getToken("company");
     if (!token) throw new Error("Missing portal token");
 
     const response = await fetch(`${API_BASE_URL}/auth/company/password`, {
@@ -187,7 +220,7 @@ export const portalAuthService = {
   },
 
   async updateNotaryPassword(payload: PasswordPayload): Promise<void> {
-    const token = this.getToken();
+    const token = this.getToken("notary");
     if (!token) throw new Error("Missing portal token");
 
     const response = await fetch(`${API_BASE_URL}/auth/notary/password`, {
