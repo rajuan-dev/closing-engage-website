@@ -30,6 +30,15 @@ export interface Order {
   date: string;
   time?: string;
   location?: string;
+  meeting?: {
+    status: "scheduled" | "confirmed";
+    date: string;
+    time: string;
+    scheduledByRole: "admin" | "company" | "notary";
+    scheduledAt: string;
+    confirmedByRole?: "admin" | "company" | "notary";
+    confirmedAt?: string;
+  } | null;
 }
 
 export interface DocumentRecord {

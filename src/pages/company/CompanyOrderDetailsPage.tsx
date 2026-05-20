@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CircleDot, Download, FileText, MapPin, Eye, ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarDays, CheckCircle2, CircleDot, Clock3, Download, Eye, FileText, MapPin } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, Surface } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -27,6 +27,7 @@ export function CompanyOrderDetailsPage() {
 
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const [isPreparingPreview, setIsPreparingPreview] = useState(false);
+  const [isConfirmingMeeting, setIsConfirmingMeeting] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [clientName, setClientName] = useState("");
@@ -124,6 +125,8 @@ export function CompanyOrderDetailsPage() {
   }));
 
   const activityLog = orderDetail?.timeline ?? [];
+  const meeting = orderDetail?.meeting ?? order.meeting ?? null;
+  const meetingLabel = meeting ? `${meeting.date} at ${meeting.time}` : "Not scheduled yet";
 
   return (
     <>
@@ -423,6 +426,84 @@ export function CompanyOrderDetailsPage() {
           </div>
 
           <div className="space-y-6">
+            <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-400">Closing Meeting</div>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${
+                      meeting?.status === "confirmed"
+                        ? "bg-[#edf9f2] text-[#229b58]"
+                        : meeting
+                          ? "bg-[#eef4ff] text-brand-600"
+                          : "bg-[#f3f5f9] text-ink-300"
+                    }`}>
+                      {meeting?.status === "confirmed" ? <CheckCircle2 className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <div className="text-[18px] font-bold tracking-tight text-ink-900">{meetingLabel}</div>
+                      <div className="mt-1 text-[13px] text-ink-500">
+                        {!meeting
+                          ? "Waiting for the assigned notary to schedule the closing."
+                          : meeting.status === "confirmed"
+                            ? "Confirmed and ready for the assigned notary."
+                            : "Review this proposed closing time and confirm it for the notary."}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {meeting ? (
+                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                    meeting.status === "confirmed"
+                      ? "bg-[#e8f7ee] text-[#229b58]"
+                      : "bg-[#eef4ff] text-brand-600"
+                  }`}>
+                    {meeting.status === "confirmed" ? "Confirmed" : "Awaiting Confirm"}
+                  </span>
+                ) : null}
+              </div>
+
+              {meeting ? (
+                <div className="mt-5 grid gap-4 rounded-[14px] border border-[#ebf0f7] bg-white/80 px-4 py-4 sm:grid-cols-2">
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">Scheduled By</div>
+                    <div className="mt-2 text-[14px] font-semibold capitalize text-ink-900">{meeting.scheduledByRole}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">Meeting Time</div>
+                    <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-ink-900">
+                      <Clock3 className="h-4 w-4 text-brand-600" />
+                      {meeting.date} at {meeting.time}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {meeting?.status === "scheduled" ? (
+                <Button
+                  className="mt-5 h-[46px] w-full rounded-[12px] text-[14px] font-semibold"
+                  disabled={isConfirmingMeeting}
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        setIsConfirmingMeeting(true);
+                        const updatedOrder = await orderService.confirmOrderMeeting(order.id);
+                        updateCompanyOrder(order.id, updatedOrder);
+                        setOrderDetail(updatedOrder);
+                        toast.success(`Closing confirmed for ${updatedOrder.meeting?.date} at ${updatedOrder.meeting?.time}`);
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Unable to confirm the scheduled meeting.");
+                      } finally {
+                        setIsConfirmingMeeting(false);
+                      }
+                    })();
+                  }}
+                >
+                  {isConfirmingMeeting ? "Confirming..." : "Confirm Meeting"}
+                </Button>
+              ) : null}
+            </Surface>
+
             <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
               <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ink-400">Assigned Notary</div>
               <div className="mt-5 flex items-center gap-4">

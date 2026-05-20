@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, ChevronDown, Plus, User, LogOut, CheckCircle2, Hourglass, CircleDot, FileText } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button, SearchField, SidebarNav } from "@/components/common";
@@ -41,14 +41,16 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const notifRef = useRef<HTMLDivElement | null>(null);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async (showErrorToast = true) => {
     try {
       const liveNotifications = await notificationService.getNotifications();
       setNotifications(liveNotifications);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to load notifications.");
+      if (showErrorToast) {
+        toast.error(error instanceof Error ? error.message : "Unable to load notifications.");
+      }
     }
-  };
+  }, [setNotifications]);
 
   const handleMarkAllRead = async () => {
     try {
@@ -87,23 +89,36 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const profilePath = variant === "company" ? "/company/settings" : "/notary/settings";
 
   useEffect(() => {
-    void loadNotifications();
+    void loadNotifications(false);
 
     const intervalId = window.setInterval(() => {
-      void loadNotifications();
-    }, 15000);
+      void loadNotifications(false);
+    }, 5000);
 
     const handleFocus = () => {
-      void loadNotifications();
+      void loadNotifications(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void loadNotifications(false);
+      }
     };
 
     window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    void loadNotifications(false);
+  }, [notifOpen, loadNotifications]);
 
   useEffect(() => {
     if (!menuOpen && !notifOpen) return;
@@ -160,12 +175,16 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
               <div ref={notifRef} className="relative">
                 <button 
                   onClick={() => setNotifOpen((open) => !open)}
-                  className="relative rounded-lg p-2 text-ink-600 transition hover:bg-[#f8fafe] focus:outline-none"
+                  className={`relative rounded-lg p-2 transition focus:outline-none ${
+                    unreadCount > 0
+                      ? "text-danger-500 hover:bg-[#fff1f1]"
+                      : "text-ink-600 hover:bg-[#f8fafe]"
+                  }`}
                   aria-label="Open notifications"
                 >
                   <Bell className="h-[18px] w-[18px]" />
                   {unreadCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-danger-200 bg-white px-1 text-[10px] font-bold leading-none text-danger-600 shadow-sm">
                       {unreadCount}
                     </span>
                   )}

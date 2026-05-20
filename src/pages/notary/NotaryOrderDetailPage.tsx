@@ -43,6 +43,7 @@ export function NotaryOrderDetailPage() {
   );
   const hasRejectedScanback = submittedScanbacks.some((document) => document.displayStatus === "Rejected");
   const hasSubmittedScanback = submittedScanbacks.some((document) => document.displayStatus === "Submitted");
+  const meeting = orderDetail?.meeting ?? order?.meeting ?? null;
 
   const refreshOrderSnapshot = async (orderId: string) => {
     const [refreshedOrder, refreshedDocuments] = await Promise.all([
@@ -135,7 +136,7 @@ export function NotaryOrderDetailPage() {
     if (!order) return;
     setOrderStatus(order.status);
     setScheduledDate(order.date);
-    setScheduledTime(order.time || "14:00");
+    setScheduledTime(toDisplayTime(order.time || "14:00"));
     setPrintedConfirmed(Boolean(orderDetail?.notaryPrintedConfirmed));
     const parsedDate = parseScheduleDate(order.date);
     if (parsedDate) setCalendarMonth(parsedDate);
@@ -189,6 +190,44 @@ export function NotaryOrderDetailPage() {
   const formatScheduleDate = (date: Date) =>
     date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
+  const toDisplayTime = (value?: string) => {
+    if (!value || value === "TBD") return "";
+    if (/[AP]M/i.test(value)) return value;
+
+    const match = value.match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return value;
+
+    const hours24 = Number(match[1]);
+    const minutes = match[2];
+    const suffix = hours24 >= 12 ? "PM" : "AM";
+    const hours12 = hours24 % 12 || 12;
+    return `${hours12}:${minutes} ${suffix}`;
+  };
+
+  const toTimeInputValue = (value?: string) => {
+    if (!value || value === "TBD") return "";
+    const normalized = value.trim().toUpperCase();
+
+    if (!/[AP]M/.test(normalized)) {
+      return /^\d{1,2}:\d{2}$/.test(value) ? value : "";
+    }
+
+    const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+    if (!match) return "";
+
+    let hours = Number(match[1]);
+    const minutes = match[2];
+    const suffix = match[3];
+
+    if (suffix === "AM") {
+      if (hours === 12) hours = 0;
+    } else if (hours !== 12) {
+      hours += 12;
+    }
+
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
+  };
+
   const selectedScheduleDate = parseScheduleDate(scheduledDate);
   const selectedScheduleDateKey = selectedScheduleDate?.toDateString() || "";
   const calendarYear = calendarMonth.getFullYear();
@@ -219,7 +258,7 @@ export function NotaryOrderDetailPage() {
       updateNotaryOrder(order.id, updatedOrder);
       setOrderDetail((current) => (current ? { ...current, ...updatedOrder } : updatedOrder));
       setScheduledDate(updatedOrder.date);
-      setScheduledTime(updatedOrder.time || scheduledTime);
+      setScheduledTime(toDisplayTime(updatedOrder.time || scheduledTime));
       setShowScheduleModal(false);
       toast.success(`Closing scheduled for ${updatedOrder.date} at ${updatedOrder.time || scheduledTime}`);
     } catch (error) {
@@ -370,7 +409,7 @@ export function NotaryOrderDetailPage() {
             onClick={() => setShowScheduleModal(true)}
           >
             <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-brand-500" />
-            Schedule Closing
+            {meeting ? "Reschedule Closing" : "Schedule Closing"}
           </Button>
           <Button
             variant="outline"
@@ -500,6 +539,17 @@ export function NotaryOrderDetailPage() {
                   </button>
                 );
               })}
+            </div>
+            <div className="mt-4">
+              <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-ink-400">
+                Or Enter Time Manually
+              </label>
+              <input
+                type="time"
+                value={toTimeInputValue(scheduledTime)}
+                onChange={(event) => setScheduledTime(toDisplayTime(event.target.value))}
+                className="h-11 w-full rounded-[12px] border border-[#dfe6f2] bg-white px-4 text-[14px] font-semibold text-ink-700 outline-none transition-colors focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
+              />
             </div>
           </div>
 
@@ -679,6 +729,53 @@ export function NotaryOrderDetailPage() {
           </Surface>
         </div>
         <div className="space-y-6">
+          <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-400">Closing Meeting</div>
+                <div className="mt-3 text-[18px] font-bold tracking-tight text-ink-900">
+                  {meeting ? `${meeting.date} at ${meeting.time}` : "Not scheduled yet"}
+                </div>
+                <div className="mt-2 text-[13px] leading-6 text-ink-500">
+                  {!meeting
+                    ? "Choose the closing date and time to notify the title company."
+                    : meeting.status === "confirmed"
+                      ? "The title company confirmed this appointment. You can proceed with the closing."
+                      : "The title company has been notified. Waiting for them to confirm this appointment."}
+                </div>
+              </div>
+              <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+                !meeting
+                  ? "bg-[#f3f5f9] text-ink-400"
+                  : meeting.status === "confirmed"
+                    ? "bg-[#e8f7ee] text-[#229b58]"
+                    : "bg-[#eef4ff] text-brand-600"
+              }`}>
+                {!meeting ? "Open" : meeting.status === "confirmed" ? "Confirmed" : "Pending Company"}
+              </span>
+            </div>
+
+            {meeting ? (
+              <div className="mt-5 grid gap-4 rounded-[14px] border border-[#ebf0f7] bg-white/80 px-4 py-4 sm:grid-cols-2">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">Scheduled By</div>
+                  <div className="mt-2 text-[14px] font-semibold capitalize text-ink-900">{meeting.scheduledByRole}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">Meeting Status</div>
+                  <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-ink-900">
+                    {meeting.status === "confirmed" ? (
+                      <CheckCircle2 className="h-4 w-4 text-[#229b58]" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-brand-600" />
+                    )}
+                    {meeting.status === "confirmed" ? "Confirmed by title company" : "Awaiting company confirmation"}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </Surface>
+
           <Surface className="rounded-[18px] border border-dashed border-[#d8e0ec] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[16px] font-extrabold uppercase tracking-[0.16em] text-ink-700">Upload Scanbacks</div>
             <input

@@ -33,6 +33,15 @@ type RawOrder = Order & {
   specialInstructions?: string;
   notaryNotes?: string;
   notaryPrintedConfirmed?: boolean;
+  meeting?: {
+    status: "scheduled" | "confirmed";
+    date: string;
+    time: string;
+    scheduledByRole: "admin" | "company" | "notary";
+    scheduledAt: string;
+    confirmedByRole?: "admin" | "company" | "notary";
+    confirmedAt?: string;
+  } | null;
 };
 
 export type OrderDetail = Order & {
@@ -132,6 +141,7 @@ const normalizeOrder = (order: RawOrder): Order => ({
   date: order.date || order.signingDate || "",
   time: order.time || order.signingTime || "",
   location: order.location || order.propertyAddress || "",
+  meeting: order.meeting || null,
 });
 
 const normalizeOrderDetail = (order: RawOrder): OrderDetail => ({
@@ -205,9 +215,16 @@ export const orderService = {
   },
 
   async scheduleOrder(id: string, signingDate: string, signingTime: string): Promise<OrderDetail> {
-    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}`, {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/meeting`, {
       method: "PATCH",
       body: JSON.stringify({ signingDate, signingTime }),
+    });
+    return normalizeOrderDetail(order);
+  },
+
+  async confirmOrderMeeting(id: string): Promise<OrderDetail> {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/meeting/confirm`, {
+      method: "PATCH",
     });
     return normalizeOrderDetail(order);
   },
