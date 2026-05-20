@@ -87,6 +87,10 @@ const orderChatPath = (orderNumber: string, suffix = "") =>
   `/communications/orders/${encodeURIComponent(orderNumber)}${suffix}`;
 
 export const communicationService = {
+  getThreads(): Promise<CommunicationThread[]> {
+    return request<CommunicationThread[]>("/communications/threads");
+  },
+
   getOrderThread(orderNumber: string): Promise<CommunicationThread> {
     return request<CommunicationThread>(orderChatPath(orderNumber, "/thread"));
   },
