@@ -136,7 +136,7 @@ export function DocumentViewer({ isOpen, onClose, fileName, fileUrl }: DocumentV
                  href={fileUrl}
                  target="_blank"
                  rel="noreferrer"
-                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 text-sm font-semibold text-white transition-all duration-300 hover:border-brand-400 hover:bg-slate-700"
+                 className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-500 px-4 text-sm font-semibold text-white shadow-md shadow-brand-500/10 hover:shadow-lg hover:shadow-brand-500/20 transition-all duration-300 focus:outline-none"
                >
                  <ExternalLink className="h-4 w-4" />
                  Open Directly

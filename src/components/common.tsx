@@ -341,17 +341,17 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-5 backdrop-blur-[2px] transition-all duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-5 py-5 sm:py-10 backdrop-blur-[2px] transition-all duration-300"
       onClick={onClose}
     >
       <div
         className={cn(
-          "w-full overflow-hidden rounded-[24px] border border-[#dfe6f2] bg-white shadow-[0_30px_70px_rgba(15,23,42,0.22)] animate-in zoom-in-95 duration-200",
+          "w-full max-h-[calc(100vh-40px)] sm:max-h-[calc(100vh-80px)] flex flex-col overflow-hidden rounded-[24px] border border-[#dfe6f2] bg-white shadow-[0_30px_70px_rgba(15,23,42,0.22)] animate-in zoom-in-95 duration-200",
         )}
         style={{ maxWidth }}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 px-7 py-7">
+        <div className="flex items-start justify-between gap-4 px-7 py-7 shrink-0">
           <div>
             <div className="text-[32px] font-extrabold tracking-[-0.04em] text-ink-900 md:text-[38px]">
               {title}
@@ -366,7 +366,7 @@ export function Modal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+        <div className="overflow-y-auto flex-1 min-h-0">
           {children}
         </div>
       </div>

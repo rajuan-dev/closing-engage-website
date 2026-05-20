@@ -40,6 +40,7 @@ export interface DocumentRecord {
   size: string;
   status: "Approved" | "Submitted" | "Pending" | "Verified" | "Rejected";
   uploadedBy?: string;
+  uploaderRole?: string;
 }
 
 export interface ActivityItem {

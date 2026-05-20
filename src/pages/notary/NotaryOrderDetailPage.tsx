@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CloudUpload, Download, Eye, MapPin, Printer, Trash2, FileText } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CloudUpload, Download, Eye, MapPin, Printer, Trash2, FileText, ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, FooterBand, Modal, Surface, Textarea } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -44,7 +44,7 @@ export function NotaryOrderDetailPage() {
 
   const refreshOrderSnapshot = async (orderId: string) => {
     const [refreshedOrder, refreshedDocuments] = await Promise.all([
-      orderService.getCompanyOrder(orderId),
+      orderService.getOrderDetail(orderId),
       orderService.getDocumentDetails(),
     ]);
 
@@ -68,7 +68,7 @@ export function NotaryOrderDetailPage() {
         const selectedOrder = orders.find((item) => item.id.replace("#", "") === id);
         if (selectedOrder) {
           const [detail, refreshedDocuments] = await Promise.all([
-            orderService.getCompanyOrder(selectedOrder.id),
+            orderService.getOrderDetail(selectedOrder.id),
             orderService.getDocumentDetails(),
           ]);
           if (!isMounted) return;
@@ -98,7 +98,7 @@ export function NotaryOrderDetailPage() {
     const syncOrderState = async () => {
       try {
         const [refreshedOrder, refreshedDocuments] = await Promise.all([
-          orderService.getCompanyOrder(order.id),
+          orderService.getOrderDetail(order.id),
           orderService.getDocumentDetails(),
         ]);
         if (!isActive) return;
@@ -166,7 +166,7 @@ export function NotaryOrderDetailPage() {
     if (!order) return;
     try {
       setIsUpdatingStatus(true);
-      const updatedOrder = await orderService.updateOrderStatus(order.id, status);
+      const updatedOrder = await orderService.updateNotaryOrderStatus(order.id, status);
       updateNotaryOrder(order.id, updatedOrder);
       setOrderDetail((current) => (current ? { ...current, ...updatedOrder } : { ...updatedOrder, specialInstructions: "", notaryNotes: "" }));
       setOrderStatus(updatedOrder.status);
@@ -276,7 +276,7 @@ export function NotaryOrderDetailPage() {
 
     try {
       setIsSubmitting(true);
-      await orderService.uploadCompanyDocuments(order, uploadedFiles);
+      await orderService.uploadNotaryDocuments(order, uploadedFiles);
       await refreshOrderSnapshot(order.id);
       setUploadedFiles([]);
       toast.success("Documents successfully submitted!");
@@ -315,15 +315,34 @@ export function NotaryOrderDetailPage() {
   }
 
   return (
-    <div className="space-y-7">
-      <Link to="/notary/orders" className="inline-flex items-center gap-2 text-[15px] font-semibold text-brand-600">
-        <ChevronLeft className="h-4 w-4" />
-        Back to Orders
-      </Link>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-[26px] font-bold tracking-tight text-ink-900">Order ID {order.id}</h1>
-          <Badge status={orderStatus as any} />
+    <div className="space-y-6">
+      <div className="text-[12px] text-ink-400">
+        <span>Orders</span>
+        <span className="mx-2 text-ink-300">›</span>
+        <span className="font-semibold text-brand-600">Order Details</span>
+      </div>
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <Link to="/notary/orders">
+            <button
+              className="mt-1 rounded-full border border-[#dfe6f2] bg-white p-2.5 text-brand-600 hover:bg-[#f8fbff] transition focus:outline-none shadow-[0_4px_12px_rgba(20,48,112,0.02)]"
+              aria-label="Back to Orders"
+            >
+              <ArrowLeft size={16} />
+            </button>
+          </Link>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
+                Order ID {order.id}
+              </h1>
+              <Badge status={orderStatus as any} />
+            </div>
+            <div className="mt-1 text-[13px] text-ink-500 font-medium">
+              Order created on {order.date}
+            </div>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button
@@ -496,7 +515,13 @@ export function NotaryOrderDetailPage() {
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div className="mt-4 text-[16px] font-semibold text-ink-900">Docs Ready to Print</div>
-            <div className="mt-2 text-[13px] font-semibold text-[#1f9d55]">Completed</div>
+            <button
+              type="button"
+              disabled
+              className="mt-4 rounded-full bg-[#e8f7ee] px-5 py-2 text-[13px] font-semibold text-[#1f9d55]"
+            >
+              Completed
+            </button>
           </div>
           <div>
             <div
@@ -515,7 +540,7 @@ export function NotaryOrderDetailPage() {
               disabled={printedConfirmed || isUpdatingStatus}
               className={`mt-4 rounded-full px-5 py-2 text-[13px] font-semibold ${
                 printedConfirmed
-                  ? "bg-[#1f9d55] text-white"
+                  ? "bg-[#e8f7ee] text-[#1f9d55]"
                   : "border border-brand-600 bg-white text-brand-600"
               }`}
             >

@@ -9,7 +9,7 @@ import { orderService } from "@/services/orderService";
 
 export function NotaryUploadDocumentsPage() {
   const navigate = useNavigate();
-  const { notaryOrders, setNotaryOrders, setNotaryAssignedOrders, addActivity, updateCompanyOrder, updateNotaryOrder } = useStore();
+  const { notaryOrders, setNotaryOrders, setNotaryAssignedOrders, addActivity, updateNotaryOrder } = useStore();
   const [selectedOrder, setSelectedOrder] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(true);
@@ -228,10 +228,9 @@ export function NotaryUploadDocumentsPage() {
             void (async () => {
               try {
                 setIsSubmitting(true);
-                await orderService.uploadCompanyDocuments(order, uploadedFiles);
-                const refreshedOrder = await orderService.getCompanyOrder(order.id);
+                await orderService.uploadNotaryDocuments(order, uploadedFiles);
+                const refreshedOrder = await orderService.getOrderDetail(order.id);
                 updateNotaryOrder(order.id, refreshedOrder);
-                updateCompanyOrder(order.id, { status: refreshedOrder.status });
                 addActivity({
                   title: "Scanback Uploaded",
                   description: `Notary uploaded ${uploadedFiles.length} file(s) for Order #${orderId}.`,

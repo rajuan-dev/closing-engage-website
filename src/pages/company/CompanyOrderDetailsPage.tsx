@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CircleDot, Download, FileText, ChevronLeft, MapPin, Eye } from "lucide-react";
+import { CircleDot, Download, FileText, MapPin, Eye, ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, Surface } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -15,8 +15,15 @@ export function CompanyOrderDetailsPage() {
   
   const order = orderDetail || companyOrders.find(o => o.id.replace("#", "") === id);
   const docs = order ? companyDocuments.filter(d => d.orderId === order.id.replace("#", "")) : [];
-  const approvedScanbackDocuments = docs.filter((document) => document.uploadedBy === "Notary");
-  const titleDocuments = docs.filter((document) => document.uploadedBy !== "Notary");
+  const approvedScanbackDocuments = docs.filter(
+    (document) =>
+      (document.uploaderRole === "notary" || document.uploadedBy === "Notary") &&
+      (document.status === "Approved" || document.status === "Verified")
+  );
+  const titleDocuments = docs.filter(
+    (document) =>
+      document.uploaderRole !== "notary" && document.uploadedBy !== "Notary"
+  );
 
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const [isPreparingPreview, setIsPreparingPreview] = useState(false);
@@ -127,22 +134,28 @@ export function CompanyOrderDetailsPage() {
           <span className="font-semibold text-brand-600">Order Details</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex flex-1 flex-wrap items-center gap-4">
-            <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
-              Order {order.id}
-            </h1>
-            <Badge status={order.status as any} />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <Link to="/company/orders">
+              <button
+                className="mt-1 rounded-full border border-[#dfe6f2] bg-white p-2.5 text-brand-600 hover:bg-[#f8fbff] transition focus:outline-none shadow-[0_4px_12px_rgba(20,48,112,0.02)]"
+                aria-label="Back to Orders"
+              >
+                <ArrowLeft size={16} />
+              </button>
+            </Link>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
+                  Order {order.id}
+                </h1>
+                <Badge status={order.status as any} />
+              </div>
+              <div className="mt-1 text-[13px] text-ink-500 font-medium">
+                Order created on {order.date}
+              </div>
+            </div>
           </div>
-          <Link to="/company/orders">
-            <Button
-              variant="outline"
-              className="h-[46px] rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold text-ink-700 shadow-[0_10px_24px_rgba(20,48,112,0.04)] hover:border-brand-200 hover:bg-[#f8fbff]"
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Back to Orders
-            </Button>
-          </Link>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.08fr_0.52fr]">

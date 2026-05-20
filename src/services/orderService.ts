@@ -161,6 +161,11 @@ export const orderService = {
     return normalizeOrderDetail(order);
   },
 
+  async getOrderDetail(id: string): Promise<OrderDetail> {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}`);
+    return normalizeOrderDetail(order);
+  },
+
   async updateCompanyOrder(
     id: string,
     payload: Partial<Pick<Order, "clientName" | "propertyAddress" | "date">> & { specialInstructions?: string },
@@ -185,6 +190,14 @@ export const orderService = {
         : `/orders/${encodeURIComponent(id)}/status`;
 
     const order = await request<RawOrder>(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    });
+    return normalizeOrder(order);
+  },
+
+  async updateNotaryOrderStatus(id: string, status: Order["status"]): Promise<Order> {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/notary-status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
     });
@@ -253,10 +266,15 @@ export const orderService = {
         size: document.size,
         status: document.displayStatus || "Submitted",
         uploadedBy: document.uploadedBy || "Title Company",
+        uploaderRole: "notary",
       });
     }
 
     return uploadedDocuments;
+  },
+
+  async uploadNotaryDocuments(order: Order, files: File[]): Promise<DocumentRecord[]> {
+    return this.uploadCompanyDocuments(order, files);
   },
 
   async getCompanyDocuments(): Promise<DocumentRecord[]> {

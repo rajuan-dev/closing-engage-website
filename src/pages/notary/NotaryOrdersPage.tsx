@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, Eye, Flame, Info, MapPin, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Flame, Info, MapPin, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, Button, FooterBand, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
@@ -272,8 +272,11 @@ export function NotaryOrdersPage() {
                     <Badge status={order.status} />
                   </td>
                   <td className="px-6 py-5">
-                    <Link to={`/notary/orders/${order.id.replace("#", "")}`} className="text-brand-600 hover:text-brand-700" aria-label={`View ${order.id}`}>
-                      <Eye className="h-5 w-5" />
+                    <Link 
+                      to={`/notary/orders/${order.id.replace("#", "")}`} 
+                      className="text-[14px] font-bold text-ink-900 hover:text-brand-600 transition-colors"
+                    >
+                      View
                     </Link>
                   </td>
                 </tr>
