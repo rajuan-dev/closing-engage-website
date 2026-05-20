@@ -66,6 +66,7 @@ interface AppState {
   setNotaryAssignedOrders: (orders: Order[]) => void;
   notifications: NotificationItem[];
   setNotifications: (notifications: NotificationItem[]) => void;
+  upsertNotification: (notification: NotificationItem) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
   recentActivities: ActivityItem[];
@@ -114,6 +115,21 @@ export const useStore = create<AppState>((set) => ({
   setNotaryAssignedOrders: (orders) => set({ notaryAssignedOrders: orders }),
   notifications: [],
   setNotifications: (notifications) => set({ notifications }),
+  upsertNotification: (notification) =>
+    set((state) => {
+      const existing = state.notifications.find((item) => item.id === notification.id);
+      if (existing) {
+        return {
+          notifications: state.notifications.map((item) =>
+            item.id === notification.id ? { ...item, ...notification } : item,
+          ),
+        };
+      }
+
+      return {
+        notifications: [notification, ...state.notifications],
+      };
+    }),
   markNotificationRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((notification) =>

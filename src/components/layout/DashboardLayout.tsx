@@ -17,6 +17,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     companyProfile,
     notifications,
     setNotifications,
+    upsertNotification,
     markNotificationRead,
     markAllNotificationsRead,
   } = useStore();
@@ -39,6 +40,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement | null>(null);
+  const notificationSocketRef = useRef<ReturnType<typeof notificationService.createSocket> | null>(null);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
 
   const loadNotifications = useCallback(async (showErrorToast = true) => {
@@ -90,10 +92,20 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
 
   useEffect(() => {
     void loadNotifications(false);
+    const socket = notificationService.createSocket();
+    notificationSocketRef.current = socket;
 
-    const intervalId = window.setInterval(() => {
-      void loadNotifications(false);
-    }, 5000);
+    socket?.on("notifications:new", (payload) => {
+      upsertNotification(payload);
+    });
+
+    socket?.on("notifications:read", ({ id }) => {
+      markNotificationRead(id);
+    });
+
+    socket?.on("notifications:read-all", () => {
+      markAllNotificationsRead();
+    });
 
     const handleFocus = () => {
       void loadNotifications(false);
@@ -109,11 +121,12 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      socket?.disconnect();
+      notificationSocketRef.current = null;
     };
-  }, [loadNotifications]);
+  }, [loadNotifications, markAllNotificationsRead, markNotificationRead, upsertNotification]);
 
   useEffect(() => {
     if (!notifOpen) return;

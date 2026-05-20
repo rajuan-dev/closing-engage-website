@@ -1,13 +1,26 @@
+import { io, type Socket } from "socket.io-client";
+
 import type { NotificationItem } from "@/types/models";
 import { portalAuthService } from "./portalAuthService";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const SOCKET_BASE_URL = API_BASE_URL.replace(/\/api\/v\d+$/, "");
 
 interface ApiEnvelope<T> {
   success: boolean;
   message: string;
   data: T;
 }
+
+interface NotificationServerToClientEvents {
+  "notifications:new": (payload: NotificationItem) => void;
+  "notifications:read": (payload: { id: string }) => void;
+  "notifications:read-all": () => void;
+}
+
+interface NotificationClientToServerEvents {}
+
+export type NotificationSocket = Socket<NotificationServerToClientEvents, NotificationClientToServerEvents>;
 
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
   const token = portalAuthService.getToken();
@@ -44,5 +57,15 @@ export const notificationService = {
     return request<Record<string, never>>("/notifications/read-all", {
       method: "PATCH",
     }).then(() => undefined);
+  },
+
+  createSocket(): NotificationSocket | null {
+    const token = portalAuthService.getToken();
+    if (!token) return null;
+
+    return io(SOCKET_BASE_URL, {
+      auth: { token },
+      transports: ["websocket", "polling"],
+    });
   },
 };
