@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera } from "lucide-react";
 import { Button, Input, Surface } from "@/components/common";
 import { portalAuthService } from "@/services/portalAuthService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { prepareAvatarDataUrl } from "@/utils/avatarImage";
 
 interface CompanySessionUser {
   contactPerson?: string;
@@ -12,6 +14,7 @@ interface CompanySessionUser {
   companyName?: string;
   contactEmail?: string;
   address?: string;
+  avatarUrl?: string;
 }
 
 const mapSessionToProfile = (user: unknown) => {
@@ -26,6 +29,7 @@ const mapSessionToProfile = (user: unknown) => {
     companyEmail: company.businessEmail || company.email || "",
     contactNumber: company.phone || "",
     businessAddress: company.address || "",
+    avatarUrl: company.avatarUrl || "",
   };
 };
 
@@ -47,6 +51,7 @@ export function CompanySettingsPage() {
     contactNumber: companyProfile.contactNumber,
     businessAddress: companyProfile.businessAddress,
   });
+  const [avatarUrl, setAvatarUrl] = useState(companyProfile.avatarUrl || "");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -57,6 +62,7 @@ export function CompanySettingsPage() {
     { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications.orders },
     { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications.documents },
   ]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const resetForm = useCallback(() => {
     setPersonalInfo({
@@ -70,6 +76,7 @@ export function CompanySettingsPage() {
       contactNumber: companyProfile.contactNumber,
       businessAddress: companyProfile.businessAddress,
     });
+    setAvatarUrl(companyProfile.avatarUrl || "");
     setNotifications([
       { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications.email },
       { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications.orders },
@@ -108,6 +115,27 @@ export function CompanySettingsPage() {
     void hydrateProfile();
   }, [updateCompanyProfile]);
 
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!isEditMode) {
+      toast.error("Click Edit Profile before updating your profile photo.");
+      return;
+    }
+
+    try {
+      const nextAvatarUrl = await prepareAvatarDataUrl(file);
+      setAvatarUrl(nextAvatarUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to process the selected image.");
+    }
+  };
+
   const toggleNotification = (id: string) => {
     if (!isEditMode) return;
     setNotifications((prev) =>
@@ -130,6 +158,7 @@ export function CompanySettingsPage() {
         companyName: companyInfo.companyName,
         businessEmail: companyInfo.companyEmail,
         address: companyInfo.businessAddress,
+        avatarUrl,
       });
 
       const profile = mapSessionToProfile(user);
@@ -142,7 +171,9 @@ export function CompanySettingsPage() {
           companyEmail: companyInfo.companyEmail,
           contactNumber: selectedPhone,
           businessAddress: companyInfo.businessAddress,
+          avatarUrl,
         }),
+        avatarUrl: (profile as { avatarUrl?: string } | null)?.avatarUrl || avatarUrl,
         notifications: {
           email: notifications.find((n) => n.id === "email")?.active ?? true,
           orders: notifications.find((n) => n.id === "orders")?.active ?? true,
@@ -191,11 +222,36 @@ export function CompanySettingsPage() {
       <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div className="flex items-center gap-5">
-            <div className="relative flex h-[76px] w-[76px] items-center justify-center rounded-[18px] bg-[linear-gradient(135deg,#17263e,#7a5361)] text-xl font-bold text-white shadow-[0_14px_30px_rgba(20,48,112,0.12)]">
-              {personalInfo.fullName.split(" ").map(n => n[0]).join("")}
-              <div className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[10px] text-white">
-                •
-              </div>
+            <div className="relative flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-[18px] bg-[linear-gradient(135deg,#17263e,#7a5361)] text-xl font-bold text-white shadow-[0_14px_30px_rgba(20,48,112,0.12)]">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={`${personalInfo.fullName} avatar`} className="h-full w-full object-cover" />
+              ) : (
+                personalInfo.fullName.split(" ").map((n) => n[0]).join("")
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isEditMode) {
+                    toast.error("Click Edit Profile before updating your profile photo.");
+                    return;
+                  }
+
+                  fileInputRef.current?.click();
+                }}
+                className={`absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full text-white shadow-[0_5px_12px_rgba(24,90,188,0.3)] transition-colors ${
+                  isEditMode ? "bg-brand-600 hover:bg-brand-700" : "cursor-not-allowed bg-[#9eb8e8]"
+                }`}
+              >
+                <Camera className="h-3.5 w-3.5" />
+              </button>
+              <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-1 ring-inset ring-white/12" />
             </div>
             <div>
               <div className="text-[20px] font-bold tracking-tight text-ink-900">{personalInfo.fullName}</div>

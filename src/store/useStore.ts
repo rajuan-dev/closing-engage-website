@@ -32,6 +32,7 @@ export interface CompanyProfile {
   companyEmail: string;
   contactNumber: string;
   businessAddress: string;
+  avatarUrl?: string;
   notifications: {
     email: boolean;
     orders: boolean;
@@ -208,6 +209,7 @@ export const useStore = create<AppState>((set) => ({
         companyEmail: "ops@estateflux.com",
         contactNumber: "+1 (555) 200-1100",
         businessAddress: "782 Commerce Blvd, Austin TX",
+        avatarUrl: "",
         notifications: {
           email: true,
           orders: true,
@@ -223,6 +225,7 @@ export const useStore = create<AppState>((set) => ({
         companyEmail: "ops@estateflux.com",
         contactNumber: "+1 (555) 200-1100",
         businessAddress: "782 Commerce Blvd, Austin TX",
+        avatarUrl: "",
         notifications: {
           email: true,
           orders: true,

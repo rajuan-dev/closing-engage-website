@@ -27,6 +27,7 @@ interface CompanyProfilePayload {
   companyName?: string;
   contactEmail?: string;
   address?: string;
+  avatarUrl?: string;
 }
 
 interface NotaryProfilePayload {
@@ -37,6 +38,7 @@ interface NotaryProfilePayload {
   license?: string;
   expiry?: string;
   serviceArea?: string;
+  avatarUrl?: string;
 }
 
 interface PasswordPayload {

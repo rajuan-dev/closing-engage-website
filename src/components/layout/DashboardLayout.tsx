@@ -20,16 +20,30 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     upsertNotification,
     markNotificationRead,
     markAllNotificationsRead,
+    updateNotaryProfile,
+    updateCompanyProfile,
   } = useStore();
-  const sessionUser = portalAuthService.getUser(variant) as {
+  const [sessionUser, setSessionUser] = useState((portalAuthService.getUser(variant) as {
     name?: string;
     fullName?: string;
     email?: string;
+    avatarUrl?: string;
     memberRole?: "Admin" | "Member";
     accountType?: string;
-  } | null;
-  const userName = sessionUser?.fullName || sessionUser?.name || (variant === "company" ? companyProfile.fullName : notaryProfile.fullName);
-  const userEmail = sessionUser?.email || (variant === "company" ? companyProfile.email : notaryProfile.email);
+  } | null) ?? null);
+  const userName =
+    (variant === "company" ? companyProfile.fullName : notaryProfile.fullName) ||
+    sessionUser?.fullName ||
+    sessionUser?.name ||
+    "";
+  const userEmail =
+    (variant === "company" ? companyProfile.email : notaryProfile.email) ||
+    sessionUser?.email ||
+    "";
+  const userAvatarUrl =
+    (variant === "company" ? companyProfile.avatarUrl : notaryProfile.avatarUrl) ||
+    sessionUser?.avatarUrl ||
+    "";
   const userRole =
     variant === "company"
       ? sessionUser?.memberRole || (sessionUser?.accountType === "team-member" ? "Member" : "Administrator")
@@ -89,6 +103,67 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   });
   const unreadCount = activityItems.filter((act) => !act.read).length;
   const profilePath = variant === "company" ? "/company/settings" : "/notary/settings";
+
+  useEffect(() => {
+    setSessionUser(portalAuthService.getUser(variant) as typeof sessionUser);
+  }, [location.pathname, variant]);
+
+  useEffect(() => {
+    const hydratePortalUser = async () => {
+      try {
+        const user = await portalAuthService.fetchMe(variant);
+        const typedUser = user as {
+          name?: string;
+          fullName?: string;
+          email?: string;
+          avatarUrl?: string;
+          phone?: string;
+          companyName?: string;
+          businessEmail?: string;
+          contactEmail?: string;
+          address?: string;
+          license?: string;
+          expiry?: string;
+          serviceArea?: string;
+        } | null;
+
+        setSessionUser(typedUser);
+
+        if (variant === "company" && typedUser) {
+          updateCompanyProfile({
+            fullName: typedUser.fullName || companyProfile.fullName,
+            email: typedUser.contactEmail || typedUser.email || typedUser.businessEmail || companyProfile.email,
+            phone: typedUser.phone || companyProfile.phone,
+            companyName: typedUser.companyName || companyProfile.companyName,
+            companyEmail: typedUser.businessEmail || typedUser.email || companyProfile.companyEmail,
+            contactNumber: typedUser.phone || companyProfile.contactNumber,
+            businessAddress: typedUser.address || companyProfile.businessAddress,
+            avatarUrl: typedUser.avatarUrl || companyProfile.avatarUrl || "",
+          });
+        }
+
+        if (variant === "notary" && typedUser) {
+          updateNotaryProfile({
+            fullName: typedUser.fullName || typedUser.name || notaryProfile.fullName,
+            email: typedUser.email || notaryProfile.email,
+            phone: typedUser.phone || notaryProfile.phone,
+            licenseNumber: typedUser.license || notaryProfile.licenseNumber,
+            commissionExpiry: typedUser.expiry || notaryProfile.commissionExpiry,
+            serviceArea: typedUser.serviceArea || notaryProfile.serviceArea,
+            avatarUrl: typedUser.avatarUrl || notaryProfile.avatarUrl || "",
+          });
+        }
+      } catch {
+        setSessionUser(portalAuthService.getUser(variant) as typeof sessionUser);
+      }
+    };
+
+    void hydratePortalUser();
+  }, [
+    updateCompanyProfile,
+    updateNotaryProfile,
+    variant,
+  ]);
 
   useEffect(() => {
     void loadNotifications(false);
@@ -290,8 +365,12 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                   <div className="text-sm font-extrabold text-ink-900 truncate">{userName}</div>
                   <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-400">{userRole}</div>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#18253f,#68506a)] text-xs font-bold text-white">
-                  {userInitials}
+                <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(135deg,#18253f,#68506a)] text-xs font-bold text-white">
+                  {userAvatarUrl ? (
+                    <img src={userAvatarUrl} alt={`${userName} avatar`} className="h-full w-full object-cover" />
+                  ) : (
+                    userInitials
+                  )}
                 </div>
                 <ChevronDown
                   className={`h-4 w-4 text-ink-400 transition-transform duration-200 ${menuOpen ? "rotate-180" : ""}`}

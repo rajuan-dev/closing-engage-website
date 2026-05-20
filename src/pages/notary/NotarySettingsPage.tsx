@@ -4,6 +4,7 @@ import { Button, FooterBand, Input, Surface } from "@/components/common";
 import { portalAuthService } from "@/services/portalAuthService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { prepareAvatarDataUrl } from "@/utils/avatarImage";
 
 interface NotarySessionUser {
   fullName?: string;
@@ -14,6 +15,7 @@ interface NotarySessionUser {
   expiry?: string;
   serviceArea?: string;
   specialty?: string;
+  avatarUrl?: string;
 }
 
 const mapSessionToProfile = (user: unknown) => {
@@ -27,6 +29,7 @@ const mapSessionToProfile = (user: unknown) => {
     licenseNumber: notary.license || "",
     commissionExpiry: notary.expiry || "",
     serviceArea: notary.serviceArea || "",
+    avatarUrl: notary.avatarUrl || "",
   };
 };
 
@@ -98,20 +101,24 @@ export function NotarySettingsPage() {
     void hydrateProfile();
   }, [updateNotaryProfile]);
 
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarUrl(url);
-      if (!isEditMode) {
-        updateNotaryProfile({ avatarUrl: url });
-        addActivity({
-          title: "Avatar Updated",
-          description: "You successfully updated your profile picture.",
-          time: "Just Now",
-        });
-        toast.success("Profile avatar updated successfully!");
-      }
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!isEditMode) {
+      toast.error("Click Edit Profile before updating your profile photo.");
+      return;
+    }
+
+    try {
+      const nextAvatarUrl = await prepareAvatarDataUrl(file);
+      setAvatarUrl(nextAvatarUrl);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to process the selected image.");
     }
   };
 
@@ -132,6 +139,7 @@ export function NotarySettingsPage() {
         license: licenseNumber,
         expiry: commissionExpiry,
         serviceArea,
+        avatarUrl,
       });
 
       const profile = mapSessionToProfile(user);
@@ -143,8 +151,8 @@ export function NotarySettingsPage() {
           licenseNumber,
           commissionExpiry,
           serviceArea,
+          avatarUrl,
         }),
-        avatarUrl,
         notifications: {
           email: notifications.find((n) => n.id === "email")?.active ?? true,
           orders: notifications.find((n) => n.id === "orders")?.active ?? true,
@@ -220,8 +228,17 @@ export function NotarySettingsPage() {
           />
           <button 
             type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white shadow-[0_5px_12px_rgba(24,90,188,0.3)] hover:bg-brand-700 transition-colors"
+            onClick={() => {
+              if (!isEditMode) {
+                toast.error("Click Edit Profile before updating your profile photo.");
+                return;
+              }
+
+              fileInputRef.current?.click();
+            }}
+            className={`absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full text-white shadow-[0_5px_12px_rgba(24,90,188,0.3)] transition-colors ${
+              isEditMode ? "bg-brand-600 hover:bg-brand-700" : "cursor-not-allowed bg-[#9eb8e8]"
+            }`}
           >
             <Camera className="h-3.5 w-3.5" />
           </button>
