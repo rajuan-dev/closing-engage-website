@@ -3,6 +3,7 @@ import { Bell, ChevronDown, Plus, User, LogOut, CheckCircle2, Hourglass, CircleD
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button, SearchField, SidebarNav } from "@/components/common";
 import { companyNav, notaryNav } from "@/data/mock-data";
+import { notificationService } from "@/services/notificationService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { portalAuthService } from "@/services/portalAuthService";
@@ -11,7 +12,14 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const location = useLocation();
   const navigate = useNavigate();
   const items = variant === "company" ? companyNav : notaryNav;
-  const { notaryProfile, companyProfile, recentActivities, clearActivities } = useStore();
+  const {
+    notaryProfile,
+    companyProfile,
+    notifications,
+    setNotifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+  } = useStore();
   const sessionUser = portalAuthService.getUser() as {
     name?: string;
     fullName?: string;
@@ -31,42 +39,71 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement | null>(null);
-  const [isClearing, setIsClearing] = useState(false);
-  const [readActivityKeys, setReadActivityKeys] = useState<Set<string>>(new Set());
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
 
-  const handleClear = () => {
-    setIsClearing(true);
-    setTimeout(() => {
-      clearActivities();
-      setReadActivityKeys(new Set());
-      setIsClearing(false);
-      toast.success("Notifications cleared successfully!");
-    }, 500);
+  const loadNotifications = async () => {
+    try {
+      const liveNotifications = await notificationService.getNotifications();
+      setNotifications(liveNotifications);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to load notifications.");
+    }
   };
 
-  const activityItems = recentActivities.map((act, index) => {
+  const handleMarkAllRead = async () => {
+    try {
+      setIsMarkingAllRead(true);
+      await notificationService.markAllRead();
+      markAllNotificationsRead();
+      toast.success("All notifications marked as read.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update notifications.");
+    } finally {
+      setIsMarkingAllRead(false);
+    }
+  };
+
+  const activityItems = notifications.map((notification) => {
     let Icon = FileText;
     let tone: "brand" | "warning" | "success" = "brand";
-    if (act.title.toLowerCase().includes("assign")) {
+    if (notification.type === "order") {
       Icon = CircleDot;
       tone = "brand";
-    } else if (act.title.toLowerCase().includes("status") || act.title.toLowerCase().includes("review")) {
+    } else if (notification.type === "document") {
       Icon = Hourglass;
       tone = "warning";
-    } else if (act.title.toLowerCase().includes("approve") || act.title.toLowerCase().includes("complete")) {
+    } else if (notification.type === "user") {
       Icon = CheckCircle2;
       tone = "success";
     }
     return {
-      ...act,
-      key: `${act.title}-${act.time}-${index}`,
+      ...notification,
+      key: notification.id,
       icon: Icon,
       tone,
-      read: readActivityKeys.has(`${act.title}-${act.time}-${index}`),
     };
   });
   const unreadCount = activityItems.filter((act) => !act.read).length;
   const profilePath = variant === "company" ? "/company/settings" : "/notary/settings";
+
+  useEffect(() => {
+    void loadNotifications();
+
+    const intervalId = window.setInterval(() => {
+      void loadNotifications();
+    }, 15000);
+
+    const handleFocus = () => {
+      void loadNotifications();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
 
   useEffect(() => {
     if (!menuOpen && !notifOpen) return;
@@ -141,7 +178,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                       {unreadCount > 0 ? (
                         <button
                           type="button"
-                          onClick={() => setReadActivityKeys(new Set(activityItems.map((act) => act.key)))}
+                          onClick={() => void handleMarkAllRead()}
                           className="text-[12px] font-semibold text-brand-600 transition hover:text-brand-700 focus:outline-none"
                         >
                           Mark all read
@@ -162,7 +199,15 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                           <button
                             key={act.key}
                             type="button"
-                            onClick={() => setReadActivityKeys((current) => new Set(current).add(act.key))}
+                            onClick={() => {
+                              if (!act.read) {
+                                void notificationService.markRead(act.id).then(() => {
+                                  markNotificationRead(act.id);
+                                }).catch((error) => {
+                                  toast.error(error instanceof Error ? error.message : "Unable to update notification.");
+                                });
+                              }
+                            }}
                             className={`flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-[#f8fafd] focus:outline-none ${
                               !act.read ? "bg-[#f5f9ff]/50" : ""
                             }`}
@@ -181,7 +226,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="text-[13px] font-semibold text-ink-900">{act.title}</div>
-                              <div className="mt-0.5 text-[12px] leading-5 text-ink-500">{act.description}</div>
+                              <div className="mt-0.5 text-[12px] leading-5 text-ink-500">{act.message}</div>
                               <div className="mt-1 text-[11px] font-medium text-ink-300">{act.time}</div>
                             </div>
                           </button>
@@ -192,11 +237,11 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                       <div className="border-t border-[#edf1f7] bg-[#fbfcff] px-5 py-3 text-center">
                         <button
                           type="button"
-                          onClick={handleClear}
-                          disabled={isClearing}
+                          onClick={() => void handleMarkAllRead()}
+                          disabled={isMarkingAllRead}
                           className="w-full text-[13px] font-semibold text-brand-600 transition hover:text-brand-700 disabled:opacity-50 focus:outline-none"
                         >
-                          {isClearing ? "Clearing..." : "Clear All Notifications"}
+                          {isMarkingAllRead ? "Updating..." : "Mark All Read"}
                         </button>
                       </div>
                     ) : null}

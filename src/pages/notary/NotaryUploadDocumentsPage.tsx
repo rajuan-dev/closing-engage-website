@@ -1,23 +1,47 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, ChevronRight, CloudUpload, Eye, FileText, Plus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button, FooterBand, Surface } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { orderService } from "@/services/orderService";
 
 export function NotaryUploadDocumentsPage() {
   const navigate = useNavigate();
-  const { notaryOrders, addCompanyDocument, addActivity, updateCompanyOrder, updateNotaryOrder } = useStore();
-  const [selectedOrder, setSelectedOrder] = useState(
-    notaryOrders.length > 0 ? `${notaryOrders[0].id} - ${notaryOrders[0].clientName}` : "#CE-94012 - Jonathan Harker"
-  );
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([
-    new File(["temporary"], "scanback_signed_final.pdf", { type: "application/pdf" }),
-  ]);
+  const { notaryOrders, setNotaryOrders, setNotaryAssignedOrders, addActivity, updateCompanyOrder, updateNotaryOrder } = useStore();
+  const [selectedOrder, setSelectedOrder] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAssignedOrders = async () => {
+      try {
+        setIsLoadingOrders(true);
+        const orders = await orderService.getAssignedOrders();
+        if (!isMounted) return;
+        setNotaryOrders(orders);
+        setNotaryAssignedOrders(orders);
+        setSelectedOrder((current) => current || (orders[0] ? `${orders[0].id} - ${orders[0].clientName}` : ""));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load assigned orders.");
+      } finally {
+        if (isMounted) setIsLoadingOrders(false);
+      }
+    };
+
+    void loadAssignedOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setNotaryAssignedOrders, setNotaryOrders]);
 
   const appendFiles = (files: FileList | File[]) => {
     const accepted = Array.from(files).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
@@ -57,7 +81,9 @@ export function NotaryUploadDocumentsPage() {
                 value={selectedOrder}
                 onChange={(event) => setSelectedOrder(event.target.value)}
                 className="h-full w-full bg-transparent text-[15px] text-ink-700 outline-none"
+                disabled={isLoadingOrders}
               >
+                {notaryOrders.length === 0 ? <option value="">No assigned orders available</option> : null}
                 {notaryOrders.map((o) => (
                   <option key={o.id} value={`${o.id} - ${o.clientName}`}>
                     {o.id} - {o.clientName}
@@ -181,45 +207,48 @@ export function NotaryUploadDocumentsPage() {
         </div>
         <Button 
           className="h-[52px] rounded-[12px] px-7 text-[16px] font-semibold"
+          disabled={isSubmitting || notaryOrders.length === 0}
           onClick={() => {
             if (uploadedFiles.length === 0) {
               toast.error("Please upload at least one document.");
               return;
             }
+            if (!selectedOrder) {
+              toast.error("Please select an assigned order.");
+              return;
+            }
 
             const orderId = selectedOrder.split(" - ")[0].replace("#", "");
+            const order = notaryOrders.find((item) => item.id.replace("#", "") === orderId);
+            if (!order) {
+              toast.error("Selected order could not be found.");
+              return;
+            }
 
-            // Save uploaded files to the global documents list
-            uploadedFiles.forEach((file) => {
-              const docRecord = {
-                id: "DOC-" + (Math.floor(Math.random() * 90000) + 10000),
-                name: file.name,
-                orderId: orderId,
-                uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
-                status: "Submitted" as const,
-                uploadedBy: "You (Notary)"
-              };
-              addCompanyDocument(docRecord);
-            });
-
-            // Update status of the notary order and company order
-            updateNotaryOrder("#" + orderId, { status: "Submitted" });
-            updateCompanyOrder("#" + orderId, { status: "Under Review" });
-
-            // Dispatch dynamic activity update
-            addActivity({
-              title: "Scanback Uploaded",
-              description: `Notary uploaded ${uploadedFiles.length} file(s) for Order #${orderId}.`,
-              time: "Just now"
-            });
-
-            toast.success("Documents successfully uploaded and submitted!");
-            setUploadedFiles([]);
-            navigate("/notary/dashboard");
+            void (async () => {
+              try {
+                setIsSubmitting(true);
+                await orderService.uploadCompanyDocuments(order, uploadedFiles);
+                const refreshedOrder = await orderService.getCompanyOrder(order.id);
+                updateNotaryOrder(order.id, refreshedOrder);
+                updateCompanyOrder(order.id, { status: refreshedOrder.status });
+                addActivity({
+                  title: "Scanback Uploaded",
+                  description: `Notary uploaded ${uploadedFiles.length} file(s) for Order #${orderId}.`,
+                  time: "Just now",
+                });
+                toast.success("Documents successfully uploaded and submitted!");
+                setUploadedFiles([]);
+                navigate("/notary/dashboard");
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Unable to upload documents.");
+              } finally {
+                setIsSubmitting(false);
+              }
+            })();
           }}
         >
-          Upload & Submit
+          {isSubmitting ? "Uploading..." : "Upload & Submit"}
           <ChevronRight className="ml-2 h-5 w-5" />
         </Button>
       </div>

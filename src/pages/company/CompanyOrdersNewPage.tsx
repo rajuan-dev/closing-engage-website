@@ -1,16 +1,20 @@
 import { useRef, useState } from "react";
-import { CircleDot, FileText, ChevronLeft, Download, Trash2 } from "lucide-react";
+import { CalendarDays, CircleDot, FileText, ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Input, Select, Surface, Textarea } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { hasPortalPermission } from "@/utils/portalPermissions";
+import { orderService } from "@/services/orderService";
 
 export function CompanyOrdersNewPage() {
   const navigate = useNavigate();
   const canCreateOrders = hasPortalPermission("createOrders");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [formData, setFormData] = useState({
@@ -30,6 +34,27 @@ export function CompanyOrdersNewPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const formatDateForOrder = (date: Date) =>
+    date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const selectedDate = formData.date ? new Date(formData.date) : null;
+  const calendarYear = calendarMonth.getFullYear();
+  const calendarMonthIndex = calendarMonth.getMonth();
+  const calendarDaysInMonth = new Date(calendarYear, calendarMonthIndex + 1, 0).getDate();
+  const calendarStartDay = new Date(calendarYear, calendarMonthIndex, 1).getDay();
+  const todayKey = new Date().toDateString();
+  const selectedDateKey = selectedDate && !Number.isNaN(selectedDate.getTime()) ? selectedDate.toDateString() : "";
+
+  const changeCalendarMonth = (offset: number) => {
+    setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+  };
+
+  const selectCalendarDay = (day: number) => {
+    const nextDate = new Date(calendarYear, calendarMonthIndex, day);
+    handleInputChange("date", formatDateForOrder(nextDate));
+    setIsCalendarOpen(false);
   };
 
   const appendFiles = (files: FileList | File[]) => {
@@ -60,7 +85,7 @@ export function CompanyOrdersNewPage() {
     setUploadedFiles((current) => current.filter((_, index) => index !== indexToRemove));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canCreateOrders) {
       toast.error("You do not have permission to create orders.");
       navigate("/company/orders");
@@ -72,41 +97,30 @@ export function CompanyOrdersNewPage() {
       return;
     }
 
-    const newOrder = {
-       id: "#ORD-" + (Math.floor(Math.random() * 90000) + 10000),
-       clientName: formData.clientName,
-       propertyAddress: `${formData.address}${formData.city ? ", " + formData.city : ""}${formData.state ? ", " + formData.state : ""} ${formData.zip}`,
-       status: "Received",
-       notary: formData.preferredNotary === "No preference" ? "--" : formData.preferredNotary,
-       date: formData.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    };
+    try {
+      setIsSubmitting(true);
+      const newOrder = await orderService.createCompanyOrder({
+        ...formData,
+      });
+      const uploadedDocuments = await orderService.uploadCompanyDocuments(newOrder, uploadedFiles);
 
-    // Add order to global store
-    useStore.getState().addCompanyOrder(newOrder as any);
+      useStore.getState().addCompanyOrder(newOrder);
+      uploadedDocuments.forEach((doc) => {
+        useStore.getState().addCompanyDocument(doc);
+      });
+      useStore.getState().addActivity({
+        title: "New Order Created",
+        description: `Order ${newOrder.id} has been successfully created for ${formData.clientName}.`,
+        time: "Just now",
+      });
 
-    // Add uploaded files to global documents store
-    uploadedFiles.forEach((file) => {
-      const docRecord = {
-        id: "DOC-" + (Math.floor(Math.random() * 90000) + 10000),
-        name: file.name,
-        orderId: newOrder.id.replace("#", ""),
-        uploadDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        size: (file.size / (1024 * 1024)).toFixed(1) + " MB",
-        status: "Submitted" as const,
-        uploadedBy: "Alex Sterling"
-      };
-      useStore.getState().addCompanyDocument(docRecord);
-    });
-
-    // Push dynamic activity/notification entry
-    useStore.getState().addActivity({
-      title: "New Order Created",
-      description: `Order ${newOrder.id} has been successfully created for ${formData.clientName}.`,
-      time: "Just now"
-    });
-
-    toast.success("Order created successfully!");
-    navigate("/company/orders");
+      toast.success("Order created successfully!");
+      navigate("/company/orders");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to create order.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -194,13 +208,99 @@ export function CompanyOrdersNewPage() {
                 className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
               />
             </div>
-            <Input 
-              label="SIGNING DATE & TIME" 
-              placeholder="mm/dd/yyyy" 
-              value={formData.date}
-              onChange={(e) => handleInputChange("date", e.target.value)}
-              className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]" 
-            />
+            <div className="relative">
+              <div className="mb-2 text-sm font-semibold text-ink-900">SIGNING DATE & TIME</div>
+              <button
+                type="button"
+                onClick={() => setIsCalendarOpen((current) => !current)}
+                className="group flex h-[50px] w-full items-center justify-between rounded-[12px] border border-[#dfe6f2] bg-white px-4 text-left text-[14px] text-ink-700 outline-none transition-all hover:border-brand-200 hover:bg-[#fbfdff] focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+              >
+                <span className={formData.date ? "font-semibold text-ink-800" : "text-ink-300"}>
+                  {formData.date || "Select signing date"}
+                </span>
+                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-[#eef4ff] text-brand-600 transition-colors group-hover:bg-brand-600 group-hover:text-white">
+                  <CalendarDays className="h-4 w-4" />
+                </span>
+              </button>
+
+              {isCalendarOpen ? (
+                <div className="absolute left-0 top-[82px] z-30 w-full max-w-[380px] rounded-[22px] border border-[#dfe8f5] bg-white p-4 shadow-[0_24px_60px_rgba(20,48,112,0.16)]">
+                  <div className="mb-4 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => changeCalendarMonth(-1)}
+                      className="flex h-9 w-9 items-center justify-center rounded-[11px] border border-[#e4ebf5] text-ink-500 transition-colors hover:bg-[#f6f9ff] hover:text-brand-600"
+                      aria-label="Previous month"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="text-center">
+                      <div className="text-[15px] font-extrabold text-ink-900">
+                        {calendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                      </div>
+                      <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-300">
+                        Closing Schedule
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => changeCalendarMonth(1)}
+                      className="flex h-9 w-9 items-center justify-center rounded-[11px] border border-[#e4ebf5] text-ink-500 transition-colors hover:bg-[#f6f9ff] hover:text-brand-600"
+                      aria-label="Next month"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-extrabold uppercase tracking-[0.08em] text-ink-300">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                      <div key={day} className="py-2">{day}</div>
+                    ))}
+                  </div>
+                  <div className="mt-1 grid grid-cols-7 gap-1.5">
+                    {Array.from({ length: calendarStartDay }).map((_, index) => (
+                      <div key={`empty-${index}`} className="h-10" />
+                    ))}
+                    {Array.from({ length: calendarDaysInMonth }).map((_, index) => {
+                      const day = index + 1;
+                      const date = new Date(calendarYear, calendarMonthIndex, day);
+                      const dateKey = date.toDateString();
+                      const isSelected = dateKey === selectedDateKey;
+                      const isToday = dateKey === todayKey;
+
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => selectCalendarDay(day)}
+                          className={`flex h-10 items-center justify-center rounded-[12px] text-[13px] font-bold transition-all ${
+                            isSelected
+                              ? "bg-brand-600 text-white shadow-[0_10px_24px_rgba(24,90,188,0.22)]"
+                              : isToday
+                                ? "bg-[#eef4ff] text-brand-600"
+                                : "text-ink-700 hover:bg-[#f6f9ff] hover:text-brand-600"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date();
+                      setCalendarMonth(today);
+                      handleInputChange("date", formatDateForOrder(today));
+                      setIsCalendarOpen(false);
+                    }}
+                    className="mt-4 flex h-10 w-full items-center justify-center rounded-[12px] bg-[#f7faff] text-[13px] font-bold text-brand-600 transition-colors hover:bg-[#eef4ff]"
+                  >
+                    Use Today
+                  </button>
+                </div>
+              ) : null}
+            </div>
             <div className="grid gap-5 lg:grid-cols-[1fr_0.72fr]">
               <div>
                 <div className="mb-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-500">Loan Details</div>
@@ -384,8 +484,9 @@ export function CompanyOrdersNewPage() {
         <Button
           className="h-[44px] rounded-[10px] px-6 text-[14px] font-semibold"
           onClick={handleSubmit}
+          disabled={isSubmitting}
         >
-          Submit Order
+          {isSubmitting ? "Submitting..." : "Submit Order"}
         </Button>
       </div>
     </div>

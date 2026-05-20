@@ -5,15 +5,41 @@ import { Badge, Button, Select, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
 import { hasPortalPermission } from "@/utils/portalPermissions";
+import { orderService } from "@/services/orderService";
 
 export function CompanyOrdersPage() {
-  const { companyOrders } = useStore();
+  const { companyOrders, setCompanyOrders } = useStore();
   const canCreateOrders = hasPortalPermission("createOrders");
   const [searchValue, setSearchValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [dateFilter, setDateFilter] = useState<string>("Date: Any time");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrders = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError("");
+        const orders = await orderService.getCompanyOrders();
+        if (isMounted) setCompanyOrders(orders);
+      } catch (error) {
+        if (isMounted) setLoadError(error instanceof Error ? error.message : "Unable to load orders.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setCompanyOrders]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -139,7 +165,25 @@ export function CompanyOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedOrders.map((order) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
+                    Loading orders from backend...
+                  </td>
+                </tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-[14px] font-semibold text-danger-600">
+                    {loadError}
+                  </td>
+                </tr>
+              ) : paginatedOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
+                    No orders found.
+                  </td>
+                </tr>
+              ) : paginatedOrders.map((order) => (
                 <tr key={order.id} className="border-t border-[#edf1f7] hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5 text-[15px] font-bold text-ink-900">{order.clientName}</td>
@@ -185,7 +229,7 @@ export function CompanyOrdersPage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            {Array.from({ length: totalPages }).map((_, i) => (
+            {Array.from({ length: Math.max(totalPages, 1) }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
@@ -200,7 +244,7 @@ export function CompanyOrdersPage() {
               </button>
             ))}
             <button 
-              disabled={currentPage === totalPages}
+              disabled={currentPage >= Math.max(totalPages, 1)}
               onClick={() => setCurrentPage(prev => prev + 1)}
               className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dfe6f2] text-ink-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
             >

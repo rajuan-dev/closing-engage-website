@@ -5,6 +5,7 @@ import { Badge, Button, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { hasPortalPermission } from "@/utils/portalPermissions";
+import { orderService } from "@/services/orderService";
 
 export function CompanyDocumentsDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,22 +22,24 @@ export function CompanyDocumentsDetailPage() {
     setTimeout(() => window.print(), 1000);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!canDownloadDocuments) {
       toast.error("You do not have permission to download documents.");
       return;
     }
 
-    toast.success(`Started downloading: ${doc.name}`);
-    // Simulate a real download experience
-    const dummyBlob = new Blob(["Mock PDF Content"], { type: "application/pdf" });
-    const url = window.URL.createObjectURL(dummyBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", doc.name);
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode?.removeChild(link);
+    try {
+      const url = await orderService.getDocumentDownloadUrl(doc.id);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", doc.name);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      toast.success(`Started downloading: ${doc.name}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to download document.");
+    }
   };
 
   return (
@@ -65,7 +68,7 @@ export function CompanyDocumentsDetailPage() {
               Print
             </Button>
             {canDownloadDocuments ? (
-              <Button onClick={handleDownload} className="h-[50px] rounded-[12px] px-6 text-[15px] font-semibold">
+              <Button onClick={() => void handleDownload()} className="h-[50px] rounded-[12px] px-6 text-[15px] font-semibold">
                 <Download className="mr-2 h-4 w-4" />
                 Download
               </Button>

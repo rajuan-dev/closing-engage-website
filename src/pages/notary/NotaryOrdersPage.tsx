@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Eye, Flame, Info, MapPin, Search, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, Button, FooterBand, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { orderService } from "@/services/orderService";
 
 export function NotaryOrdersPage() {
   const dateInputRef = useRef<HTMLInputElement | null>(null);
@@ -15,7 +16,35 @@ export function NotaryOrdersPage() {
   const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { notaryAssignedOrders } = useStore();
+  const { notaryAssignedOrders, setNotaryAssignedOrders, setNotaryOrders } = useStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadAssignedOrders = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError("");
+        const orders = await orderService.getAssignedOrders();
+        if (!isMounted) return;
+        setNotaryAssignedOrders(orders);
+        setNotaryOrders(orders);
+      } catch (error) {
+        if (isMounted) setLoadError(error instanceof Error ? error.message : "Unable to load assigned orders.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadAssignedOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setNotaryAssignedOrders, setNotaryOrders]);
+
   const filteredOrders = notaryAssignedOrders.filter((order) => {
     const matchesSearch =
       searchValue.trim() === "" ||
@@ -210,7 +239,19 @@ export function NotaryOrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedOrders.map((order) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] font-semibold text-ink-400">
+                    Loading assigned orders from backend...
+                  </td>
+                </tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] font-semibold text-danger-600">
+                    {loadError}
+                  </td>
+                </tr>
+              ) : paginatedOrders.map((order) => (
                 <tr key={order.id} className="border-t border-[#edf1f7]">
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5">

@@ -38,7 +38,7 @@ export interface DocumentRecord {
   orderId: string;
   uploadDate: string;
   size: string;
-  status: "Approved" | "Submitted" | "Pending" | "Verified";
+  status: "Approved" | "Submitted" | "Pending" | "Verified" | "Rejected";
   uploadedBy?: string;
 }
 
@@ -46,6 +46,17 @@ export interface ActivityItem {
   title: string;
   description: string;
   time: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  type: "order" | "document" | "user" | "system";
+  linkId?: string;
+  recipientRole?: "admin" | "company" | "notary";
 }
 
 export interface TeamMember {

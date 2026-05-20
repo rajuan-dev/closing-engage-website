@@ -6,15 +6,42 @@ import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { cn } from "@/lib/utils";
 import { hasPortalPermission } from "@/utils/portalPermissions";
+import { orderService } from "@/services/orderService";
 
 export function CompanyDocumentsPage() {
-  const { companyDocuments } = useStore();
+  const { companyDocuments, setCompanyDocuments } = useStore();
   const canDownloadDocuments = hasPortalPermission("downloadDocuments");
   const [docSearch, setDocSearch] = useState("");
   const [docStatusFilter, setDocStatusFilter] = useState<"All" | "Approved" | "Pending">("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [isPreparingDocument, setIsPreparingDocument] = useState<string | null>(null);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDocuments = async () => {
+      try {
+        setIsLoading(true);
+        setLoadError("");
+        const documents = await orderService.getCompanyDocuments();
+        if (isMounted) setCompanyDocuments(documents);
+      } catch (error) {
+        if (isMounted) setLoadError(error instanceof Error ? error.message : "Unable to load documents.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadDocuments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setCompanyDocuments]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -33,6 +60,30 @@ export function CompanyDocumentsPage() {
 
   const totalPages = Math.ceil(filteredDocs.length / itemsPerPage);
   const paginatedDocs = filteredDocs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handlePreviewDocument = async (documentId: string, documentName: string) => {
+    try {
+      setIsPreparingDocument(documentId);
+      const url = await orderService.getDocumentPreviewUrl(documentId);
+      setViewingFile({ name: documentName, url });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to preview document.");
+    } finally {
+      setIsPreparingDocument(null);
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: string, documentName: string) => {
+    try {
+      setIsPreparingDocument(documentId);
+      const url = await orderService.getDocumentDownloadUrl(documentId);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Unable to download ${documentName}.`);
+    } finally {
+      setIsPreparingDocument(null);
+    }
+  };
 
   return (
     <div className="space-y-7">
@@ -84,7 +135,25 @@ export function CompanyDocumentsPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedDocs.map((doc) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
+                    Loading documents from backend...
+                  </td>
+                </tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[14px] font-semibold text-danger-600">
+                    {loadError}
+                  </td>
+                </tr>
+              ) : paginatedDocs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
+                    No documents found.
+                  </td>
+                </tr>
+              ) : paginatedDocs.map((doc) => (
                 <tr key={doc.id} className="border-t border-[#edf1f7] hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-4">
@@ -102,7 +171,8 @@ export function CompanyDocumentsPage() {
                     <div className="flex items-center gap-5 text-brand-600">
                       <button 
                         type="button"
-                        onClick={() => setViewingFile({ name: doc.name, url: "#" })}
+                        onClick={() => void handlePreviewDocument(doc.id, doc.name)}
+                        disabled={isPreparingDocument === doc.id}
                         className="hover:text-brand-700 transition-colors"
                         aria-label={`View ${doc.name}`}
                       >
@@ -111,7 +181,8 @@ export function CompanyDocumentsPage() {
                       {canDownloadDocuments ? (
                         <button 
                           type="button" 
-                          onClick={() => toast.info(`Downloading ${doc.name}...`)}
+                          onClick={() => void handleDownloadDocument(doc.id, doc.name)}
+                          disabled={isPreparingDocument === doc.id}
                           className="hover:text-brand-700 transition-colors"
                           aria-label={`Download ${doc.name}`}
                         >
@@ -137,7 +208,7 @@ export function CompanyDocumentsPage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            {Array.from({ length: totalPages }).map((_, i) => (
+            {Array.from({ length: Math.max(totalPages, 1) }).map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentPage(i + 1)}
@@ -152,7 +223,7 @@ export function CompanyDocumentsPage() {
               </button>
             ))}
             <button 
-              disabled={currentPage === totalPages}
+              disabled={currentPage >= Math.max(totalPages, 1)}
               onClick={() => setCurrentPage(prev => prev + 1)}
               className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#dfe6f2] text-ink-500 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
             >

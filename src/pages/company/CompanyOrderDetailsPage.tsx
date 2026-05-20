@@ -1,46 +1,110 @@
 import { useEffect, useState } from "react";
-import { CircleDot, FileText, ChevronLeft, MapPin, Eye } from "lucide-react";
+import { CircleDot, Download, FileText, ChevronLeft, MapPin, Eye } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { Badge, Button, Modal, Surface } from "@/components/common";
+import { Badge, Button, Surface } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { orderService, type OrderDetail } from "@/services/orderService";
 
 export function CompanyOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const { companyOrders, updateCompanyOrder, companyDocuments } = useStore();
+  const { companyOrders, setCompanyOrders, updateCompanyOrder, companyDocuments, setCompanyDocuments } = useStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   
-  const order = companyOrders.find(o => o.id.replace("#", "") === id) || companyOrders[0];
-  const docs = companyDocuments.filter(d => d.orderId === order.id.replace("#", ""));
+  const order = orderDetail || companyOrders.find(o => o.id.replace("#", "") === id);
+  const docs = order ? companyDocuments.filter(d => d.orderId === order.id.replace("#", "")) : [];
+  const approvedScanbackDocuments = docs.filter((document) => document.uploadedBy === "Notary");
+  const titleDocuments = docs.filter((document) => document.uploadedBy !== "Notary");
 
-  const notaryInfo = order.notary === "--"
-    ? { name: "Not Assigned", email: "support@closingengage.com", phone: "(555) 000-0000", closings: 0, avatar: "?", serviceArea: "N/A", specialty: "N/A" }
-    : {
-        name: order.notary,
-        email: `${order.notary.toLowerCase().replace(" ", ".")}@closingengage.com`,
-        phone: "(555) 012-3456",
-        closings: 93,
-        avatar: order.notary.split(" ").map(n => n[0]).join(""),
-        serviceArea: "Dallas, Fort Worth, Arlington",
-        specialty: "Purchase, Refinance, HELOC"
-      };
-
-  const [showNotaryProfile, setShowNotaryProfile] = useState(false);
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
+  const [isPreparingPreview, setIsPreparingPreview] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [clientName, setClientName] = useState("");
   const [signingDate, setSigningDate] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
-  const [specialInstructions, setSpecialInstructions] = useState("Client requested an evening signing. Please confirm notary availability for late pickup.");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrder = async () => {
+      if (!id) return;
+
+      try {
+        setIsLoading(true);
+        const [orders, documents, detail] = await Promise.all([
+          orderService.getCompanyOrders(),
+          orderService.getCompanyDocuments(),
+          orderService.getCompanyOrder(id),
+        ]);
+        if (!isMounted) return;
+        setCompanyOrders(orders);
+        setCompanyDocuments(documents);
+        setOrderDetail(detail);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load order details.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadOrder();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, setCompanyDocuments, setCompanyOrders]);
 
   useEffect(() => {
     if (order) {
       setClientName(order.clientName);
-      setSigningDate(order.date);
+      setSigningDate(order.time ? `${order.date}, ${order.time}` : order.date);
       setPropertyAddress(order.propertyAddress);
+      setSpecialInstructions(orderDetail?.specialInstructions || "");
     }
-  }, [order, isEditing]);
+  }, [order, orderDetail, isEditing]);
+
+  const handlePreviewDocument = async (documentId: string, documentName: string) => {
+    try {
+      setIsPreparingPreview(true);
+      const url = await orderService.getDocumentPreviewUrl(documentId);
+      setViewingFile({ name: documentName, url });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to preview document.");
+    } finally {
+      setIsPreparingPreview(false);
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: string, documentName: string) => {
+    try {
+      const url = await orderService.getDocumentDownloadUrl(documentId);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = documentName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`Started downloading: ${documentName}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to download document.");
+    }
+  };
+
+  if (isLoading && !order) {
+    return <div className="text-[14px] font-semibold text-ink-400">Loading order details...</div>;
+  }
+
+  if (!order) {
+    return (
+      <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 text-center text-[14px] font-semibold text-ink-500">
+        Order not found.
+      </Surface>
+    );
+  }
 
   const statuses = ["Received", "Assigned", "Under Review", "Approved", "Completed"];
   const currentIdx = statuses.indexOf(order.status);
@@ -52,11 +116,7 @@ export function CompanyOrderDetailsPage() {
     current: idx === currentIdx
   }));
 
-  const activityLog = [
-    ["Review completed", "Final review by Compliance Team finished.", "Today, 2:45 PM"],
-    ["Documents uploaded", "New version of Title Insurance form added.", "Yesterday, 10:15 AM"],
-    ["Notary assigned", `${order.notary === "--" ? "A notary" : order.notary} has been assigned to this order.`, order.date],
-  ] as const;
+  const activityLog = orderDetail?.timeline ?? [];
 
   return (
     <>
@@ -103,13 +163,22 @@ export function CompanyOrderDetailsPage() {
                 <form 
                   onSubmit={(e) => {
                     e.preventDefault();
-                    updateCompanyOrder(order.id, {
-                      clientName,
-                      date: signingDate,
-                      propertyAddress,
-                    });
-                    setIsEditing(false);
-                    toast.success("Order information updated successfully!");
+                    void (async () => {
+                      try {
+                        const updatedOrder = await orderService.updateCompanyOrder(order.id, {
+                          clientName,
+                          date: signingDate,
+                          propertyAddress,
+                          specialInstructions,
+                        });
+                        updateCompanyOrder(order.id, updatedOrder);
+                        setOrderDetail(updatedOrder);
+                        setIsEditing(false);
+                        toast.success("Order information updated successfully!");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Unable to update order.");
+                      }
+                    })();
                   }}
                   className="space-y-6"
                 >
@@ -185,7 +254,10 @@ export function CompanyOrderDetailsPage() {
               ) : (
                 <div className="grid gap-8 md:grid-cols-2">
                   <Detail label="CLIENT NAME" value={order.clientName} />
-                  <Detail label="SIGNING DATE & TIME" value={`${order.date}, 2:45 PM`} />
+                  <Detail
+                    label="SIGNING DATE & TIME"
+                    value={order.time ? `${order.date}, ${order.time}` : order.date || "Not scheduled"}
+                  />
                   <div className="md:col-span-2">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
                       PROPERTY ADDRESS
@@ -200,11 +272,62 @@ export function CompanyOrderDetailsPage() {
                       Special Instructions
                     </div>
                     <div className="mt-3 text-[14px] italic leading-[1.75] text-ink-500">
-                      "{specialInstructions}"
+                      {specialInstructions || "No special instructions provided."}
                     </div>
                   </div>
                 </div>
               )}
+            </Surface>
+
+            <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+              <div className="mb-6 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#edf9f2] text-[#229b58]">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="text-[18px] font-bold tracking-tight text-ink-900">Approved Notary Scanbacks</div>
+                </div>
+                <div className="text-[13px] font-semibold text-[#229b58]">
+                  {approvedScanbackDocuments.length} File{approvedScanbackDocuments.length === 1 ? "" : "s"}
+                </div>
+              </div>
+              <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
+                {approvedScanbackDocuments.length > 0 ? approvedScanbackDocuments.map((document, index) => (
+                  <div key={`${document.name}-${index}`} className="flex items-center gap-4 rounded-[14px] border border-[#d9efe1] bg-[#f7fcf9] px-5 py-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-white text-[#229b58]">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="text-[15px] font-semibold text-ink-900">{document.name}</div>
+                        <span className="rounded-full bg-[#dff5e7] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#1f8e4d]">
+                          Approved
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[12px] text-ink-400">Uploaded {document.uploadDate} • {document.size}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => void handlePreviewDocument(document.id, document.name)}
+                        disabled={isPreparingPreview}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
+                        aria-label={`Preview ${document.name}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => void handleDownloadDocument(document.id, document.name)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
+                        aria-label={`Download ${document.name}`}
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-6 text-ink-400 text-sm">No approved scanbacks available yet</div>
+                )}
+              </div>
             </Surface>
 
             <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
@@ -215,10 +338,10 @@ export function CompanyOrderDetailsPage() {
                   </div>
                   <div className="text-[18px] font-bold tracking-tight text-ink-900">Documents</div>
                 </div>
-                <div className="text-[13px] font-semibold text-brand-600">2 Files Total</div>
+                <div className="text-[13px] font-semibold text-brand-600">{titleDocuments.length} Files Total</div>
               </div>
-              <div className="space-y-4">
-                {docs.length > 0 ? docs.map((document, index) => (
+              <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
+                {titleDocuments.length > 0 ? titleDocuments.map((document, index) => (
                   <div key={`${document.name}-${index}`} className="flex items-center gap-4 rounded-[14px] bg-[#fbfbff] px-5 py-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#fff1f1] text-danger-600">
                       <FileText className="h-4 w-4" />
@@ -227,15 +350,26 @@ export function CompanyOrderDetailsPage() {
                       <div className="text-[15px] font-semibold text-ink-900">{document.name}</div>
                       <div className="mt-1 text-[12px] text-ink-400">Uploaded {document.uploadDate} • {document.size}</div>
                     </div>
-                    <button 
-                      onClick={() => setViewingFile({ name: document.name, url: "#" })}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => void handlePreviewDocument(document.id, document.name)}
+                        disabled={isPreparingPreview}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
+                        aria-label={`Preview ${document.name}`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => void handleDownloadDocument(document.id, document.name)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
+                        aria-label={`Download ${document.name}`}
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 )) : (
-                  <div className="text-center py-6 text-ink-400 text-sm">No documents uploaded yet</div>
+                  <div className="text-center py-6 text-ink-400 text-sm">No title documents uploaded yet</div>
                 )}
               </div>
             </Surface>
@@ -254,19 +388,20 @@ export function CompanyOrderDetailsPage() {
                 </div>
                 <div className="text-[18px] font-bold tracking-tight text-ink-900">Activity Log</div>
               </div>
-              <div className="space-y-7">
-                {activityLog.map(([title, body, time], index) => (
-                  <div key={title} className="relative pl-8">
+              <div className="max-h-[520px] space-y-7 overflow-y-auto pr-2">
+                {activityLog.length === 0 ? (
+                  <div className="text-center py-6 text-ink-400 text-sm">No activity has been recorded yet</div>
+                ) : activityLog.map((item, index) => (
+                  <div key={`${item.title}-${item.date}-${index}`} className="relative pl-8">
                     {index < activityLog.length - 1 ? (
                       <div className="absolute left-[7px] top-5 h-[calc(100%+18px)] w-px bg-[#dbe4f1]" />
                     ) : null}
                     <div className="absolute left-0 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-600" />
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <div className="text-[17px] font-bold text-ink-900">{title}</div>
-                        <div className="mt-2 text-[14px] leading-[1.7] text-ink-500">{body}</div>
+                        <div className="text-[17px] font-bold text-ink-900">{item.title}</div>
                       </div>
-                      <div className="shrink-0 text-[12px] font-semibold text-ink-400">{time}</div>
+                      <div className="shrink-0 text-[12px] font-semibold text-ink-400">{item.date}</div>
                     </div>
                   </div>
                 ))}
@@ -279,45 +414,33 @@ export function CompanyOrderDetailsPage() {
               <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ink-400">Assigned Notary</div>
               <div className="mt-5 flex items-center gap-4">
                 <div className="h-14 w-14 overflow-hidden rounded-[12px] bg-[linear-gradient(135deg,#7a523f,#d0b38d)] flex items-center justify-center text-white font-bold text-xl">
-                  {notaryInfo.avatar}
+                  {order.notary === "--"
+                    ? "?"
+                    : order.notary
+                        .split(" ")
+                        .map((name) => name[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
                 </div>
                 <div>
-                  <div className="text-[22px] font-extrabold tracking-[-0.03em] text-ink-900">{notaryInfo.name}</div>
-                  <div className="mt-1 text-[13px] text-ink-500">4.9 <span className="mx-1 text-[#f0a11d]">★</span> ({notaryInfo.closings} Closings)</div>
+                  <div className="text-[22px] font-extrabold tracking-[-0.03em] text-ink-900">
+                    {order.notary === "--" ? "Not Assigned" : order.notary}
+                  </div>
+                  <div className="mt-1 text-[13px] text-ink-500">
+                    {order.notary === "--" ? "No notary has been assigned yet." : "Assigned through backend order data."}
+                  </div>
                 </div>
               </div>
-              <div className="mt-6 space-y-4 text-[14px]">
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-400">Phone</span>
-                  <span className="font-semibold text-ink-700">{notaryInfo.phone}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-400">Status</span>
-                  <span className="font-semibold text-[#26b15f]">• Available</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNotaryProfile(true)}
-                disabled={order.notary === "--"}
-                className="mt-6 h-[42px] w-full rounded-[12px] bg-[#f4f7fc] text-[14px] font-semibold text-brand-600 transition-colors hover:bg-[#edf3fe] disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                View Full Profile
-              </button>
             </Surface>
 
             <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[#f6f6fd] p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
               <div className="text-[18px] font-bold tracking-tight text-ink-900">Order Status</div>
               <div className="mt-7 space-y-6">
                 {orderTimeline.map((item, index) => (
-                  <button
+                  <div
                     key={item.title}
-                    type="button"
-                    onClick={() => {
-                      updateCompanyOrder(order.id, { status: item.title as any });
-                      toast.success(`Order status successfully updated to '${item.title}'!`);
-                    }}
-                    className="relative pl-10 w-full text-left block focus:outline-none group transition-transform active:scale-[0.98]"
+                    className="relative block w-full pl-10 text-left"
                   >
                     {index < orderTimeline.length - 1 ? (
                       <div className={`absolute left-[13px] top-7 h-[calc(100%+12px)] w-[2px] ${item.active ? "bg-brand-600" : "bg-[#d6dbe7]"}`} />
@@ -325,74 +448,27 @@ export function CompanyOrderDetailsPage() {
                     <div
                       className={`absolute left-0 top-1 flex h-7 w-7 items-center justify-center rounded-full border-2 transition-colors ${
                         item.current
-                          ? "border-brand-600 bg-white group-hover:bg-brand-50"
+                          ? "border-brand-600 bg-white"
                           : item.active
-                            ? "border-brand-600 bg-brand-600 group-hover:bg-brand-700"
-                            : "border-[#cfd5e1] bg-white group-hover:border-brand-400"
+                            ? "border-brand-600 bg-brand-600"
+                            : "border-[#cfd5e1] bg-white"
                       }`}
                     >
                       {item.current ? <div className="h-2.5 w-2.5 rounded-full bg-brand-600" /> : null}
                     </div>
-                    <div className={`text-[16px] font-bold tracking-tight transition-colors ${item.active ? "text-ink-900 group-hover:text-brand-600" : "text-ink-300 group-hover:text-ink-400"}`}>
+                    <div className={`text-[16px] font-bold tracking-tight ${item.active ? "text-ink-900" : "text-ink-300"}`}>
                       {item.title}
                     </div>
-                    <div className={`mt-1 text-[13px] transition-colors ${item.current ? "font-semibold text-brand-600" : item.active ? "text-ink-500" : "text-ink-300"}`}>
+                    <div className={`mt-1 text-[13px] ${item.current ? "font-semibold text-brand-600" : item.active ? "text-ink-500" : "text-ink-300"}`}>
                       {item.body}
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </Surface>
           </div>
         </div>
       </div>
-      <Modal
-        isOpen={showNotaryProfile}
-        onClose={() => setShowNotaryProfile(false)}
-        title={order.notary === "--" ? "No Notary Assigned" : order.notary}
-        subtitle="Certified mobile notary supporting purchase, refinance, and seller-side closings."
-        maxWidth="560px"
-      >
-        <div className="px-7 pb-8">
-          <div className="flex items-center gap-4 rounded-[18px] bg-[#f8fbff] p-5">
-            <div className="h-18 w-18 overflow-hidden rounded-[16px] bg-[linear-gradient(135deg,#7a523f,#d0b38d)] flex items-center justify-center text-white font-bold text-2xl">
-              {notaryInfo.avatar}
-            </div>
-            <div>
-              <div className="text-[18px] font-bold text-ink-900">{notaryInfo.name}</div>
-              <div className="mt-1 text-[14px] text-ink-500">4.9 rating • {notaryInfo.closings} closings completed</div>
-              <div className="mt-1 text-[14px] font-semibold text-[#26b15f]">Available for assignment</div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <Detail label="PHONE" value={notaryInfo.phone} />
-            <Detail label="EMAIL" value={notaryInfo.email} />
-            <Detail label="SERVICE AREA" value={notaryInfo.serviceArea} />
-            <Detail label="SPECIALTY" value={notaryInfo.specialty} />
-          </div>
-
-          <div className="mt-6 rounded-[16px] bg-[#f8fbff] px-5 py-4">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-400">
-              Professional Summary
-            </div>
-            <div className="mt-3 text-[14px] leading-[1.75] text-ink-500">
-              Experienced signing agent with strong borrower communication, same-day scanback accuracy, and consistent performance across high-volume residential closing packages.
-            </div>
-          </div>
-
-          <div className="mt-7 flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-[12px] border-[#dfe6f2] px-5 text-[14px] font-semibold text-ink-700"
-              onClick={() => setShowNotaryProfile(false)}
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </>
   );
 }

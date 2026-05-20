@@ -1,10 +1,37 @@
+import { useEffect, useState } from "react";
 import { CheckCircle2, ChevronRight, FileText, Flame } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, Button, FooterBand, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
+import { orderService } from "@/services/orderService";
+import { toast } from "@/store/useToastStore";
 
 export function NotaryDashboardPage() {
-  const { notaryOrders } = useStore();
+  const { notaryOrders, setNotaryOrders, setNotaryAssignedOrders } = useStore();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrders = async () => {
+      try {
+        const orders = await orderService.getAssignedOrders();
+        if (!isMounted) return;
+        setNotaryOrders(orders);
+        setNotaryAssignedOrders(orders);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load assigned orders.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setNotaryAssignedOrders, setNotaryOrders]);
 
   const stats = [
     { title: "Total Assigned Orders", value: notaryOrders.length.toString().padStart(2, '0'), helper: "Global", icon: FileText, tone: "brand" },
@@ -81,7 +108,19 @@ export function NotaryDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {notaryOrders.map((order) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] font-semibold text-ink-400">
+                    Loading assigned orders from backend...
+                  </td>
+                </tr>
+              ) : notaryOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] font-semibold text-ink-400">
+                    No assigned orders yet.
+                  </td>
+                </tr>
+              ) : notaryOrders.map((order) => (
                 <tr key={order.id} className="border-t border-[#edf1f7] hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5">

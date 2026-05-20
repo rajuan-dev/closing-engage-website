@@ -2,41 +2,87 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, CircleDot, FileText, FolderKanban, Hourglass } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge, Surface } from "@/components/common";
+import { notificationService } from "@/services/notificationService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { orderService } from "@/services/orderService";
 
 export function CompanyDashboardPage() {
-  const { companyOrders, recentActivities, clearActivities } = useStore();
+  const {
+    companyOrders,
+    setCompanyOrders,
+    notifications,
+    setNotifications,
+    markAllNotificationsRead,
+  } = useStore();
   const [isLoading, setIsLoading] = useState(true);
-  const [isClearing, setIsClearing] = useState(false);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
 
   useEffect(() => {
-    // Simulate high-fidelity REST API fetch delay for backend-readiness
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+    let isMounted = true;
 
-  const handleClear = () => {
-    setIsClearing(true);
-    setTimeout(() => {
-      clearActivities();
-      setIsClearing(false);
-      toast.success("Notifications cleared successfully!");
-    }, 500); // 500ms matching transition duration
+    const loadOrders = async () => {
+      try {
+        const orders = await orderService.getCompanyOrders();
+        if (isMounted) setCompanyOrders(orders);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to load dashboard orders.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setCompanyOrders]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadNotifications = async () => {
+      try {
+        const liveNotifications = await notificationService.getNotifications();
+        if (isMounted) setNotifications(liveNotifications);
+      } catch (error) {
+        if (isMounted) {
+          toast.error(error instanceof Error ? error.message : "Unable to load notifications.");
+        }
+      }
+    };
+
+    void loadNotifications();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setNotifications]);
+
+  const handleMarkAllRead = async () => {
+    try {
+      setIsMarkingAllRead(true);
+      await notificationService.markAllRead();
+      markAllNotificationsRead();
+      toast.success("All notifications marked as read.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update notifications.");
+    } finally {
+      setIsMarkingAllRead(false);
+    }
   };
 
-  const activityItems = recentActivities.map((act) => {
+  const activityItems = notifications.map((act) => {
     let Icon = FileText;
     let tone: "brand" | "warning" | "success" = "brand";
-    if (act.title.toLowerCase().includes("assign")) {
+    if (act.type === "order") {
       Icon = CircleDot;
       tone = "brand";
-    } else if (act.title.toLowerCase().includes("status") || act.title.toLowerCase().includes("review")) {
+    } else if (act.type === "document") {
       Icon = Hourglass;
       tone = "warning";
-    } else if (act.title.toLowerCase().includes("approve") || act.title.toLowerCase().includes("complete")) {
+    } else if (act.type === "user") {
       Icon = CheckCircle2;
       tone = "success";
     }
@@ -211,7 +257,7 @@ export function CompanyDashboardPage() {
         </Surface>
 
         <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-7 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-          <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Recent Activities</h2>
+          <h2 className="text-[18px] font-bold tracking-tight text-ink-900">Recent Notifications</h2>
           <div className="mt-7 min-h-[300px] flex flex-col justify-center">
             {activityItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 text-center animate-in fade-in duration-500">
@@ -222,9 +268,9 @@ export function CompanyDashboardPage() {
                 <p className="mt-2 max-w-[200px] text-[13px] text-ink-400 leading-relaxed">There are no new notifications or activities to display.</p>
               </div>
             ) : (
-              <div className={`space-y-6 flex-1 flex flex-col justify-start transition-all duration-500 ease-in-out ${isClearing ? "opacity-0 -translate-y-4 scale-95 blur-[2px]" : "opacity-100 translate-y-0 scale-100"}`}>
-                {activityItems.map(({ title, description, time, icon: Icon, tone }) => (
-                  <div key={title} className="flex items-start gap-4">
+              <div className={`space-y-6 flex-1 flex flex-col justify-start transition-all duration-500 ease-in-out ${isMarkingAllRead ? "opacity-70" : "opacity-100 translate-y-0 scale-100"}`}>
+                {activityItems.map(({ id, title, message, time, icon: Icon, tone, read }) => (
+                  <div key={id} className="flex items-start gap-4">
                     <div
                       className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
                         tone === "warning"
@@ -237,8 +283,11 @@ export function CompanyDashboardPage() {
                       <Icon className="h-4.5 w-4.5" />
                     </div>
                     <div>
-                      <div className="text-[15px] font-bold leading-[1.45] text-ink-900">{title}</div>
-                      <div className="mt-1 text-[14px] leading-[1.6] text-ink-500">{description}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-[15px] font-bold leading-[1.45] text-ink-900">{title}</div>
+                        {!read ? <span className="h-2 w-2 rounded-full bg-brand-600" /> : null}
+                      </div>
+                      <div className="mt-1 text-[14px] leading-[1.6] text-ink-500">{message}</div>
                       <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-300">{time}</div>
                     </div>
                   </div>
@@ -248,11 +297,11 @@ export function CompanyDashboardPage() {
           </div>
           <button 
             type="button"
-            onClick={handleClear}
-            disabled={recentActivities.length === 0 || isClearing}
+            onClick={() => void handleMarkAllRead()}
+            disabled={notifications.length === 0 || isMarkingAllRead}
             className="mt-9 h-[48px] w-full rounded-[12px] border border-[#e4ebf5] bg-white text-[14px] font-semibold text-ink-500 transition-colors hover:bg-[#f8fafe] disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {isClearing ? "Clearing..." : "Clear Notifications"}
+            {isMarkingAllRead ? "Updating..." : "Mark All Read"}
           </button>
         </Surface>
       </div>

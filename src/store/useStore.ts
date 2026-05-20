@@ -1,14 +1,10 @@
 import { create } from "zustand";
 import {
-  companyOrders,
-  companyDocuments,
   teamMembers,
-  notaryOrders,
-  notaryAssignedOrders,
   recentActivities,
   chatMessages,
 } from "@/data/mock-data";
-import type { Order, DocumentRecord, TeamMember, ActivityItem, ChatMessage } from "@/types/models";
+import type { Order, DocumentRecord, TeamMember, ActivityItem, ChatMessage, NotificationItem } from "@/types/models";
 
 export interface NotaryProfile {
   fullName: string;
@@ -52,9 +48,11 @@ export interface CredentialRecord {
 
 interface AppState {
   companyOrders: Order[];
+  setCompanyOrders: (orders: Order[]) => void;
   addCompanyOrder: (order: Order) => void;
   updateCompanyOrder: (id: string, updates: Partial<Order>) => void;
   companyDocuments: DocumentRecord[];
+  setCompanyDocuments: (documents: DocumentRecord[]) => void;
   addCompanyDocument: (doc: DocumentRecord) => void;
   teamMembers: TeamMember[];
   setTeamMembers: (members: TeamMember[]) => void;
@@ -62,8 +60,14 @@ interface AppState {
   updateTeamMember: (email: string, updates: Partial<TeamMember>) => void;
   removeTeamMember: (email: string) => void;
   notaryOrders: Order[];
+  setNotaryOrders: (orders: Order[]) => void;
   updateNotaryOrder: (id: string, updates: Partial<Order>) => void;
   notaryAssignedOrders: Order[];
+  setNotaryAssignedOrders: (orders: Order[]) => void;
+  notifications: NotificationItem[];
+  setNotifications: (notifications: NotificationItem[]) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
   recentActivities: ActivityItem[];
   addActivity: (activity: ActivityItem) => void;
   clearActivities: () => void;
@@ -78,13 +82,15 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set) => ({
-  companyOrders: [...companyOrders],
+  companyOrders: [],
+  setCompanyOrders: (orders) => set({ companyOrders: orders }),
   addCompanyOrder: (order) => set((state) => ({ companyOrders: [order, ...state.companyOrders] })),
   updateCompanyOrder: (id, updates) =>
     set((state) => ({
       companyOrders: state.companyOrders.map((o) => (o.id === id ? { ...o, ...updates } : o)),
     })),
-  companyDocuments: [...companyDocuments],
+  companyDocuments: [],
+  setCompanyDocuments: (documents) => set({ companyDocuments: documents }),
   addCompanyDocument: (doc) => set((state) => ({ companyDocuments: [doc, ...state.companyDocuments] })),
   teamMembers: [...teamMembers],
   setTeamMembers: (members) => set({ teamMembers: members }),
@@ -97,12 +103,27 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       teamMembers: state.teamMembers.filter((m) => m.email !== email),
     })),
-  notaryOrders: [...notaryOrders],
+  notaryOrders: [],
+  setNotaryOrders: (orders) => set({ notaryOrders: orders }),
   updateNotaryOrder: (id, updates) =>
     set((state) => ({
       notaryOrders: state.notaryOrders.map((o) => (o.id === id ? { ...o, ...updates } : o)),
+      notaryAssignedOrders: state.notaryAssignedOrders.map((o) => (o.id === id ? { ...o, ...updates } : o)),
     })),
-  notaryAssignedOrders: [...notaryAssignedOrders],
+  notaryAssignedOrders: [],
+  setNotaryAssignedOrders: (orders) => set({ notaryAssignedOrders: orders }),
+  notifications: [],
+  setNotifications: (notifications) => set({ notifications }),
+  markNotificationRead: (id) =>
+    set((state) => ({
+      notifications: state.notifications.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification,
+      ),
+    })),
+  markAllNotificationsRead: () =>
+    set((state) => ({
+      notifications: state.notifications.map((notification) => ({ ...notification, read: true })),
+    })),
   recentActivities: [...recentActivities],
   addActivity: (activity) => set((state) => ({ recentActivities: [activity, ...state.recentActivities] })),
   clearActivities: () => set({ recentActivities: [] }),
