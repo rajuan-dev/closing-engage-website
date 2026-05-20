@@ -3,6 +3,7 @@ import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CloudUplo
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, FooterBand, Modal, Surface, Textarea } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { OrderAdminChatPopup } from "@/components/OrderAdminChatPopup";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { orderService, type DocumentDetail, type OrderDetail } from "@/services/orderService";
@@ -875,6 +876,7 @@ export function NotaryOrderDetailPage() {
         fileName={viewingFile?.name || ""}
         fileUrl={viewingFile?.url || ""}
       />
+      {order?.id ? <OrderAdminChatPopup orderNumber={order.id} /> : null}
       <FooterBand />
     </div>
   );
