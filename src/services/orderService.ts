@@ -212,6 +212,14 @@ export const orderService = {
     return normalizeOrderDetail(order);
   },
 
+  async updateNotaryNotes(id: string, notaryNotes: string): Promise<OrderDetail> {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ notaryNotes }),
+    });
+    return normalizeOrderDetail(order);
+  },
+
   async confirmPrintedByNotary(id: string): Promise<OrderDetail> {
     const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/printed-confirmation`, {
       method: "PATCH",

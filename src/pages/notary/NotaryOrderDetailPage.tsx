@@ -17,6 +17,7 @@ export function NotaryOrderDetailPage() {
   const [resubmittingDocumentId, setResubmittingDocumentId] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const allOrders = [...notaryOrders, ...notaryAssignedOrders];
   const order = orderDetail || allOrders.find(o => o.id.replace("#", "") === id);
@@ -284,6 +285,23 @@ export function NotaryOrderDetailPage() {
       toast.error(error instanceof Error ? error.message : "Unable to submit scanbacks.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const saveNotaryNotes = async () => {
+    if (!order) return;
+
+    try {
+      setIsSavingNotes(true);
+      const updatedOrder = await orderService.updateNotaryNotes(order.id, notaryNotes.trim());
+      updateNotaryOrder(order.id, updatedOrder);
+      setOrderDetail(updatedOrder);
+      setNotaryNotes(updatedOrder.notaryNotes);
+      toast.success("Notary notes saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save notary notes.");
+    } finally {
+      setIsSavingNotes(false);
     }
   };
 
@@ -814,13 +832,27 @@ export function NotaryOrderDetailPage() {
             )}
           </Surface>
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-            <div className="text-[16px] font-extrabold uppercase tracking-[0.16em] text-ink-700">Notary Notes</div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-[16px] font-extrabold uppercase tracking-[0.16em] text-ink-700">Notary Notes</div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSavingNotes}
+                className="h-[40px] rounded-[10px] border-[#dfe6f2] px-4 text-[13px] font-semibold"
+                onClick={() => void saveNotaryNotes()}
+              >
+                {isSavingNotes ? "Saving..." : "Save Notes"}
+              </Button>
+            </div>
             <Textarea
               className="mt-5 min-h-[160px] rounded-[12px] border-[#e2e8f3] bg-[#f7f9fd] px-4 py-3 text-[14px]"
               placeholder="Add any specific details about the signing here..."
               value={notaryNotes}
               onChange={(event) => setNotaryNotes(event.target.value)}
             />
+            <div className="mt-3 text-[12px] font-medium text-ink-400">
+              These notes will be visible to admins while they review your submitted scanbacks.
+            </div>
           </Surface>
         </div>
       </div>
