@@ -4,9 +4,13 @@ import { Badge, Button, FooterBand, Input, Modal, Surface, Textarea } from "@/co
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { notaryService, type NotaryCredentials } from "@/services/notaryService";
 
 export function NotaryCredentialsPage() {
-  const { notaryProfile, updateNotaryProfile, notaryCredentials, addNotaryCredential, addActivity } = useStore();
+  const { addActivity } = useStore();
+  const [credentials, setCredentials] = useState<NotaryCredentials | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [showOnlyVerified, setShowOnlyVerified] = useState(false);
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
 
@@ -28,23 +32,49 @@ export function NotaryCredentialsPage() {
 
   // Update info form state
   const [updateForm, setUpdateForm] = useState({
-    licenseNumber: notaryProfile.licenseNumber,
-    commissionExpiry: convertToUSDate(notaryProfile.commissionExpiry),
-    eoCoverage: notaryProfile.eoCoverage,
-    backgroundScreeningStatus: notaryProfile.backgroundScreeningStatus,
-    backgroundScreeningDetail: notaryProfile.backgroundScreeningDetail,
+    licenseNumber: "",
+    commissionExpiry: "",
+    eoCoverage: "",
+    backgroundScreeningStatus: "Pending" as NotaryCredentials["backgroundScreeningStatus"],
+    backgroundScreeningDetail: "",
   });
 
-  // Sync update form when profile changes
+  // Load credentials from backend
   useEffect(() => {
+    let isMounted = true;
+
+    const loadCredentials = async () => {
+      try {
+        setIsLoading(true);
+        const data = await notaryService.getCredentials();
+        if (isMounted) setCredentials(data);
+      } catch (error) {
+        if (isMounted) {
+          toast.error(error instanceof Error ? error.message : "Unable to load credentials.");
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadCredentials();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync update form when credentials load or the modal opens
+  useEffect(() => {
+    if (!credentials) return;
     setUpdateForm({
-      licenseNumber: notaryProfile.licenseNumber,
-      commissionExpiry: convertToUSDate(notaryProfile.commissionExpiry),
-      eoCoverage: notaryProfile.eoCoverage,
-      backgroundScreeningStatus: notaryProfile.backgroundScreeningStatus,
-      backgroundScreeningDetail: notaryProfile.backgroundScreeningDetail,
+      licenseNumber: credentials.licenseNumber,
+      commissionExpiry: convertToUSDate(credentials.commissionExpiry),
+      eoCoverage: credentials.eoCoverage,
+      backgroundScreeningStatus: credentials.backgroundScreeningStatus,
+      backgroundScreeningDetail: credentials.backgroundScreeningDetail,
     });
-  }, [notaryProfile, isUpdateInfoModalOpen]);
+  }, [credentials, isUpdateInfoModalOpen]);
 
   // Upload new credential form state
   const [uploadForm, setUploadForm] = useState({
@@ -55,60 +85,69 @@ export function NotaryCredentialsPage() {
   const [selectedFileName, setSelectedFileName] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  const handleSaveUpdate = () => {
-    updateNotaryProfile({
-      licenseNumber: updateForm.licenseNumber,
-      commissionExpiry: convertToISODate(updateForm.commissionExpiry),
-      eoCoverage: updateForm.eoCoverage,
-      backgroundScreeningStatus: updateForm.backgroundScreeningStatus,
-      backgroundScreeningDetail: updateForm.backgroundScreeningDetail,
-    });
+  const handleSaveUpdate = async () => {
+    try {
+      setIsSaving(true);
+      const updated = await notaryService.updateCommission({
+        licenseNumber: updateForm.licenseNumber,
+        commissionExpiry: convertToISODate(updateForm.commissionExpiry),
+        eoCoverage: updateForm.eoCoverage,
+        backgroundScreeningStatus: updateForm.backgroundScreeningStatus,
+        backgroundScreeningDetail: updateForm.backgroundScreeningDetail,
+      });
+      setCredentials(updated);
 
-    addActivity({
-      title: "Credentials Updated",
-      description: `You successfully updated your primary commission info.`,
-      time: "Just Now",
-    });
+      addActivity({
+        title: "Credentials Updated",
+        description: `You successfully updated your primary commission info.`,
+        time: "Just Now",
+      });
 
-    toast.success("Primary commission details saved successfully!");
-    setIsUpdateInfoModalOpen(false);
+      toast.success("Primary commission details saved successfully!");
+      setIsUpdateInfoModalOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save credentials.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSaveUpload = () => {
+  const handleSaveUpload = async () => {
     if (!uploadForm.documentName || !uploadForm.issuer) {
       toast.error("Please fill in the document name and issuer.");
       return;
     }
 
-    const todayStr = new Date().toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    try {
+      setIsSaving(true);
+      const updated = await notaryService.addCredential({
+        documentName: uploadForm.documentName,
+        issuer: uploadForm.issuer,
+        verification: uploadForm.action,
+      });
+      setCredentials(updated);
 
-    addNotaryCredential({
-      documentName: uploadForm.documentName,
-      issuer: uploadForm.issuer,
-      uploadDate: todayStr,
-      action: uploadForm.action,
-    });
+      addActivity({
+        title: "Credential Uploaded",
+        description: `New credential "${uploadForm.documentName}" added to history.`,
+        time: "Just Now",
+      });
 
-    addActivity({
-      title: "Credential Uploaded",
-      description: `New credential "${uploadForm.documentName}" added to history.`,
-      time: "Just Now",
-    });
+      toast.success(`Credential "${uploadForm.documentName}" successfully added to history ledger!`);
+      setIsUploadModalOpen(false);
 
-    toast.success(`Credential "${uploadForm.documentName}" successfully added to history ledger!`);
-    setIsUploadModalOpen(false);
-    
-    // Reset form
-    setUploadForm({
-      documentName: "",
-      issuer: "",
-      action: "Auto-Verified",
-    });
-    setSelectedFileName("");
+      // Reset form
+      setUploadForm({
+        documentName: "",
+        issuer: "",
+        action: "Auto-Verified",
+      });
+      setSelectedFileName("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to add credential.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const formatExpiryDate = (dateStr: string) => {
@@ -123,9 +162,11 @@ export function NotaryCredentialsPage() {
     });
   };
 
-  const filteredCredentialHistory = notaryCredentials.filter((row) =>
-    showOnlyVerified ? row.action === "Auto-Verified" : true,
+  const credentialHistory = credentials?.credentials ?? [];
+  const filteredCredentialHistory = credentialHistory.filter((row) =>
+    showOnlyVerified ? row.verification === "Auto-Verified" : true,
   );
+  const screeningStatus = credentials?.backgroundScreeningStatus ?? "Pending";
 
   const getScreeningBgColor = (status: "Pending" | "Verified" | "Failed") => {
     if (status === "Verified") return "bg-[#f3faf7] border-[#d1ebd7]";
@@ -184,28 +225,28 @@ export function NotaryCredentialsPage() {
               </div>
               <div>
                 <div className="text-[18px] font-bold tracking-tight text-ink-900">Primary Commission</div>
-                <div className="mt-1 text-[13px] text-ink-500">California Secretary of State</div>
+                <div className="mt-1 text-[13px] text-ink-500">{credentials?.commissionAuthority || "Not provided"}</div>
               </div>
             </div>
-            <Badge status="Verified" />
+            {credentials?.verified ? <Badge status="Verified" /> : <Badge status="Pending" />}
           </div>
           <div className="mt-8 grid gap-6 md:grid-cols-3">
-            <Detail label="LICENSE NUMBER" value={notaryProfile.licenseNumber} />
-            <Detail label="COMMISSION EXPIRY" value={formatExpiryDate(notaryProfile.commissionExpiry)} />
-            <Detail label="E&O COVERAGE" value={notaryProfile.eoCoverage} />
+            <Detail label="LICENSE NUMBER" value={credentials?.licenseNumber || "—"} />
+            <Detail label="COMMISSION EXPIRY" value={formatExpiryDate(credentials?.commissionExpiry || "") || "—"} />
+            <Detail label="E&O COVERAGE" value={credentials?.eoCoverage || "—"} />
           </div>
         </Surface>
 
-        <Surface className={`rounded-[18px] border p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)] transition-colors duration-300 ${getScreeningBgColor(notaryProfile.backgroundScreeningStatus)}`}>
+        <Surface className={`rounded-[18px] border p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)] transition-colors duration-300 ${getScreeningBgColor(screeningStatus)}`}>
           <div className="mb-5 flex items-center justify-between">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-[14px] ${getScreeningIconBg(notaryProfile.backgroundScreeningStatus)}`}>
-              {getScreeningIcon(notaryProfile.backgroundScreeningStatus)}
+            <div className={`flex h-12 w-12 items-center justify-center rounded-[14px] ${getScreeningIconBg(screeningStatus)}`}>
+              {getScreeningIcon(screeningStatus)}
             </div>
-            <Badge status={notaryProfile.backgroundScreeningStatus} />
+            <Badge status={screeningStatus} />
           </div>
           <div className="text-[18px] font-bold tracking-tight text-ink-900">Background Screening</div>
           <div className="mt-2 text-[13px] text-ink-500 whitespace-pre-line">
-            {notaryProfile.backgroundScreeningDetail}
+            {credentials?.backgroundScreeningDetail || "No background screening details available yet."}
           </div>
         </Surface>
       </div>
@@ -234,40 +275,49 @@ export function NotaryCredentialsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredCredentialHistory.map((row) => (
-                <tr key={row.documentName} className="border-t border-[#edf1f7]">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
-                        {row.action === "Auto-Verified" ? <ShieldCheck className="h-4 w-4" /> : <FileBadge2 className="h-4 w-4 text-brand-600 animate-none" />}
-                      </div>
-                      <span className="text-[16px] font-semibold text-ink-900">{row.documentName}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-[15px] text-ink-600">{row.issuer}</td>
-                  <td className="px-6 py-5 text-[15px] text-ink-600">{row.uploadDate}</td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2 text-[15px] text-ink-700">
-                      <span className={`h-2 w-2 rounded-full ${row.action === "Auto-Verified" ? "bg-brand-600" : "bg-[#b96716]"}`} />
-                      {row.action === "Auto-Verified" ? "Auto-Verified" : "Manual Review"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <button 
-                      type="button"
-                      onClick={() => setViewingFile({ name: row.documentName, url: "#" })}
-                      className="text-brand-600 hover:text-brand-700"
-                    >
-                      <Eye className="h-5 w-5" />
-                    </button>
+              {filteredCredentialHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
+                    {isLoading
+                      ? "Loading credential history..."
+                      : showOnlyVerified
+                        ? "No auto-verified credentials yet."
+                        : "No credentials uploaded yet."}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredCredentialHistory.map((row) => (
+                  <tr key={row.id} className="border-t border-[#edf1f7]">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
+                          {row.verification === "Auto-Verified" ? <ShieldCheck className="h-4 w-4" /> : <FileBadge2 className="h-4 w-4 text-brand-600 animate-none" />}
+                        </div>
+                        <span className="text-[16px] font-semibold text-ink-900">{row.documentName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-[15px] text-ink-600">{row.issuer}</td>
+                    <td className="px-6 py-5 text-[15px] text-ink-600">{row.uploadDate}</td>
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-2 text-[15px] text-ink-700">
+                        <span className={`h-2 w-2 rounded-full ${row.verification === "Auto-Verified" ? "bg-brand-600" : "bg-[#b96716]"}`} />
+                        {row.verification === "Auto-Verified" ? "Auto-Verified" : "Manual Review"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <button
+                        type="button"
+                        onClick={() => setViewingFile({ name: row.documentName, url: "#" })}
+                        className="text-brand-600 hover:text-brand-700"
+                      >
+                        <Eye className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        </div>
-        <div className="px-6 py-6 text-center text-[20px] font-extrabold uppercase tracking-[0.12em] text-brand-600 cursor-pointer hover:bg-slate-50 transition-colors">
-          Load More Ledger Entries
         </div>
       </Surface>
 
@@ -324,8 +374,8 @@ export function NotaryCredentialsPage() {
             <Button variant="outline" onClick={() => setIsUpdateInfoModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveUpdate}>
-              Save Changes
+            <Button onClick={() => void handleSaveUpdate()} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
@@ -394,8 +444,8 @@ export function NotaryCredentialsPage() {
             <Button variant="outline" onClick={() => setIsUploadModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSaveUpload}>
-              Add to Ledger
+            <Button onClick={() => void handleSaveUpload()} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Add to Ledger"}
             </Button>
           </div>
         </div>

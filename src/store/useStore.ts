@@ -194,10 +194,7 @@ export const useStore = create<AppState>((set) => ({
       localStorage.setItem("website_notary_profile", JSON.stringify(newProfile));
       return { notaryProfile: newProfile };
     }),
-  notaryCredentials: [
-    { documentName: "NNA Certification", issuer: "Nat. Notary Assoc.", uploadDate: "Oct 24, 2024", action: "Auto-Verified" },
-    { documentName: "Federal Ledger", issuer: "Identity Verification", uploadDate: "Sep 12, 2024", action: "Manual Review" },
-  ],
+  notaryCredentials: [],
   addNotaryCredential: (credential) =>
     set((state) => ({
       notaryCredentials: [credential, ...state.notaryCredentials],
