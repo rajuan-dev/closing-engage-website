@@ -10,6 +10,7 @@ interface ApiEnvelope<T> {
 
 export type NotaryScreeningStatus = "Pending" | "Verified" | "Failed";
 export type NotaryCredentialVerification = "Auto-Verified" | "Manual Review";
+export type NotaryCredentialStatus = "Pending" | "Approved" | "Rejected";
 
 export interface NotaryCredentialRecord {
   id: string;
@@ -17,6 +18,7 @@ export interface NotaryCredentialRecord {
   issuer: string;
   uploadDate: string;
   verification: NotaryCredentialVerification;
+  status: NotaryCredentialStatus;
 }
 
 export interface NotaryCredentials {

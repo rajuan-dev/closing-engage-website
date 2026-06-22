@@ -33,6 +33,7 @@ export function NotaryCredentialsPage() {
   // Update info form state
   const [updateForm, setUpdateForm] = useState({
     licenseNumber: "",
+    commissionAuthority: "",
     commissionExpiry: "",
     eoCoverage: "",
     backgroundScreeningStatus: "Pending" as NotaryCredentials["backgroundScreeningStatus"],
@@ -69,6 +70,7 @@ export function NotaryCredentialsPage() {
     if (!credentials) return;
     setUpdateForm({
       licenseNumber: credentials.licenseNumber,
+      commissionAuthority: credentials.commissionAuthority,
       commissionExpiry: convertToUSDate(credentials.commissionExpiry),
       eoCoverage: credentials.eoCoverage,
       backgroundScreeningStatus: credentials.backgroundScreeningStatus,
@@ -90,6 +92,7 @@ export function NotaryCredentialsPage() {
       setIsSaving(true);
       const updated = await notaryService.updateCommission({
         licenseNumber: updateForm.licenseNumber,
+        commissionAuthority: updateForm.commissionAuthority,
         commissionExpiry: convertToISODate(updateForm.commissionExpiry),
         eoCoverage: updateForm.eoCoverage,
         backgroundScreeningStatus: updateForm.backgroundScreeningStatus,
@@ -267,7 +270,7 @@ export function NotaryCredentialsPage() {
           <table className="min-w-full text-left">
             <thead>
               <tr className="bg-[#fbfcff] text-[11px] font-extrabold uppercase tracking-[0.14em] text-ink-300">
-                {["Document Name", "Issuer", "Upload Date", "Verification", "Action"].map((header) => (
+                {["Document Name", "Issuer", "Upload Date", "Verification", "Status", "Action"].map((header) => (
                   <th key={header} className="px-6 py-4">
                     {header}
                   </th>
@@ -277,7 +280,7 @@ export function NotaryCredentialsPage() {
             <tbody>
               {filteredCredentialHistory.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
+                  <td colSpan={6} className="px-6 py-10 text-center text-[14px] font-semibold text-ink-400">
                     {isLoading
                       ? "Loading credential history..."
                       : showOnlyVerified
@@ -305,6 +308,19 @@ export function NotaryCredentialsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-5">
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                          row.status === "Approved"
+                            ? "border-[#bfe7cd] bg-[#eafaf0] text-[#228b4d]"
+                            : row.status === "Rejected"
+                              ? "border-[#f3c7c5] bg-[#fdeceb] text-danger-600"
+                              : "border-[#f1d9b0] bg-[#fdf4e3] text-[#b96716]"
+                        }`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
                       <button
                         type="button"
                         onClick={() => setViewingFile({ name: row.documentName, url: "#" })}
@@ -329,6 +345,13 @@ export function NotaryCredentialsPage() {
         maxWidth="520px"
       >
         <div className="space-y-5 px-7 pb-7">
+          <Input
+            label="COMMISSION AUTHORITY"
+            placeholder="e.g. California Secretary of State"
+            value={updateForm.commissionAuthority}
+            onChange={(e) => setUpdateForm({ ...updateForm, commissionAuthority: e.target.value })}
+            className="h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] bg-[#f7f9fd]"
+          />
           <Input
             label="LICENSE NUMBER"
             value={updateForm.licenseNumber}
