@@ -16,6 +16,11 @@ interface NotarySessionUser {
   serviceArea?: string;
   specialty?: string;
   avatarUrl?: string;
+  notifications?: {
+    email: boolean;
+    orders: boolean;
+    documents: boolean;
+  };
 }
 
 const mapSessionToProfile = (user: unknown) => {
@@ -30,6 +35,7 @@ const mapSessionToProfile = (user: unknown) => {
     commissionExpiry: notary.expiry || "",
     serviceArea: notary.serviceArea || "",
     avatarUrl: notary.avatarUrl || "",
+    notifications: notary.notifications || { email: true, orders: true, documents: false },
   };
 };
 
@@ -56,9 +62,9 @@ export function NotarySettingsPage() {
   });
 
   const [notifications, setNotifications] = useState([
-    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications.email },
-    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: notaryProfile.notifications.orders },
-    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: notaryProfile.notifications.documents },
+    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications?.email ?? true },
+    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: notaryProfile.notifications?.orders ?? true },
+    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: notaryProfile.notifications?.documents ?? false },
   ]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -73,9 +79,9 @@ export function NotarySettingsPage() {
     setServiceArea(notaryProfile.serviceArea);
     setAvatarUrl(notaryProfile.avatarUrl || "");
     setNotifications([
-      { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications.email },
-      { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: notaryProfile.notifications.orders },
-      { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: notaryProfile.notifications.documents },
+      { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications?.email ?? true },
+      { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: notaryProfile.notifications?.orders ?? true },
+      { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: notaryProfile.notifications?.documents ?? false },
     ]);
   }, [notaryProfile, isEditMode]);
 
@@ -130,6 +136,12 @@ export function NotarySettingsPage() {
   };
 
   const handleSave = async () => {
+    const updatedNotifications = {
+      email: notifications.find((n) => n.id === "email")?.active ?? true,
+      orders: notifications.find((n) => n.id === "orders")?.active ?? true,
+      documents: notifications.find((n) => n.id === "documents")?.active ?? false,
+    };
+
     setIsSaving(true);
     try {
       const user = await portalAuthService.updateNotaryProfile({
@@ -140,6 +152,7 @@ export function NotarySettingsPage() {
         expiry: commissionExpiry,
         serviceArea,
         avatarUrl,
+        notifications: updatedNotifications,
       });
 
       const profile = mapSessionToProfile(user);
@@ -153,11 +166,7 @@ export function NotarySettingsPage() {
           serviceArea,
           avatarUrl,
         }),
-        notifications: {
-          email: notifications.find((n) => n.id === "email")?.active ?? true,
-          orders: notifications.find((n) => n.id === "orders")?.active ?? true,
-          documents: notifications.find((n) => n.id === "documents")?.active ?? false,
-        },
+        notifications: updatedNotifications,
       });
 
       addActivity({

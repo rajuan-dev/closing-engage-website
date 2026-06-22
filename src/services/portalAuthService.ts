@@ -28,6 +28,11 @@ interface CompanyProfilePayload {
   contactEmail?: string;
   address?: string;
   avatarUrl?: string;
+  notifications?: {
+    email?: boolean;
+    orders?: boolean;
+    documents?: boolean;
+  };
 }
 
 interface NotaryProfilePayload {
@@ -39,6 +44,11 @@ interface NotaryProfilePayload {
   expiry?: string;
   serviceArea?: string;
   avatarUrl?: string;
+  notifications?: {
+    email?: boolean;
+    orders?: boolean;
+    documents?: boolean;
+  };
 }
 
 interface PasswordPayload {
