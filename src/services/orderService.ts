@@ -323,4 +323,11 @@ export const orderService = {
       method: "POST",
     });
   },
+
+  async deleteDocument(id: string): Promise<boolean> {
+    await request<Record<string, never>>(`/documents/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    return true;
+  },
 };
