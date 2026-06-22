@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, ChevronLeft, ChevronRight, FileText, Hourglass, Plus, Search, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
 import { Badge, Button, Select, Surface } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { cn } from "@/lib/utils";
@@ -69,13 +70,6 @@ export function CompanyOrdersPage() {
     { title: "Pending Review", value: companyOrders.filter(o => o.status === "Under Review").length.toString(), icon: Hourglass, tone: "warning" },
     { title: "Completed Today", value: companyOrders.filter(o => o.status === "Completed").length.toString(), icon: CheckCircle2, tone: "success" },
   ] as const;
-
-  const notaryAccent: Record<string, string> = {
-    "David Miller": "from-[#7a6458] to-[#d6b08e]",
-    "Robert Vance": "from-[#23314a] to-[#9d6d5f]",
-    "Elena Wright": "from-[#6a4b63] to-[#d0ab8b]",
-    "Gordon Cole": "from-[#165466] to-[#4eb3af]",
-  };
 
   return (
     <div className="space-y-7">
@@ -193,9 +187,12 @@ export function CompanyOrdersPage() {
                       <span className="text-ink-300">--</span>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${notaryAccent[order.notary] || "from-slate-400 to-slate-500"} text-[10px] font-bold text-white shadow-sm`}>
-                          {order.notary.split(" ").map(n => n[0]).join("")}
-                        </div>
+                        <AssignedNotaryAvatar
+                          name={order.notary}
+                          avatarUrl={order.notaryAvatarUrl}
+                          className="h-8 w-8 rounded-full shadow-sm"
+                          initialsClassName="text-[10px]"
+                        />
                         <span className="text-[14px] font-semibold text-ink-700">{order.notary}</span>
                       </div>
                     )}

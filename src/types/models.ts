@@ -18,6 +18,8 @@ export interface Order {
   clientName: string;
   propertyAddress: string;
   notary: string;
+  notaryAvatarUrl?: string;
+  assignedNotaryId?: string;
   status:
     | "Received"
     | "Assigned"

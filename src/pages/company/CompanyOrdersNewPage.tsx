@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CircleDot, FileText, ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
 import { Button, Input, Select, Surface, Textarea } from "@/components/common";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
@@ -10,6 +11,7 @@ import { orderService } from "@/services/orderService";
 export function CompanyOrdersNewPage() {
   const navigate = useNavigate();
   const canCreateOrders = hasPortalPermission("createOrders");
+  const companyOrders = useStore((state) => state.companyOrders);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,10 +33,62 @@ export function CompanyOrdersNewPage() {
     specialInstructions: "",
     priority: "Normal Processing"
   });
+  const [preferredNotaryTouched, setPreferredNotaryTouched] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
+    if (field === "preferredNotary") {
+      setPreferredNotaryTouched(true);
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const suggestedNotaries = useMemo(() => {
+    const counts = new Map<string, number>();
+    const recency = new Map<string, number>();
+
+    companyOrders.forEach((order, index) => {
+      const notary = order.notary?.trim();
+      if (!notary || notary === "--" || notary === "Unassigned" || notary === "Open for All") {
+        return;
+      }
+
+      counts.set(notary, (counts.get(notary) || 0) + 1);
+      const parsedDate = Date.parse(order.date);
+      const dateScore = Number.isNaN(parsedDate) ? index : parsedDate;
+      recency.set(notary, Math.max(recency.get(notary) || 0, dateScore));
+    });
+
+    return [...counts.entries()]
+      .sort((left, right) => {
+        if (right[1] !== left[1]) return right[1] - left[1];
+        return (recency.get(right[0]) || 0) - (recency.get(left[0]) || 0);
+      })
+      .map(([name, count]) => ({
+        name,
+        count,
+        avatarUrl:
+          companyOrders.find(
+            (order) => order.notary?.trim() === name && order.notaryAvatarUrl,
+          )?.notaryAvatarUrl || "",
+      }));
+  }, [companyOrders]);
+
+  const preferredNotaryOptions = useMemo(
+    () => ["No preference", ...suggestedNotaries.map((item) => item.name)],
+    [suggestedNotaries],
+  );
+
+  const topSuggestedNotary = suggestedNotaries[0] ?? null;
+
+  useEffect(() => {
+    if (!preferredNotaryTouched && topSuggestedNotary && formData.preferredNotary === "No preference") {
+      setFormData((current) =>
+        current.preferredNotary === "No preference"
+          ? { ...current, preferredNotary: topSuggestedNotary.name }
+          : current,
+      );
+    }
+  }, [formData.preferredNotary, preferredNotaryTouched, topSuggestedNotary]);
 
   const formatDateForOrder = (date: Date) =>
     date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -353,7 +407,7 @@ export function CompanyOrdersNewPage() {
             <div className="grid gap-5">
               <Select 
                 label="PREFERRED NOTARY (OPTIONAL)" 
-                options={["No preference", "David Miller", "Robert Vance", "Elena Wright", "Gordon Cole"]} 
+                options={preferredNotaryOptions} 
                 value={formData.preferredNotary}
                 onChange={(e) => handleInputChange("preferredNotary", e.target.value)}
                 className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white" 
@@ -361,6 +415,37 @@ export function CompanyOrdersNewPage() {
               <div className="-mt-2 text-[11px] text-ink-400">
                 Leave empty to auto-assign the best available notary in the area.
               </div>
+              {topSuggestedNotary ? (
+                <div className="rounded-[16px] border border-[#dbe7fb] bg-[#f8fbff] p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400">
+                    Suggested from prior orders
+                  </div>
+                  <div className="mt-3 flex items-start gap-3">
+                    <AssignedNotaryAvatar
+                      name={topSuggestedNotary.name}
+                      avatarUrl={topSuggestedNotary.avatarUrl}
+                      className="h-12 w-12 shrink-0 rounded-[14px] shadow-[0_10px_20px_rgba(20,48,112,0.16)]"
+                      initialsClassName="text-[12px]"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-[15px] font-semibold text-ink-900">{topSuggestedNotary.name}</div>
+                        <span className="rounded-full bg-[#edf9f2] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#2f9e54]">
+                          Suggested
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[13px] text-ink-500">Trusted prior signing partner</div>
+                      <div className="mt-2 text-[12px] font-semibold text-brand-600">
+                        Worked on {topSuggestedNotary.count} previous order{topSuggestedNotary.count === 1 ? "" : "s"} for this company
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-[16px] border border-dashed border-[#dfe6f2] bg-white px-4 py-4 text-[13px] text-ink-400">
+                  A suggested notary will appear here after this company has prior assignment history.
+                </div>
+              )}
               <Textarea
                 label="SPECIAL INSTRUCTIONS"
                 value={formData.specialInstructions}

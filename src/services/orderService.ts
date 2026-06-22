@@ -30,6 +30,8 @@ type RawOrder = Order & {
   signingDate?: string;
   signingTime?: string;
   assignedNotaryName?: string;
+  assignedNotaryId?: string;
+  notaryAvatarUrl?: string;
   specialInstructions?: string;
   notaryNotes?: string;
   notaryPrintedConfirmed?: boolean;
@@ -137,6 +139,8 @@ const normalizeOrder = (order: RawOrder): Order => ({
   clientName: order.clientName || "",
   propertyAddress: order.propertyAddress || order.location || "",
   notary: order.notary || (order.assignedNotaryName === "Unassigned" ? "--" : order.assignedNotaryName) || "--",
+  notaryAvatarUrl: order.notaryAvatarUrl || "",
+  assignedNotaryId: order.assignedNotaryId || "",
   status: order.status || "Received",
   date: order.date || order.signingDate || "",
   time: order.time || order.signingTime || "",
