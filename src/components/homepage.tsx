@@ -287,9 +287,12 @@ export function HomeAudienceSection() {
               ))}
             </ul>
             <div className="mt-9">
-              <button className="inline-flex items-center justify-center rounded-xl bg-[#185abc] px-7 py-3 text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(24,90,188,0.30)] transition-all hover:bg-[#1d4ed8] hover:shadow-[0_6px_20px_rgba(24,90,188,0.38)]">
+              <Link
+                to="/signup?role=company&contactType=Title%20Company"
+                className="inline-flex items-center justify-center rounded-xl bg-[#185abc] px-7 py-3 text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(24,90,188,0.30)] transition-all hover:bg-[#1d4ed8] hover:shadow-[0_6px_20px_rgba(24,90,188,0.38)]"
+              >
                 Register Company
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -311,9 +314,12 @@ export function HomeAudienceSection() {
               ))}
             </ul>
             <div className="mt-9">
-              <button className="inline-flex items-center justify-center rounded-xl bg-[#185abc] px-7 py-3 text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(24,90,188,0.30)] transition-all hover:bg-[#2563eb] hover:shadow-[0_6px_20px_rgba(37,99,235,0.38)]">
+              <Link
+                to="/signup?role=notary"
+                className="inline-flex items-center justify-center rounded-xl bg-[#185abc] px-7 py-3 text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(24,90,188,0.30)] transition-all hover:bg-[#2563eb] hover:shadow-[0_6px_20px_rgba(37,99,235,0.38)]"
+              >
                 Join Notary Pool
-              </button>
+              </Link>
             </div>
           </div>
         </div>

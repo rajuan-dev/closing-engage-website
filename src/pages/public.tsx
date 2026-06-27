@@ -248,6 +248,7 @@ export function AboutPage() {
           </div>
         </div>
       </section>
+      {/* 
       <section className="bg-white py-20 md:py-24">
         <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-10">
           <div className="text-center">
@@ -282,6 +283,7 @@ export function AboutPage() {
           </div>
         </div>
       </section>
+      */}
       <section className="w-full overflow-hidden pb-24">
         <div className="relative">
           <img

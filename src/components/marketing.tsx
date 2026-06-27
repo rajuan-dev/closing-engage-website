@@ -148,6 +148,7 @@ export function ReliabilitySection() {
 }
 
 export function WorkflowSection() {
+  const navigate = useNavigate();
   const steps = [
     ["1", "Notary assignment", "Enter closing details and securely upload required documents."],
     ["2", "Signing Completion", "The notary completes the signing in accordance with closing requirements"],
@@ -184,7 +185,7 @@ export function WorkflowSection() {
             <li>Live tracking of signing status</li>
             <li>Instant download of scanbacks</li>
           </ul>
-          <Button className="mt-8">Register Company</Button>
+          <Button className="mt-8" onClick={() => navigate("/signup?role=company&contactType=Title%20Company")}>Register Company</Button>
         </Surface>
         <Surface className="bg-[#1f2430] p-8 text-white">
           <div className="text-2xl font-extrabold tracking-[-0.03em]">For Notaries</div>
@@ -193,7 +194,7 @@ export function WorkflowSection() {
             <li>Mobile-friendly task completion</li>
             <li>Simplified scanback uploading</li>
           </ul>
-          <Button className="mt-8 bg-brand-500 hover:bg-brand-400">Join Notary Pool</Button>
+          <Button className="mt-8 bg-brand-500 hover:bg-brand-400" onClick={() => navigate("/signup?role=notary")}>Join Notary Pool</Button>
         </Surface>
       </div>
     </section>
