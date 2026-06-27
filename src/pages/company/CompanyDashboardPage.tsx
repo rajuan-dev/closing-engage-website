@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, CircleDot, FileText, FolderKanban, Hourglass } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
 import { Badge, Surface } from "@/components/common";
 import { notificationService } from "@/services/notificationService";
 import { useStore } from "@/store/useStore";
@@ -151,13 +152,6 @@ export function CompanyDashboardPage() {
     { label: "Completed", value: getPercent(companyOrders.filter(o => o.status === "Completed").length), width: getPercent(companyOrders.filter(o => o.status === "Completed").length) },
   ];
 
-  const notaryAccent: Record<string, string> = {
-    "David Miller": "from-[#7a6458] to-[#d6b08e]",
-    "Robert Vance": "from-[#23314a] to-[#9d6d5f]",
-    "Elena Wright": "from-[#6a4b63] to-[#d0ab8b]",
-    "Gordon Cole": "from-[#165466] to-[#4eb3af]",
-  };
-
   return (
     <div className="space-y-8">
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -210,9 +204,12 @@ export function CompanyDashboardPage() {
                   <td className="px-7 py-5 text-[15px] font-bold text-brand-600">{order.clientName}</td>
                   <td className="px-7 py-5">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br ${notaryAccent[order.notary] || "from-slate-400 to-slate-500"} text-[10px] font-bold text-white shadow-sm`}>
-                        {order.notary === "--" ? "?" : order.notary.split(" ").map(n => n[0]).join("")}
-                      </div>
+                      <AssignedNotaryAvatar
+                        name={order.notary}
+                        avatarUrl={order.notaryAvatarUrl}
+                        className="h-8 w-8 rounded-full shadow-sm"
+                        initialsClassName="text-[10px]"
+                      />
                       <span className="text-[15px] font-semibold text-ink-700">{order.notary === "--" ? "Not Assigned" : order.notary}</span>
                     </div>
                   </td>

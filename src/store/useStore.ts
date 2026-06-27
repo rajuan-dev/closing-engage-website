@@ -56,7 +56,9 @@ interface AppState {
   setCompanyDocuments: (documents: DocumentRecord[]) => void;
   addCompanyDocument: (doc: DocumentRecord) => void;
   teamMembers: TeamMember[];
+  teamMembersLoaded: boolean;
   setTeamMembers: (members: TeamMember[]) => void;
+  setTeamMembersLoaded: (loaded: boolean) => void;
   addTeamMember: (member: TeamMember) => void;
   updateTeamMember: (email: string, updates: Partial<TeamMember>) => void;
   removeTeamMember: (email: string) => void;
@@ -95,7 +97,9 @@ export const useStore = create<AppState>((set) => ({
   setCompanyDocuments: (documents) => set({ companyDocuments: documents }),
   addCompanyDocument: (doc) => set((state) => ({ companyDocuments: [doc, ...state.companyDocuments] })),
   teamMembers: [...teamMembers],
-  setTeamMembers: (members) => set({ teamMembers: members }),
+  teamMembersLoaded: false,
+  setTeamMembers: (members) => set({ teamMembers: members, teamMembersLoaded: true }),
+  setTeamMembersLoaded: (loaded) => set({ teamMembersLoaded: loaded }),
   addTeamMember: (member) => set((state) => ({ teamMembers: [member, ...state.teamMembers] })),
   updateTeamMember: (email, updates) =>
     set((state) => ({
@@ -190,10 +194,7 @@ export const useStore = create<AppState>((set) => ({
       localStorage.setItem("website_notary_profile", JSON.stringify(newProfile));
       return { notaryProfile: newProfile };
     }),
-  notaryCredentials: [
-    { documentName: "NNA Certification", issuer: "Nat. Notary Assoc.", uploadDate: "Oct 24, 2024", action: "Auto-Verified" },
-    { documentName: "Federal Ledger", issuer: "Identity Verification", uploadDate: "Sep 12, 2024", action: "Manual Review" },
-  ],
+  notaryCredentials: [],
   addNotaryCredential: (credential) =>
     set((state) => ({
       notaryCredentials: [credential, ...state.notaryCredentials],

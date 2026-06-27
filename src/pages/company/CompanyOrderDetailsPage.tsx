@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, CalendarDays, CheckCircle2, CircleDot, Clock3, Download, Eye, FileText, MapPin } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
 import { Badge, Button, Surface } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
@@ -507,16 +508,12 @@ export function CompanyOrderDetailsPage() {
             <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
               <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ink-400">Assigned Notary</div>
               <div className="mt-5 flex items-center gap-4">
-                <div className="h-14 w-14 overflow-hidden rounded-[12px] bg-[linear-gradient(135deg,#7a523f,#d0b38d)] flex items-center justify-center text-white font-bold text-xl">
-                  {order.notary === "--"
-                    ? "?"
-                    : order.notary
-                        .split(" ")
-                        .map((name) => name[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                </div>
+                <AssignedNotaryAvatar
+                  name={order.notary}
+                  avatarUrl={order.notaryAvatarUrl}
+                  className="h-14 w-14 rounded-[12px]"
+                  initialsClassName="text-xl"
+                />
                 <div>
                   <div className="text-[22px] font-extrabold tracking-[-0.03em] text-ink-900">
                     {order.notary === "--" ? "Not Assigned" : order.notary}

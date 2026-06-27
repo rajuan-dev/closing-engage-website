@@ -6,16 +6,19 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { OrderAdminChatPopup } from "@/components/OrderAdminChatPopup";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
+import { useConfirmStore } from "@/store/useConfirmStore";
 import { orderService, type DocumentDetail, type OrderDetail } from "@/services/orderService";
 
 export function NotaryOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { notaryOrders, notaryAssignedOrders, setNotaryOrders, setNotaryAssignedOrders, updateNotaryOrder } = useStore();
+  const { confirm } = useConfirmStore();
   const [isLoading, setIsLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetail | null>(null);
   const [documents, setDocuments] = useState<DocumentDetail[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resubmittingDocumentId, setResubmittingDocumentId] = useState<string | null>(null);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
@@ -358,6 +361,29 @@ export function NotaryOrderDetailPage() {
     } finally {
       setResubmittingDocumentId(null);
     }
+  };
+
+  const deleteScanback = (document: DocumentDetail) => {
+    if (!order) return;
+
+    confirm({
+      title: "Delete Scanback?",
+      message: `Are you sure you want to delete "${document.fileName}"? This action cannot be undone.`,
+      confirmLabel: "Delete Scanback",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          setDeletingDocumentId(document.id);
+          await orderService.deleteDocument(document.id);
+          await refreshOrderSnapshot(order.id);
+          toast.success("Scanback deleted.");
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Unable to delete scanback.");
+        } finally {
+          setDeletingDocumentId(null);
+        }
+      },
+    });
   };
 
   if (isLoading && !order) {
@@ -922,6 +948,17 @@ export function NotaryOrderDetailPage() {
                       >
                         <Download className="h-4 w-4" />
                       </button>
+                      {!isAccepted ? (
+                        <button
+                          type="button"
+                          onClick={() => void deleteScanback(doc)}
+                          disabled={deletingDocumentId === doc.id}
+                          className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white text-danger-600 shadow-sm ring-1 ring-[#f5c8c6] transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-label={`Delete ${doc.fileName}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                   );

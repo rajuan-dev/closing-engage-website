@@ -8,7 +8,7 @@ import { teamService } from "@/services/teamService";
 import type { TeamMember } from "@/types/models";
 
 export function CompanyTeamPage() {
-  const { teamMembers, setTeamMembers, addTeamMember, updateTeamMember, removeTeamMember } = useStore();
+  const { teamMembers, setTeamMembers, teamMembersLoaded, addTeamMember, updateTeamMember, removeTeamMember } = useStore();
   const defaultPermissions = {
     createOrders: true,
     viewOrders: true,
@@ -60,6 +60,8 @@ export function CompanyTeamPage() {
   };
 
   useEffect(() => {
+    if (teamMembersLoaded) return;
+
     const loadTeamMembers = async () => {
       try {
         const members = await teamService.getMembers();
@@ -70,7 +72,7 @@ export function CompanyTeamPage() {
     };
 
     void loadTeamMembers();
-  }, [setTeamMembers]);
+  }, [teamMembersLoaded, setTeamMembers]);
 
   const teamAvatars: Record<string, string> = {
     "John Doe": "from-[#23334d] to-[#1e2940]",

@@ -15,6 +15,11 @@ interface CompanySessionUser {
   contactEmail?: string;
   address?: string;
   avatarUrl?: string;
+  notifications?: {
+    email: boolean;
+    orders: boolean;
+    documents: boolean;
+  };
 }
 
 const mapSessionToProfile = (user: unknown) => {
@@ -30,6 +35,7 @@ const mapSessionToProfile = (user: unknown) => {
     contactNumber: company.phone || "",
     businessAddress: company.address || "",
     avatarUrl: company.avatarUrl || "",
+    notifications: company.notifications || { email: true, orders: true, documents: false },
   };
 };
 
@@ -58,9 +64,9 @@ export function CompanySettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [notifications, setNotifications] = useState([
-    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications.email },
-    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications.orders },
-    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications.documents },
+    { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications?.email ?? true },
+    { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications?.orders ?? true },
+    { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications?.documents ?? false },
   ]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -78,9 +84,9 @@ export function CompanySettingsPage() {
     });
     setAvatarUrl(companyProfile.avatarUrl || "");
     setNotifications([
-      { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications.email },
-      { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications.orders },
-      { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications.documents },
+      { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: companyProfile.notifications?.email ?? true },
+      { id: "orders", label: "Order Updates", body: "Real-time alerts for escrow changes", active: companyProfile.notifications?.orders ?? true },
+      { id: "documents", label: "Document Updates", body: "Alerts when new documents are signed", active: companyProfile.notifications?.documents ?? false },
     ]);
     setCurrentPassword("");
     setNewPassword("");
@@ -149,6 +155,12 @@ export function CompanySettingsPage() {
         ? companyInfo.contactNumber
         : personalInfo.phone;
 
+    const updatedNotifications = {
+      email: notifications.find((n) => n.id === "email")?.active ?? true,
+      orders: notifications.find((n) => n.id === "orders")?.active ?? true,
+      documents: notifications.find((n) => n.id === "documents")?.active ?? false,
+    };
+
     setIsSaving(true);
     try {
       const user = await portalAuthService.updateCompanyProfile({
@@ -159,6 +171,7 @@ export function CompanySettingsPage() {
         businessEmail: companyInfo.companyEmail,
         address: companyInfo.businessAddress,
         avatarUrl,
+        notifications: updatedNotifications,
       });
 
       const profile = mapSessionToProfile(user);
@@ -174,11 +187,7 @@ export function CompanySettingsPage() {
           avatarUrl,
         }),
         avatarUrl: (profile as { avatarUrl?: string } | null)?.avatarUrl || avatarUrl,
-        notifications: {
-          email: notifications.find((n) => n.id === "email")?.active ?? true,
-          orders: notifications.find((n) => n.id === "orders")?.active ?? true,
-          documents: notifications.find((n) => n.id === "documents")?.active ?? false,
-        },
+        notifications: updatedNotifications,
       });
       toast.success("Company settings saved successfully!");
       setIsEditMode(false);
