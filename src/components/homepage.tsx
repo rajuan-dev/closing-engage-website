@@ -289,7 +289,7 @@ export function HomeAudienceSection() {
             <div className="mt-9">
               <Link
                 to="/signup?role=company&contactType=Title%20Company"
-                className="inline-flex items-center justify-center rounded-xl bg-[#185abc] px-7 py-3 text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(24,90,188,0.30)] transition-all hover:bg-[#1d4ed8] hover:shadow-[0_6px_20px_rgba(24,90,188,0.38)]"
+                className="inline-flex min-w-[180px] items-center justify-center rounded-xl bg-[#1d4ed8] px-8 py-3.5 text-[14px] font-bold !text-white shadow-[0_8px_20px_rgba(29,78,216,0.38)] transition-all hover:bg-[#1e40af] hover:shadow-[0_10px_24px_rgba(29,78,216,0.46)]"
               >
                 Register Company
               </Link>
@@ -297,7 +297,7 @@ export function HomeAudienceSection() {
           </div>
 
           {/* RIGHT – For Notaries (dark) */}
-          <div className="flex flex-col rounded-2xl bg-[#0f172a] p-10">
+          <div className="flex flex-col rounded-2xl bg-[#1e293b] p-10">
             <h3 className="text-[24px] font-bold tracking-[-0.02em] text-white">
               For Notaries
             </h3>
@@ -316,7 +316,7 @@ export function HomeAudienceSection() {
             <div className="mt-9">
               <Link
                 to="/signup?role=notary"
-                className="inline-flex items-center justify-center rounded-xl bg-[#185abc] px-7 py-3 text-[13.5px] font-semibold text-white shadow-[0_4px_14px_rgba(24,90,188,0.30)] transition-all hover:bg-[#2563eb] hover:shadow-[0_6px_20px_rgba(37,99,235,0.38)]"
+                className="inline-flex min-w-[180px] items-center justify-center rounded-xl bg-white px-8 py-3.5 text-[14px] font-bold text-[#1d4ed8] shadow-[0_8px_20px_rgba(15,23,42,0.26)] transition-all hover:bg-[#eff6ff] hover:shadow-[0_10px_24px_rgba(15,23,42,0.32)]"
               >
                 Join Notary Pool
               </Link>
