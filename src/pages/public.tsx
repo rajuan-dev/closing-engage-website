@@ -31,6 +31,7 @@ import {
   HomeCTASection,
   HomeFeatureCards,
   HomeHeroSection,
+  HomeRONSection,
   HomeSecuritySection,
   HomeTestimonialSection,
   HomeWorkflowSection,
@@ -51,6 +52,7 @@ export function HomePage() {
       <HomeFeatureCards />
       <HomeWorkflowSection />
       <HomeAudienceSection />
+      <HomeRONSection />
       <HomeSecuritySection />
       <HomeTestimonialSection />
       <HomeCTASection />

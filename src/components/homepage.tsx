@@ -5,6 +5,14 @@ import {
   ShieldCheck,
   Users,
   Zap,
+  Video,
+  UserCheck,
+  Sparkles,
+  Lock,
+  FileSignature,
+  Mic,
+  Volume2,
+  Award,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -328,6 +336,8 @@ export function HomeAudienceSection() {
   );
 }
 
+
+
 // ─── SECURITY SECTION ────────────────────────────────────────────────────────
 
 export function HomeSecuritySection() {
@@ -431,6 +441,7 @@ export function HomeTestimonialSection() {
   );
 }
 
+
 // ─── CTA SECTION ─────────────────────────────────────────────────────────────
 
 export function HomeCTASection() {
@@ -458,6 +469,260 @@ export function HomeCTASection() {
           <button className="inline-flex items-center justify-center rounded-xl border border-white/30 bg-white/10 px-9 py-3.5 text-[14px] font-bold text-white backdrop-blur-sm transition-all hover:bg-white/18 hover:border-white/50">
             Request Demo
           </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function HomeRONSection() {
+  return (
+    <section className="w-full bg-gradient-to-br from-white to-[#f1f5f9] text-[#0f172a] py-24 overflow-hidden relative border-t border-b border-[#e2e8f0]">
+      {/* Decorative background glow lights */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#185abc]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[140px] pointer-events-none" />
+      
+      <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-12 relative z-10">
+        <div className="grid gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          {/* Left Column: Info & Details */}
+          <div className="space-y-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#185abc]/20 bg-[#185abc]/5 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.22em] text-[#185abc] shadow-[0_4px_15px_rgba(24,90,188,0.06)]">
+              <Sparkles size={12} className="animate-pulse" />
+              Feature In Development
+            </div>
+            
+            <div className="space-y-4">
+              <h2 className="text-[36px] font-extrabold leading-[1.1] tracking-[-0.03em] text-[#0f172a] md:text-[48px]">
+                Remote Online <br className="hidden md:block" />
+                Notarization (RON)
+              </h2>
+              <p className="text-[16px] leading-[1.75] text-[#475569] max-w-[580px]">
+                Experience fully digital, legal closings from anywhere. Our upcoming Remote Online Notarization (RON) module will allow title companies and signers to execute secure, audio-video e-signings with certified online notaries in real-time.
+              </p>
+            </div>
+
+            {/* Feature points */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div className="flex gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] border border-[#dbeafe] text-[#185abc]">
+                  <Video size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-[#0f172a]">Live Video Signing Room</h4>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#64748b] font-medium">Secure, encrypted audio-video environment for notarizations.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] border border-[#dbeafe] text-[#185abc]">
+                  <UserCheck size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-[#0f172a]">KBA &amp; ID Verification</h4>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#64748b] font-medium">Multi-factor Knowledge-Based Authentication and credential analysis.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] border border-[#dbeafe] text-[#185abc]">
+                  <FileSignature size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-[#0f172a]">Cryptographic Seals</h4>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#64748b] font-medium">Tamper-evident digital signatures conforming to MISMO standards.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eff6ff] border border-[#dbeafe] text-[#185abc]">
+                  <Lock size={18} />
+                </div>
+                <div>
+                  <h4 className="text-[14px] font-bold text-[#0f172a]">Compliance Vault</h4>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#64748b] font-medium">Compliant session recordings stored securely for audit trails.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Waitlist Call-to-action */}
+            <div className="pt-6 border-t border-[#e2e8f0] max-w-[500px]">
+              <div className="text-[13px] font-semibold text-[#475569] mb-3">Be the first to know when we launch:</div>
+              <div className="flex gap-2">
+                <input 
+                  type="email" 
+                  placeholder="Enter your work email" 
+                  className="h-11 flex-1 bg-white border border-[#cbd5e1] rounded-xl px-4 text-[13.5px] text-[#0f172a] placeholder-[#94a3b8] outline-none focus:border-[#185abc] focus:bg-[#f8fafc] transition shadow-inner"
+                />
+                <button className="h-11 rounded-xl bg-[#1d4ed8] hover:bg-[#1e40af] text-white font-bold px-5 text-[13.5px] shadow-[0_4px_12px_rgba(29,78,216,0.2)] transition active:scale-[0.98]">
+                  Join Waitlist
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: High Fidelity UI Mockup */}
+          <div className="flex justify-center lg:justify-end">
+            <div className="w-full max-w-[520px] rounded-[32px] border border-[#e2e8f0] bg-white p-6 shadow-[0_20px_50px_rgba(15,23,42,0.08)] relative overflow-hidden group">
+              
+              {/* Window Controls & Top Bar */}
+              <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#f1f5f9]">
+                <div className="flex items-center gap-6">
+                  {/* Mac style window controls */}
+                  <div className="flex gap-1.5">
+                    <span className="w-3.5 h-3.5 rounded-full bg-[#ff5f56] opacity-80" />
+                    <span className="w-3.5 h-3.5 rounded-full bg-[#ffbd2e] opacity-80" />
+                    <span className="w-3.5 h-3.5 rounded-full bg-[#27c93f] opacity-80" />
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] font-mono font-bold tracking-wider text-[#64748b]">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>SESSION: CE-RON-842</span>
+                  </div>
+                </div>
+                <div className="rounded-full bg-emerald-50 border border-emerald-100 px-3 py-0.5 text-emerald-800 font-extrabold uppercase tracking-widest text-[9px]">
+                  MISMO COMPLIANT
+                </div>
+              </div>
+
+              {/* Video Grid */}
+              <div className="grid gap-3 grid-cols-2 mb-4">
+                {/* Notary Video */}
+                <div className="relative aspect-[4/3] rounded-2xl bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[#e2e8f0] overflow-hidden flex flex-col items-center justify-center p-4 shadow-inner">
+                  {/* Top floating badge */}
+                  <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
+                    <span className="inline-flex items-center gap-1 rounded bg-[#185abc] text-white px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider">
+                      <Award size={10} className="text-amber-400" /> Commissioned Notary
+                    </span>
+                    <span className="text-[8px] font-bold text-white/50 bg-black/30 px-1.5 py-0.5 rounded font-mono">1080p</span>
+                  </div>
+                  
+                  {/* Avatar graphic */}
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 border-2 border-white/20 shadow-lg text-white font-bold relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#185abc]/20 to-[#60a5fa]/20" />
+                    <span className="text-[20px] tracking-wide relative z-10">SA</span>
+                  </div>
+                  
+                  {/* Status Overlay */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[11px] font-semibold text-white bg-slate-950/80 backdrop-blur px-2.5 py-1 rounded-lg">
+                    <span>Sarah A.</span>
+                    <div className="flex items-center gap-1.5">
+                      {/* Active Mic waveform graphic */}
+                      <span className="flex gap-0.5 items-end h-3">
+                        <span className="w-0.5 h-1.5 bg-emerald-400 animate-pulse" />
+                        <span className="w-0.5 h-3 bg-emerald-400 animate-pulse" style={{ animationDelay: '0.1s' }} />
+                        <span className="w-0.5 h-2 bg-emerald-400 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                      </span>
+                      <Mic size={10} className="text-emerald-400" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Signer Video */}
+                <div className="relative aspect-[4/3] rounded-2xl bg-gradient-to-br from-[#334155] to-[#1e293b] border border-[#e2e8f0] overflow-hidden flex flex-col items-center justify-center p-4 shadow-inner">
+                  {/* Top floating badge */}
+                  <div className="absolute top-2 left-2 right-2 flex justify-between items-center">
+                    <span className="inline-flex items-center gap-1 rounded bg-[#0284c7] text-white px-2 py-0.5 text-[8px] font-extrabold uppercase tracking-wider">
+                      <UserCheck size={10} /> ID Verified
+                    </span>
+                    <span className="text-[8px] font-bold text-white/50 bg-black/30 px-1.5 py-0.5 rounded font-mono">TX, USA</span>
+                  </div>
+                  
+                  {/* Avatar graphic */}
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 border-2 border-white/20 shadow-lg text-white font-bold relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#1d4ed8]/20 to-[#3b82f6]/20" />
+                    <span className="text-[20px] tracking-wide relative z-10">JM</span>
+                  </div>
+                  
+                  {/* Status Overlay */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[11px] font-semibold text-white bg-slate-950/80 backdrop-blur px-2.5 py-1 rounded-lg">
+                    <span>John M.</span>
+                    <div className="flex items-center gap-1">
+                      <Mic size={10} className="text-slate-400" />
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Call Controls Toolbar */}
+              <div className="flex justify-center gap-2 mb-4">
+                <div className="inline-flex items-center gap-1 bg-[#f1f5f9] border border-[#e2e8f0] rounded-full p-1.5 shadow-sm">
+                  <button className="h-8 w-8 rounded-full bg-white border border-[#e2e8f0] text-slate-700 hover:bg-slate-50 transition flex items-center justify-center shadow-sm cursor-pointer">
+                    <Mic size={14} />
+                  </button>
+                  <button className="h-8 w-8 rounded-full bg-[#185abc] text-white hover:bg-[#114695] transition flex items-center justify-center shadow-sm cursor-pointer">
+                    <Video size={14} />
+                  </button>
+                  <button className="h-8 w-8 rounded-full bg-white border border-[#e2e8f0] text-slate-700 hover:bg-slate-50 transition flex items-center justify-center shadow-sm cursor-pointer">
+                    <Volume2 size={14} />
+                  </button>
+                  <button className="h-8 w-8 rounded-full bg-white border border-[#e2e8f0] text-slate-700 hover:bg-slate-50 transition flex items-center justify-center shadow-sm cursor-pointer">
+                    <Lock size={14} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Document Status Widget & Mini Preview */}
+              <div className="rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] p-4 flex gap-4 items-stretch relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
+                
+                {/* Mini PDF Page Preview */}
+                <div className="w-[90px] h-[112px] bg-white border border-[#cbd5e1] rounded-lg p-2 flex flex-col justify-between shadow-sm shrink-0 relative overflow-hidden group-hover:border-[#185abc] transition">
+                  {/* Mock Text Lines */}
+                  <div className="space-y-1.5">
+                    <div className="h-1 bg-slate-300 rounded w-4/5" />
+                    <div className="h-1 bg-slate-200 rounded w-full" />
+                    <div className="h-1 bg-slate-200 rounded w-11/12" />
+                    <div className="h-1 bg-slate-200 rounded w-5/6" />
+                  </div>
+                  
+                  {/* Signature field mockup */}
+                  <div className="border border-dashed border-[#185abc] bg-[#eff6ff] rounded px-1 py-0.5 text-[6px] text-center font-bold text-[#185abc] uppercase tracking-wider">
+                    Sign Here
+                  </div>
+                  
+                  {/* Mock Seal Stamp */}
+                  <div className="absolute right-1.5 bottom-1.5 w-6 h-6 rounded-full border-2 border-emerald-600/30 flex items-center justify-center rotate-12 text-[4px] font-extrabold text-emerald-600/60 uppercase tracking-widest">
+                    SEAL
+                  </div>
+                </div>
+
+                {/* Right side Document details */}
+                <div className="flex-1 flex flex-col justify-between py-0.5">
+                  <div>
+                    <h5 className="text-[13px] font-bold text-[#0f172a] truncate leading-tight">Closing_Disclosure_Package_Final.pdf</h5>
+                    <p className="text-[11px] text-[#64748b] mt-0.5 font-medium">Page 4 of 128 • 16.2 MB</p>
+                  </div>
+
+                  {/* Badges row */}
+                  <div className="flex flex-wrap gap-1.5 my-1.5 text-[9px] font-extrabold uppercase">
+                    <span className="rounded bg-emerald-50 border border-emerald-200 text-emerald-700 px-1.5 py-0.5 tracking-wider">
+                      KBA: Passed
+                    </span>
+                    <span className="rounded bg-emerald-50 border border-emerald-200 text-emerald-700 px-1.5 py-0.5 tracking-wider">
+                      ID Verified
+                    </span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-bold text-[#64748b]">
+                      <span>Signing Progress</span>
+                      <span className="text-[#0f172a]">75%</span>
+                    </div>
+                    <div className="w-full h-1 bg-[#e2e8f0] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#185abc] rounded-full" style={{ width: "75%" }} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coming Soon overlay flag */}
+              <div className="absolute inset-0 bg-[#0f172a]/10 backdrop-blur-[1px] flex items-center justify-center transition duration-300 group-hover:bg-[#0f172a]/5">
+                <div className="bg-gradient-to-r from-amber-500 to-amber-600 border border-amber-400/40 px-8 py-3 rounded-full text-slate-950 text-[14px] font-extrabold shadow-[0_10px_35px_rgba(245,158,11,0.35)] uppercase tracking-[0.25em] -rotate-3 hover:scale-105 transition duration-300 select-none animate-bounce" style={{ animationDuration: '3s' }}>
+                  Coming Soon
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
