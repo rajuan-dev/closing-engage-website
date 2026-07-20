@@ -329,6 +329,7 @@ export function PublicFooter() {
             items={[
               { label: "About", href: "/about" },
               { label: "Contact", href: "/contact" },
+              { label: "Account Deletion", href: "/account-deletion" },
               { label: "Privacy Policy", href: "/privacy-policy" },
             ]}
           />

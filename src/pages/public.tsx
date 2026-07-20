@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlignLeft,
@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "@/store/useToastStore";
 import { accessRequestService } from "@/services/accessRequestService";
+import { contactService } from "@/services/contactService";
+import { accountDeletionPageConfig } from "@/data/account-deletion";
 import {
   HomeAudienceSection,
   HomeCTASection,
@@ -43,7 +45,7 @@ import {
   OtpVerificationForm,
   ServicesGrid,
 } from "@/components/marketing";
-import { Button, Input, Surface, Textarea } from "@/components/common";
+import { Button, Input, Select, Surface, Textarea } from "@/components/common";
 
 export function HomePage() {
   return (
@@ -319,6 +321,43 @@ export function AboutPage() {
 }
 
 export function ContactPage() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!fullName.trim() || !email.trim() || !company.trim() || !subject.trim() || !message.trim()) {
+      toast.error("Please complete all contact form fields.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await contactService.sendMessage({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        company: company.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+      });
+      toast.success("Your message has been sent to admin@closingengage.com.");
+      setFullName("");
+      setEmail("");
+      setCompany("");
+      setSubject("");
+      setMessage("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send message.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <section className="overflow-hidden bg-white pt-0">
@@ -348,16 +387,20 @@ export function ContactPage() {
         <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-10">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
             <Surface className="rounded-[20px] border border-[#dbe3f0] bg-white p-8 shadow-[0_8px_24px_rgba(20,48,112,0.05)]">
-              <div className="grid gap-5 md:grid-cols-2">
-                <Input label="Full Name" placeholder="John Doe" />
-                <Input label="Email" placeholder="john@company.com" />
-                <Input label="Company" placeholder="Acme Corp" />
-                <Input label="Subject" placeholder="General Inquiry" />
-              </div>
-              <div className="mt-5">
-                <Textarea label="Message" placeholder="How can we help you?" />
-              </div>
-              <Button className="mt-6 rounded-lg px-7">Send Message</Button>
+              <form onSubmit={handleSubmit}>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Input label="Full Name" placeholder="John Doe" value={fullName} onChange={(event) => setFullName(event.target.value)} />
+                  <Input label="Email" type="email" placeholder="john@company.com" value={email} onChange={(event) => setEmail(event.target.value)} />
+                  <Input label="Company" placeholder="Acme Corp" value={company} onChange={(event) => setCompany(event.target.value)} />
+                  <Input label="Subject" placeholder="General Inquiry" value={subject} onChange={(event) => setSubject(event.target.value)} />
+                </div>
+                <div className="mt-5">
+                  <Textarea label="Message" placeholder="How can we help you?" value={message} onChange={(event) => setMessage(event.target.value)} />
+                </div>
+                <Button type="submit" disabled={isSubmitting} className="mt-6 rounded-lg px-7 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70">
+                  {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
+              </form>
             </Surface>
             <div className="px-2 pt-1 lg:px-6">
               <h2 className="text-[26px] font-extrabold leading-[1.15] tracking-[-0.03em] text-ink-900">
@@ -365,7 +408,7 @@ export function ContactPage() {
               </h2>
               <div className="mt-8 space-y-7">
                 {[
-                  { icon: Mail, title: "Email", body: "hello@closingengage.com" },
+                  { icon: Mail, title: "Email", body: "admin@closingengage.com" },
                   { icon: Phone, title: "Phone", body: "+1 (555) 123-4567" },
                   { icon: MapPin, title: "Address", body: "101 Financial District, Suite 500\nNew York, NY 10005" },
                 ].map(({ icon: Icon, title, body }) => (
@@ -412,6 +455,226 @@ export function ContactPage() {
   );
 }
 
+export function AccountDeletionPage() {
+  const [selectedApp, setSelectedApp] = useState(accountDeletionPageConfig.applications[0]?.name ?? "");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = accountDeletionPageConfig.seoTitle;
+
+    let metaDescription = document.querySelector('meta[name="description"]');
+    const previousDescription = metaDescription?.getAttribute("content") ?? null;
+
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.setAttribute("name", "description");
+      document.head.appendChild(metaDescription);
+    }
+
+    metaDescription.setAttribute("content", accountDeletionPageConfig.seoDescription);
+
+    return () => {
+      document.title = previousTitle;
+      if (previousDescription !== null) {
+        metaDescription?.setAttribute("content", previousDescription);
+      }
+    };
+  }, []);
+
+  const selectedApplicationDetails = accountDeletionPageConfig.applications.find((app) => app.name === selectedApp);
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!selectedApp.trim() || !email.trim()) {
+      toast.error("Please select an application and enter your email address.");
+      return;
+    }
+
+    setSubmitted(true);
+    setEmail("");
+    setUsername("");
+    setMessage("");
+    setSelectedApp(accountDeletionPageConfig.applications[0]?.name ?? "");
+  };
+
+  return (
+    <>
+      <section className="overflow-hidden bg-white pt-0">
+        <div
+          className="relative w-full overflow-hidden"
+          style={{
+            background:
+              "radial-gradient(circle at 100% 36%, rgba(220,232,249,0.95) 0%, rgba(236,243,252,0.86) 20%, rgba(247,250,255,0.46) 38%, rgba(255,255,255,0) 58%)",
+          }}
+        >
+          <div className="mx-auto w-full max-w-[1600px] px-6 lg:px-10">
+            <div className="mx-auto max-w-[1440px] py-16 md:py-20">
+              <div className="grid gap-10 lg:grid-cols-[0.96fr_1.04fr] lg:items-center">
+                <div className="max-w-[700px]">
+                  <div className="inline-flex rounded-full bg-[#edf4ff] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.24em] text-brand-600">
+                    Public Account Request
+                  </div>
+                  <h1 className="mt-5 text-[46px] font-extrabold leading-[1.04] tracking-[-0.045em] text-ink-900 md:text-[62px]">
+                    Request Account Deletion
+                  </h1>
+                  <p className="mt-5 max-w-[620px] text-[17px] leading-[1.85] text-ink-600">
+                    You can use this page to request deletion of your account and associated data from our applications.
+                  </p>
+                </div>
+                <div className="justify-self-end rounded-[30px] border border-[#d8e1f0] bg-[linear-gradient(135deg,#dfe8ff,#edf3ff)] px-8 py-8 shadow-[0_12px_32px_rgba(20,48,112,0.06)] md:px-10 md:py-9">
+                  <div className="min-w-[280px] rounded-[22px] bg-white/94 p-6 shadow-[0_16px_38px_rgba(20,48,112,0.05)]">
+                    <div className="text-[11px] font-extrabold uppercase tracking-[0.24em] text-brand-600">
+                      Reusable Configuration
+                    </div>
+                    <div className="mt-4 text-[24px] font-extrabold tracking-[-0.03em] text-ink-900">
+                      Multi-App Ready
+                    </div>
+                    <p className="mt-3 text-[14px] leading-[1.8] text-ink-500">
+                      Designed for Google Play and Apple App Store account deletion compliance across current and future applications.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="bg-[#f7f7fd] py-16 md:py-18">
+        <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-10">
+          <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+            <Surface className="rounded-[22px] border border-[#dbe3f0] bg-white p-8 shadow-[0_8px_24px_rgba(20,48,112,0.05)] md:p-9">
+              <div className="mb-6">
+                <div className="text-[12px] font-extrabold uppercase tracking-[0.22em] text-brand-600">
+                  Deletion Request Form
+                </div>
+                <p className="mt-3 text-[14px] leading-[1.8] text-ink-500">
+                  Select the application, identify the account, and send a deletion request without logging in.
+                </p>
+              </div>
+              <form onSubmit={handleSubmit}>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Select
+                    label="Select Application"
+                    options={accountDeletionPageConfig.applications.map((app) => app.name)}
+                    value={selectedApp}
+                    onChange={(event) => setSelectedApp(event.target.value)}
+                    className="bg-[#f8fbff]"
+                  />
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="bg-[#f8fbff]"
+                  />
+                  <Input
+                    label="Username / Account ID"
+                    placeholder="Optional"
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    className="bg-[#f8fbff]"
+                  />
+                  <Input
+                    label="Developer / Company"
+                    value={selectedApplicationDetails?.developerName ?? ""}
+                    readOnly
+                    className="bg-[#f8fbff] text-ink-500"
+                  />
+                </div>
+                <div className="mt-5">
+                  <Textarea
+                    label="Message / Reason"
+                    placeholder="Optional details to help us locate your account or understand the request."
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    className="bg-[#f8fbff]"
+                  />
+                </div>
+                {selectedApplicationDetails?.identifier ? (
+                  <div className="mt-5 rounded-[18px] border border-[#dce7fb] bg-[#f6f9ff] px-5 py-4 text-[13px] leading-[1.75] text-ink-500">
+                    <span className="font-bold text-ink-900">Application Identifier:</span>{" "}
+                    {selectedApplicationDetails.identifier}
+                  </div>
+                ) : null}
+                <Button type="submit" className="mt-6 rounded-xl px-8 py-3.5 text-[15px] font-bold">
+                  Submit Deletion Request
+                </Button>
+              </form>
+              {submitted ? (
+                <div className="mt-6 rounded-[18px] border border-[#d8ead8] bg-[#f3fbf3] px-5 py-4 text-[14px] leading-[1.8] text-[#256b36]">
+                  Your request has been received. We will process your deletion request and contact you if additional information is required.
+                </div>
+              ) : null}
+            </Surface>
+
+            <div className="space-y-6">
+              <Surface className="rounded-[22px] border border-[#dbe3f0] bg-white p-8 shadow-[0_8px_24px_rgba(20,48,112,0.05)]">
+                <div className="text-[12px] font-extrabold uppercase tracking-[0.22em] text-brand-600">
+                  Data Deletion Information
+                </div>
+                <h2 className="mt-4 text-[30px] font-extrabold leading-[1.12] tracking-[-0.03em] text-ink-900">
+                  What this request covers
+                </h2>
+                <p className="mt-4 text-[14px] leading-[1.85] text-ink-500">
+                  Users can request deletion of their account and associated data. Depending on the application and the services used, requested deletions may include account information, profile information, user-generated content, and app-specific stored data.
+                </p>
+                <div className="mt-6 grid gap-4">
+                  {[
+                    "Account information",
+                    "Profile information",
+                    "User-generated content",
+                    "App-specific stored data",
+                  ].map((item) => (
+                    <div key={item} className="rounded-[16px] border border-[#e7edf7] bg-[#fbfcff] px-4 py-3 text-[14px] font-semibold text-ink-700">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </Surface>
+
+              <Surface className="rounded-[22px] border border-[#dbe3f0] bg-white p-8 shadow-[0_8px_24px_rgba(20,48,112,0.05)]">
+                <div className="text-[12px] font-extrabold uppercase tracking-[0.22em] text-brand-600">
+                  Retention Notice
+                </div>
+                <p className="mt-4 text-[14px] leading-[1.85] text-ink-500">
+                  Some information may be retained when legally required, including transaction records, security logs, fraud prevention records, or other compliance-related information that must be preserved under applicable law or contractual obligations.
+                </p>
+              </Surface>
+
+              <Surface className="rounded-[22px] border border-[#dbe3f0] bg-white p-8 shadow-[0_8px_24px_rgba(20,48,112,0.05)]">
+                <div className="text-[12px] font-extrabold uppercase tracking-[0.22em] text-brand-600">
+                  Alternative Contact
+                </div>
+                <div className="mt-4 space-y-4 text-[14px] leading-[1.8] text-ink-500">
+                  <div>
+                    <span className="font-bold text-ink-900">Support Email:</span>{" "}
+                    <a href={`mailto:${accountDeletionPageConfig.supportEmail}`} className="text-brand-600 hover:text-brand-700">
+                      {accountDeletionPageConfig.supportEmail}
+                    </a>
+                  </div>
+                  <div>
+                    <span className="font-bold text-ink-900">Privacy Policy:</span>{" "}
+                    <a href={accountDeletionPageConfig.privacyPolicyHref} className="text-brand-600 hover:text-brand-700">
+                      View privacy policy
+                    </a>
+                  </div>
+                </div>
+              </Surface>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
 export function PrivacyPolicyPage() {
   return (
     <>
@@ -431,9 +694,9 @@ export function PrivacyPolicyPage() {
                     Privacy Policy
                   </h1>
                   <p className="mt-5 text-[17px] leading-[1.8] text-ink-600">
-                    Learn how Closing Engage collects, uses, and protects your
-                    information. Our architecture is built on the foundation of
-                    trust and technical transparency.
+                    Effective July 20, 2026. This policy applies to the Closing Engage
+                    website, web portal, iOS app, and Android app, including the
+                    production mobile app identifier <strong>com.closingengage.app</strong>.
                   </p>
                 </div>
                 <div className="justify-self-end rounded-[30px] border border-[#d8e1f0] bg-[linear-gradient(135deg,#dfe8ff,#edf3ff)] px-10 py-9 shadow-[0_12px_32px_rgba(20,48,112,0.06)]">
@@ -463,11 +726,10 @@ export function PrivacyPolicyPage() {
               Introduction
             </div>
             <p className="max-w-[980px] text-[14px] leading-[1.9] text-ink-500">
-              At Closing Engage, your privacy is not an afterthought; it is our
-              primary engineering requirement. We are committed to maintaining the
-              highest standards of data integrity and protection, ensuring that your
-              sensitive legal and financial information remains confidential and
-              secure throughout the closing process.
+              Closing Engage provides digital closing workflow tools for title companies,
+              notaries, and related professionals. We collect only the information needed
+              to create accounts, manage orders, support secure document handling, comply
+              with legal obligations, and operate our production services across web and mobile.
             </p>
           </div>
           <div className="grid gap-5 md:grid-cols-2">
@@ -475,22 +737,22 @@ export function PrivacyPolicyPage() {
               {
                 icon: UserRound,
                 title: "Personal Information",
-                body: "Name, contact details, and identifiers required for legal verification.",
+                body: "Name, email address, phone number, company details, and professional identifiers you provide when requesting access or using the platform.",
               },
               {
                 icon: Lock,
-                title: "Account Info",
-                body: "Login credentials and profile settings necessary for your secure workspace.",
+                title: "Account & Security Data",
+                body: "Login credentials, authentication events, device session details, and secure storage data required to protect your workspace.",
               },
               {
                 icon: FileText,
-                title: "Documents",
-                body: "Financial records and legal contracts processed through our secure vault.",
+                title: "Transaction & Document Data",
+                body: "Order details, uploaded documents, credentials, notes, and communications processed through Closing Engage workflows.",
               },
               {
                 icon: BarChart3,
                 title: "Usage Data",
-                body: "Technical metadata to improve performance and ensure platform security.",
+                body: "Technical metadata such as IP address, browser type, app version, operating system, crash diagnostics, and activity logs.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <Surface
@@ -520,9 +782,9 @@ export function PrivacyPolicyPage() {
               </h2>
               <div className="mt-8 space-y-5">
                 {[
-                  ["01", "Account Management", "Facilitating access to your closing dashboard and secure files."],
-                  ["02", "Processing Orders", "Executing transactions and legal filings on your behalf."],
-                  ["03", "Communication", "Sending critical updates, security alerts, and support responses."],
+                  ["01", "Account Management", "Creating and maintaining user accounts, authenticating sign-ins, and supporting password recovery and account security."],
+                  ["02", "Service Delivery", "Processing orders, routing documents, coordinating notaries, and delivering transaction-related workflows across website and mobile apps."],
+                  ["03", "Communication", "Sending critical updates, support replies, security notices, operational notifications, and responses to contact-form inquiries."],
                 ].map(([number, title, body]) => (
                   <div key={title} className="flex items-start gap-4">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef4ff] text-[12px] font-extrabold text-brand-600">
@@ -543,8 +805,9 @@ export function PrivacyPolicyPage() {
                     Data Security Architecture
                   </div>
                   <p className="mt-4 max-w-[460px] text-[14px] leading-[1.8] text-white/82">
-                    We employ bank-grade security protocols to ensure your data is
-                    never compromised.
+                    We use encryption in transit, controlled access, audit-oriented logs,
+                    and secure infrastructure practices designed to protect sensitive
+                    transaction and identity data.
                   </p>
                 </div>
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
@@ -552,7 +815,7 @@ export function PrivacyPolicyPage() {
                 </div>
               </div>
               <div className="mt-8 flex flex-wrap gap-3">
-                {["Cloud Storage", "SSL Encryption", "Role-based Access"].map((item) => (
+                {["TLS Encryption", "Role-based Access", "Secure Document Handling"].map((item) => (
                   <div
                     key={item}
                     className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[13px] font-semibold text-white"
@@ -569,10 +832,10 @@ export function PrivacyPolicyPage() {
         <div className="mx-auto w-full max-w-[1440px] px-6 lg:px-10">
           <div className="grid gap-5 md:grid-cols-2">
             {[
-              ["Data Sharing", "We share information only with trusted third-party partners necessary for operations (e.g., payment processors, legal filing systems) or when legally mandated by government authorities."],
-              ["User Rights", "Access your personal data records\nRequest correction of inaccuracies\nRequest deletion of non-legal records"],
-              ["Periodic Updates", "Our privacy policy is reviewed quarterly. Users will be notified via email regarding any significant material changes."],
-              ["Contact Privacy Team", "privacy@closingengage.com\nResponse time: within 24 business hours."],
+              ["Data Sharing", "We do not sell personal information. We may share data with infrastructure, messaging, storage, authentication, analytics, and compliance service providers that help us operate Closing Engage, and with legal authorities when required by law."],
+              ["Mobile App Permissions", "The iOS and Android apps may request permissions needed for platform features, including document selection, image selection, and notifications. Permissions are used only to support requested product functionality."],
+              ["User Rights & Retention", "You may request access, correction, or deletion of eligible personal information by emailing admin@closingengage.com. We retain data for as long as needed to provide services, maintain security records, and satisfy legal or contractual obligations."],
+              ["Children, Updates & Contact", "Closing Engage is not directed to children under 13. Material policy updates will be posted on this page with a revised effective date. Privacy and support requests: admin@closingengage.com."],
             ].map(([title, body]) => (
               <Surface
                 key={title}

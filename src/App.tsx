@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import {
+  AccountDeletionPage,
   AboutPage,
   ContactPage,
   ForgotPasswordPage,
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/account-deletion" element={<AccountDeletionPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         </Route>
 
