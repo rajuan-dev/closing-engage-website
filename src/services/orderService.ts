@@ -9,6 +9,13 @@ interface ApiEnvelope<T> {
   data: T;
 }
 
+interface SignedDocumentUrl {
+  url: string;
+  expiresInSeconds: number;
+  fileName: string;
+  mode: "download" | "preview";
+}
+
 interface CreateOrderPayload {
   title: string;
   clientName: string;
@@ -315,7 +322,8 @@ export const orderService = {
   },
 
   async getDocumentPreviewUrl(id: string): Promise<string> {
-    return requestFileObjectUrl(`/documents/${encodeURIComponent(id)}/content?mode=preview`);
+    const result = await request<SignedDocumentUrl>(`/documents/${encodeURIComponent(id)}/preview-url`);
+    return result.url;
   },
 
   async getDocumentDownloadUrl(id: string): Promise<string> {
