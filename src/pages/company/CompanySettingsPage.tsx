@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Camera } from "lucide-react";
 import { Button, Input, Surface } from "@/components/common";
 import { portalAuthService } from "@/services/portalAuthService";
@@ -71,7 +71,7 @@ export function CompanySettingsPage() {
   ]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const resetForm = useCallback(() => {
+  const resetForm = () => {
     setPersonalInfo({
       fullName: companyProfile.fullName,
       email: companyProfile.email,
@@ -92,13 +92,11 @@ export function CompanySettingsPage() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
-  }, [companyProfile]);
+  };
 
   useEffect(() => {
-    if (!isEditMode) {
-      resetForm();
-    }
-  }, [isEditMode, resetForm]);
+    resetForm();
+  }, [companyProfile, isEditMode]);
 
   useEffect(() => {
     const hydrateProfile = async () => {
@@ -424,21 +422,21 @@ export function CompanySettingsPage() {
           <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
             <div className="text-[17px] font-bold tracking-tight text-ink-900">Notification Preferences</div>
             <div className="mt-6 space-y-6">
-              {notifications.map((n) => (
-                <div key={n.id} className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-[15px] font-semibold text-ink-900">{n.label}</div>
-                    <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{n.body}</div>
+                {notifications.map((n) => (
+                  <div key={n.id} className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[15px] font-semibold text-ink-900">{n.label}</div>
+                      <div className="mt-1 text-[13px] leading-[1.6] text-ink-500">{n.body}</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isSavingNotifications || isSaving}
+                      onClick={() => toggleNotification(n.id)}
+                      className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${isSavingNotifications || isSaving ? "cursor-not-allowed opacity-60" : ""}`}
+                    >
+                      <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${n.active ? "translate-x-5" : "translate-x-0"}`} />
+                    </button>
                   </div>
-                  <button 
-                    type="button"
-                    disabled={isSavingNotifications || isSaving}
-                    onClick={() => toggleNotification(n.id)}
-                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${isSavingNotifications || isSaving ? "cursor-not-allowed opacity-60" : ""}`}
-                  >
-                    <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${n.active ? "translate-x-5" : "translate-x-0"}`} />
-                  </button>
-                </div>
               ))}
             </div>
           </Surface>
