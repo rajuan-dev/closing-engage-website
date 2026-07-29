@@ -44,6 +44,7 @@ export function NotarySettingsPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
   // Profile Draft States
   const [fullName, setFullName] = useState(notaryProfile.fullName);
@@ -129,10 +130,41 @@ export function NotarySettingsPage() {
   };
 
   const toggleNotification = (id: string) => {
-    if (!isEditMode) return;
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, active: !n.active } : n))
+    if (isSavingNotifications || isSaving) return;
+
+    const nextNotifications = notifications.map((n) =>
+      n.id === id ? { ...n, active: !n.active } : n,
     );
+
+    const previousNotifications = notifications;
+    setNotifications(nextNotifications);
+
+    const updatedNotifications = {
+      email: nextNotifications.find((n) => n.id === "email")?.active ?? true,
+      orders: nextNotifications.find((n) => n.id === "orders")?.active ?? true,
+      documents: nextNotifications.find((n) => n.id === "documents")?.active ?? false,
+    };
+
+    void (async () => {
+      try {
+        setIsSavingNotifications(true);
+        const user = await portalAuthService.updateNotaryProfile({
+          notifications: updatedNotifications,
+        });
+
+        const profile = mapSessionToProfile(user);
+        updateNotaryProfile({
+          ...(profile || notaryProfile),
+          notifications: updatedNotifications,
+        });
+        toast.success("Notification preferences updated.");
+      } catch (error) {
+        setNotifications(previousNotifications);
+        toast.error(error instanceof Error ? error.message : "Unable to update notification preferences.");
+      } finally {
+        setIsSavingNotifications(false);
+      }
+    })();
   };
 
   const handleSave = async () => {
@@ -219,58 +251,60 @@ export function NotarySettingsPage() {
 
   return (
     <div className="space-y-7">
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#101622,#2a3449)] text-white shadow-[0_18px_38px_rgba(20,48,112,0.14)] overflow-hidden">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-[28px] font-bold">
-              {fullName.split(" ").map((n) => n[0]).join("")}
-            </span>
-          )}
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={handleAvatarChange}
-          />
-          <button 
-            type="button"
-            onClick={() => {
-              if (!isEditMode) {
-                toast.error("Click Edit Profile before updating your profile photo.");
-                return;
-              }
+      <div className="flex flex-wrap items-start justify-between gap-6">
+        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-6">
+          <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#101622,#2a3449)] text-white shadow-[0_18px_38px_rgba(20,48,112,0.14)] overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-[28px] font-bold">
+                {fullName.split(" ").map((n) => n[0]).join("")}
+              </span>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleAvatarChange}
+            />
+            <button 
+              type="button"
+              onClick={() => {
+                if (!isEditMode) {
+                  toast.error("Click Edit Profile before updating your profile photo.");
+                  return;
+                }
 
-              fileInputRef.current?.click();
-            }}
-            className={`absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full text-white shadow-[0_5px_12px_rgba(24,90,188,0.3)] transition-colors ${
-              isEditMode ? "bg-brand-600 hover:bg-brand-700" : "cursor-not-allowed bg-[#9eb8e8]"
-            }`}
-          >
-            <Camera className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div>
-          <div className="flex flex-wrap items-center gap-4">
-            <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
-              {fullName}
-            </h1>
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#d9f8e7] px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#138e59]">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Verified Notary
-            </div>
+                fileInputRef.current?.click();
+              }}
+              className={`absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full text-white shadow-[0_5px_12px_rgba(24,90,188,0.3)] transition-colors ${
+                isEditMode ? "bg-brand-600 hover:bg-brand-700" : "cursor-not-allowed bg-[#9eb8e8]"
+              }`}
+            >
+              <Camera className="h-3.5 w-3.5" />
+            </button>
           </div>
-          <div className="mt-3 text-[16px] text-ink-500">{email}</div>
-          <Button
-            variant={isEditMode ? "ghost" : "outline"}
-            className={`mt-4 h-[44px] rounded-[12px] px-5 text-[14px] font-semibold ${isEditMode ? "text-danger-600 hover:bg-[#fff5f5]" : "border-[#dfe6f2] text-brand-600"}`}
-            onClick={() => setIsEditMode(!isEditMode)}
-          >
-            {isEditMode ? "Discard Changes" : "Edit Profile"}
-          </Button>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-4">
+              <h1 className="text-[26px] font-bold tracking-tight text-ink-900">
+                {fullName}
+              </h1>
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#d9f8e7] px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#138e59]">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Verified Notary
+              </div>
+            </div>
+            <div className="mt-3 text-[16px] text-ink-500">{email}</div>
+          </div>
         </div>
+        <Button
+          variant={isEditMode ? "ghost" : "outline"}
+          className={`ml-auto h-[44px] shrink-0 self-start rounded-[12px] px-5 text-[14px] font-semibold ${isEditMode ? "text-danger-600 hover:bg-[#fff5f5]" : "border-[#dfe6f2] text-brand-600"}`}
+          onClick={() => setIsEditMode(!isEditMode)}
+        >
+          {isEditMode ? "Discard Changes" : "Edit Profile"}
+        </Button>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.12fr_0.48fr]">
@@ -389,9 +423,9 @@ export function NotarySettingsPage() {
                   </div>
                   <button
                     type="button"
-                    disabled={!isEditMode}
+                    disabled={isSavingNotifications || isSaving}
                     onClick={() => toggleNotification(n.id)}
-                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${!isEditMode ? "cursor-not-allowed opacity-60" : ""}`}
+                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${isSavingNotifications || isSaving ? "cursor-not-allowed opacity-60" : ""}`}
                   >
                     <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${n.active ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
@@ -402,7 +436,7 @@ export function NotarySettingsPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 rounded-[18px] border border-[#e4ebf5] bg-white p-5 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+      <div className="flex justify-end gap-3 border-t border-[#e7ecf4] pt-7">
         <Button
           variant="outline"
           className="h-[46px] rounded-[12px] border-[#dfe6f2] px-6 text-[15px] font-semibold text-ink-700"

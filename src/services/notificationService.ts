@@ -16,6 +16,8 @@ interface NotificationServerToClientEvents {
   "notifications:new": (payload: NotificationItem) => void;
   "notifications:read": (payload: { id: string }) => void;
   "notifications:read-all": () => void;
+  "notifications:deleted": (payload: { id: string }) => void;
+  "notifications:cleared": () => void;
 }
 
 interface NotificationClientToServerEvents {}
@@ -56,6 +58,18 @@ export const notificationService = {
   markAllRead(): Promise<void> {
     return request<Record<string, never>>("/notifications/read-all", {
       method: "PATCH",
+    }).then(() => undefined);
+  },
+
+  deleteNotification(id: string): Promise<void> {
+    return request<Record<string, never>>(`/notifications/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }).then(() => undefined);
+  },
+
+  clearAll(): Promise<void> {
+    return request<Record<string, never>>("/notifications/clear-all", {
+      method: "DELETE",
     }).then(() => undefined);
   },
 

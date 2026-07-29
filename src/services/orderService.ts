@@ -38,6 +38,7 @@ type RawOrder = Order & {
   signingTime?: string;
   assignedNotaryName?: string;
   assignedNotaryId?: string;
+  openForAll?: boolean;
   notaryAvatarUrl?: string;
   specialInstructions?: string;
   notaryNotes?: string;
@@ -155,6 +156,9 @@ const normalizeOrder = (order: RawOrder): Order => ({
   meeting: order.meeting || null,
 });
 
+const isDirectlyAssignedNotaryOrder = (order: RawOrder) =>
+  order.openForAll !== true && order.assignedNotaryName !== "Open for All";
+
 const normalizeOrderDetail = (order: RawOrder): OrderDetail => ({
   ...normalizeOrder(order),
   specialInstructions: order.specialInstructions || "",
@@ -174,7 +178,7 @@ export const orderService = {
 
   async getAssignedOrders(): Promise<Order[]> {
     const orders = await request<RawOrder[]>("/orders");
-    return orders.map(normalizeOrder);
+    return orders.filter(isDirectlyAssignedNotaryOrder).map(normalizeOrder);
   },
 
   async getCompanyOrder(id: string): Promise<OrderDetail> {

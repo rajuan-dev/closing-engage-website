@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, ChevronDown, Plus, User, LogOut, CheckCircle2, Hourglass, CircleDot, FileText } from "lucide-react";
+import { Bell, ChevronDown, Plus, User, LogOut, CheckCircle2, Hourglass, CircleDot, FileText, Trash2, CheckCheck } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Button, SearchField, SidebarNav } from "@/components/common";
 import { companyNav, notaryNav } from "@/data/mock-data";
@@ -20,6 +20,8 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     upsertNotification,
     markNotificationRead,
     markAllNotificationsRead,
+    removeNotification,
+    clearNotifications,
     updateNotaryProfile,
     updateCompanyProfile,
   } = useStore();
@@ -30,19 +32,21 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     avatarUrl?: string;
     memberRole?: "Admin" | "Member";
     accountType?: string;
+    contactPerson?: string;
   } | null) ?? null);
   const userName =
-    (variant === "company" ? companyProfile.fullName : notaryProfile.fullName) ||
     sessionUser?.fullName ||
     sessionUser?.name ||
+    sessionUser?.contactPerson ||
+    (variant === "company" ? companyProfile.fullName : notaryProfile.fullName) ||
     "";
   const userEmail =
-    (variant === "company" ? companyProfile.email : notaryProfile.email) ||
     sessionUser?.email ||
+    (variant === "company" ? companyProfile.email : notaryProfile.email) ||
     "";
   const userAvatarUrl =
-    (variant === "company" ? companyProfile.avatarUrl : notaryProfile.avatarUrl) ||
     sessionUser?.avatarUrl ||
+    (variant === "company" ? companyProfile.avatarUrl : notaryProfile.avatarUrl) ||
     "";
   const userRole =
     variant === "company"
@@ -56,6 +60,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
   const notifRef = useRef<HTMLDivElement | null>(null);
   const notificationSocketRef = useRef<ReturnType<typeof notificationService.createSocket> | null>(null);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const [isClearingNotifications, setIsClearingNotifications] = useState(false);
 
   const loadNotifications = useCallback(async (showErrorToast = true) => {
     try {
@@ -78,6 +83,29 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
       toast.error(error instanceof Error ? error.message : "Unable to update notifications.");
     } finally {
       setIsMarkingAllRead(false);
+    }
+  };
+
+  const handleClearAllNotifications = async () => {
+    try {
+      setIsClearingNotifications(true);
+      await notificationService.clearAll();
+      clearNotifications();
+      toast.success("All notifications cleared.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to clear notifications.");
+    } finally {
+      setIsClearingNotifications(false);
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await notificationService.deleteNotification(id);
+      removeNotification(id);
+      toast.success("Notification removed.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to remove notification.");
     }
   };
 
@@ -125,32 +153,33 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
           license?: string;
           expiry?: string;
           serviceArea?: string;
+          contactPerson?: string;
         } | null;
 
         setSessionUser(typedUser);
 
         if (variant === "company" && typedUser) {
           updateCompanyProfile({
-            fullName: typedUser.fullName || companyProfile.fullName,
-            email: typedUser.contactEmail || typedUser.email || typedUser.businessEmail || companyProfile.email,
-            phone: typedUser.phone || companyProfile.phone,
-            companyName: typedUser.companyName || companyProfile.companyName,
-            companyEmail: typedUser.businessEmail || typedUser.email || companyProfile.companyEmail,
-            contactNumber: typedUser.phone || companyProfile.contactNumber,
-            businessAddress: typedUser.address || companyProfile.businessAddress,
-            avatarUrl: typedUser.avatarUrl || companyProfile.avatarUrl || "",
+            fullName: typedUser.fullName || typedUser.contactPerson || typedUser.name || "",
+            email: typedUser.contactEmail || typedUser.email || typedUser.businessEmail || "",
+            phone: typedUser.phone || "",
+            companyName: typedUser.companyName || "",
+            companyEmail: typedUser.businessEmail || typedUser.email || "",
+            contactNumber: typedUser.phone || "",
+            businessAddress: typedUser.address || "",
+            avatarUrl: typedUser.avatarUrl || "",
           });
         }
 
         if (variant === "notary" && typedUser) {
           updateNotaryProfile({
-            fullName: typedUser.fullName || typedUser.name || notaryProfile.fullName,
-            email: typedUser.email || notaryProfile.email,
-            phone: typedUser.phone || notaryProfile.phone,
-            licenseNumber: typedUser.license || notaryProfile.licenseNumber,
-            commissionExpiry: typedUser.expiry || notaryProfile.commissionExpiry,
-            serviceArea: typedUser.serviceArea || notaryProfile.serviceArea,
-            avatarUrl: typedUser.avatarUrl || notaryProfile.avatarUrl || "",
+            fullName: typedUser.fullName || typedUser.name || "",
+            email: typedUser.email || "",
+            phone: typedUser.phone || "",
+            licenseNumber: typedUser.license || "",
+            commissionExpiry: typedUser.expiry || "",
+            serviceArea: typedUser.serviceArea || "",
+            avatarUrl: typedUser.avatarUrl || "",
           });
         }
       } catch {
@@ -182,6 +211,14 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
       markAllNotificationsRead();
     });
 
+    socket?.on("notifications:deleted", ({ id }) => {
+      removeNotification(id);
+    });
+
+    socket?.on("notifications:cleared", () => {
+      clearNotifications();
+    });
+
     const handleFocus = () => {
       void loadNotifications(false);
     };
@@ -201,7 +238,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
       socket?.disconnect();
       notificationSocketRef.current = null;
     };
-  }, [loadNotifications, markAllNotificationsRead, markNotificationRead, upsertNotification]);
+  }, [clearNotifications, loadNotifications, markAllNotificationsRead, markNotificationRead, removeNotification, upsertNotification]);
 
   useEffect(() => {
     if (!notifOpen) return;
@@ -271,87 +308,128 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                   aria-label="Open notifications"
                 >
                   <Bell className="h-[18px] w-[18px]" />
-                  {unreadCount > 0 && (
+                  {unreadCount > 0 && !notifOpen ? (
                     <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-danger-200 bg-white px-1 text-[10px] font-bold leading-none text-danger-600 shadow-sm">
                       {unreadCount}
                     </span>
-                  )}
+                  ) : null}
                 </button>
 
                 {notifOpen ? (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-[380px] overflow-hidden rounded-2xl border border-[#e2e8f3] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.15)] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="flex items-center justify-between border-b border-[#edf1f7] px-5 py-4">
-                      <h3 className="text-[15px] font-semibold text-ink-900">Notifications</h3>
-                      {unreadCount > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkAllRead()}
-                          className="text-[12px] font-semibold text-brand-600 transition hover:text-brand-700 focus:outline-none"
-                        >
-                          Mark all read
-                        </button>
-                      ) : null}
+                  <div className="absolute right-0 top-full z-50 mt-3 w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-[24px] border border-[#dfe7f4] bg-white shadow-[0_28px_70px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="border-b border-[#edf1f7] bg-[linear-gradient(180deg,#fbfdff_0%,#f6f9ff_100%)] px-5 py-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[18px] font-bold tracking-tight text-ink-900">Notifications</h3>
+                          <p className="mt-1 text-[12px] font-medium text-ink-400">
+                            {unreadCount > 0
+                              ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
+                              : "All notifications are up to date"}
+                          </p>
+                        </div>
+                        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => void handleMarkAllRead()}
+                            disabled={unreadCount === 0 || isMarkingAllRead}
+                            className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-[12px] border border-[#dbe5f3] bg-white px-3 py-2 text-[12px] font-semibold text-brand-600 transition hover:border-brand-200 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-45 sm:h-9 sm:flex-none"
+                          >
+                            <CheckCheck className="h-3.5 w-3.5 shrink-0" />
+                            {isMarkingAllRead ? "Updating..." : "Mark All Read"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleClearAllNotifications()}
+                            disabled={activityItems.length === 0 || isClearingNotifications}
+                            className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-[12px] border border-[#f2d7d5] bg-[#fff7f7] px-3 py-2 text-[12px] font-semibold text-danger-600 transition hover:bg-[#fff1f1] disabled:cursor-not-allowed disabled:opacity-45 sm:h-9 sm:flex-none"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                            {isClearingNotifications ? "Clearing..." : "Clear All"}
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="max-h-[360px] overflow-y-auto divide-y divide-[#f2f5fa]">
+                    <div className="max-h-[420px] overflow-y-auto bg-[#fcfdff] px-3 py-3">
                       {activityItems.length === 0 ? (
-                        <div className="px-5 py-8 text-center">
-                          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-[#edf9f2] text-[#38b36b]">
+                        <div className="px-5 py-10 text-center">
+                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#edf9f2] text-[#38b36b] shadow-[0_10px_24px_rgba(56,179,107,0.12)]">
                             <CheckCircle2 className="h-5 w-5" />
                           </div>
-                          <div className="mt-3 text-[14px] font-bold text-ink-900">All caught up</div>
+                          <div className="mt-4 text-[15px] font-bold text-ink-900">All caught up</div>
                           <p className="mt-1 text-[12px] leading-5 text-ink-400">There are no new notifications or activities to display.</p>
                         </div>
                       ) : (
                         activityItems.map((act) => (
-                          <button
+                          <div
                             key={act.key}
-                            type="button"
-                            onClick={() => {
-                              if (!act.read) {
-                                void notificationService.markRead(act.id).then(() => {
-                                  markNotificationRead(act.id);
-                                }).catch((error) => {
-                                  toast.error(error instanceof Error ? error.message : "Unable to update notification.");
-                                });
-                              }
-                            }}
-                            className={`flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-[#f8fafd] focus:outline-none ${
-                              !act.read ? "bg-[#f5f9ff]/50" : ""
+                            className={`group mb-3 rounded-[20px] border px-4 py-4 shadow-[0_14px_34px_rgba(20,48,112,0.05)] transition ${
+                              !act.read
+                                ? "border-brand-100 bg-[linear-gradient(180deg,#f8fbff_0%,#ffffff_100%)] hover:border-brand-200"
+                                : "border-[#ebf0f7] bg-white hover:border-[#dfe7f4] hover:shadow-[0_16px_38px_rgba(20,48,112,0.07)]"
                             }`}
                           >
-                            <div className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${!act.read ? "bg-brand-600" : "bg-transparent"}`} />
-                            <div
-                              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                                act.tone === "warning"
-                                  ? "bg-[#fff7ea] text-[#f0a11d]"
-                                  : act.tone === "success"
-                                    ? "bg-[#edf9f2] text-[#38b36b]"
-                                    : "bg-[#eef4ff] text-brand-600"
-                              }`}
-                            >
-                              <act.icon className="h-4 w-4" />
+                            <div className="flex items-start gap-3.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!act.read) {
+                                    void notificationService.markRead(act.id).then(() => {
+                                      markNotificationRead(act.id);
+                                    }).catch((error) => {
+                                      toast.error(error instanceof Error ? error.message : "Unable to update notification.");
+                                    });
+                                  }
+                                }}
+                                className="flex min-w-0 flex-1 items-start gap-3.5 rounded-[16px] text-left focus:outline-none"
+                              >
+                                <div className="pt-3">
+                                  <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${!act.read ? "bg-danger-500 shadow-[0_0_0_5px_rgba(239,68,68,0.10)]" : "bg-[#dbe4f0]"}`} />
+                                </div>
+                                <div
+                                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border ${
+                                    act.tone === "warning"
+                                      ? "border-[#ffe3bf] bg-[#fff4e8] text-[#f08e24]"
+                                      : act.tone === "success"
+                                        ? "border-[#d7f3e3] bg-[#edf9f2] text-[#38b36b]"
+                                        : "border-[#d9e5ff] bg-[#eef4ff] text-brand-600"
+                                  }`}
+                                >
+                                  <act.icon className="h-[18px] w-[18px]" />
+                                </div>
+                                <div className="min-w-0 flex-1 pt-0.5">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="text-[14px] font-bold leading-5 text-ink-900">{act.title}</div>
+                                      <div className="mt-1 text-[12px] font-medium tracking-[0.01em] text-ink-500">{act.message}</div>
+                                    </div>
+                                    {!act.read ? (
+                                      <span className="shrink-0 rounded-full bg-[#fff1f1] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-danger-600">
+                                        New
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-ink-300">
+                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#d4ddea]" />
+                                    {act.time}
+                                  </div>
+                                </div>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteNotification(act.id)}
+                                className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-transparent text-ink-300 opacity-0 transition hover:border-[#f4d8d8] hover:bg-[#fff6f6] hover:text-danger-600 group-hover:opacity-100 focus:opacity-100 focus:outline-none"
+                                aria-label={`Delete ${act.title}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-[13px] font-semibold text-ink-900">{act.title}</div>
-                              <div className="mt-0.5 text-[12px] leading-5 text-ink-500">{act.message}</div>
-                              <div className="mt-1 text-[11px] font-medium text-ink-300">{act.time}</div>
-                            </div>
-                          </button>
+                          </div>
                         ))
                       )}
                     </div>
-                    {activityItems.length > 0 ? (
-                      <div className="border-t border-[#edf1f7] bg-[#fbfcff] px-5 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkAllRead()}
-                          disabled={isMarkingAllRead}
-                          className="w-full text-[13px] font-semibold text-brand-600 transition hover:text-brand-700 disabled:opacity-50 focus:outline-none"
-                        >
-                          {isMarkingAllRead ? "Updating..." : "Mark All Read"}
-                        </button>
-                      </div>
-                    ) : null}
+                    <div className="border-t border-[#edf1f7] bg-white px-5 py-3 text-[11px] font-medium text-ink-300">
+                      Notifications update in real time for your current portal session.
+                    </div>
                   </div>
                 ) : null}
               </div>

@@ -41,9 +41,9 @@ export const notaryNav: NavItem[] = [
   { label: "Dashboard", href: "/notary/dashboard", icon: ClipboardList },
   { label: "Assigned Orders", href: "/notary/orders", icon: BriefcaseBusiness },
   { label: "Upload Documents", href: "/notary/upload-documents", icon: FolderOpen },
-  { label: "Settings", href: "/notary/settings", icon: Shield },
-  { label: "Notary Credentials", href: "/notary/credentials", icon: CheckCircle2 },
   { label: "Communications", href: "/notary/communications", icon: Mail },
+  { label: "Notary Credentials", href: "/notary/credentials", icon: CheckCircle2 },
+  { label: "Settings", href: "/notary/settings", icon: Shield },
 ];
 
 export const companyMetrics: MetricCard[] = [

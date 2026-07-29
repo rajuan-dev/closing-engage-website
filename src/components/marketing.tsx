@@ -635,8 +635,19 @@ export function OtpVerificationForm() {
       return;
     }
 
+    if (otp.trim().length !== 6) {
+      toast.error("Enter the full 6-digit verification code.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("New password and confirm password must match.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      await passwordResetService.verifyOtp(email.trim(), otp.trim());
       await passwordResetService.resetPassword(email.trim(), otp.trim(), newPassword, confirmPassword);
       sessionStorage.removeItem("password_reset_email");
       toast.success("Password reset successfully. You can now log in.");
@@ -670,6 +681,7 @@ export function OtpVerificationForm() {
         placeholder="Enter your email address"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
+        autoComplete="email"
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <Input
@@ -679,6 +691,7 @@ export function OtpVerificationForm() {
         inputMode="numeric"
         value={otp}
         onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+        autoComplete="one-time-code"
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <Input
@@ -688,6 +701,7 @@ export function OtpVerificationForm() {
         type="password"
         value={newPassword}
         onChange={(event) => setNewPassword(event.target.value)}
+        autoComplete="new-password"
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <Input
@@ -697,6 +711,7 @@ export function OtpVerificationForm() {
         type="password"
         value={confirmPassword}
         onChange={(event) => setConfirmPassword(event.target.value)}
+        autoComplete="new-password"
         className="h-[58px] rounded-[16px] border-[#e3eaf4] bg-[#f8fbff] px-5 text-[15px]"
       />
       <p className="text-[15px] leading-[1.8] text-ink-500">

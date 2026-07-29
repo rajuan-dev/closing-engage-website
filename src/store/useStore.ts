@@ -6,6 +6,46 @@ import {
 } from "@/data/mock-data";
 import type { Order, DocumentRecord, TeamMember, ActivityItem, ChatMessage, NotificationItem } from "@/types/models";
 
+const ROLE_USER_KEY = {
+  company: "portal_auth_user_company",
+  notary: "portal_auth_user_notary",
+} as const;
+
+const getScopedProfileStorageKey = (role: "company" | "notary", email?: string) => {
+  const normalizedEmail = email?.trim().toLowerCase();
+  return normalizedEmail ? `website_${role}_profile_${normalizedEmail}` : `website_${role}_profile`;
+};
+
+const getSessionUserEmail = (role: "company" | "notary") => {
+  const saved = localStorage.getItem(ROLE_USER_KEY[role]);
+  if (!saved) return "";
+
+  try {
+    const parsed = JSON.parse(saved) as { email?: string } | null;
+    return parsed?.email?.trim().toLowerCase() || "";
+  } catch {
+    return "";
+  }
+};
+
+const readScopedProfile = <T>(role: "company" | "notary", fallback: T): T => {
+  const email = getSessionUserEmail(role);
+  const storageKey = getScopedProfileStorageKey(role, email);
+  const saved = localStorage.getItem(storageKey);
+
+  try {
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeScopedProfile = (role: "company" | "notary", profile: unknown, email?: string) => {
+  const normalizedEmail = email?.trim().toLowerCase() || getSessionUserEmail(role);
+  localStorage.setItem(getScopedProfileStorageKey(role, normalizedEmail), JSON.stringify(profile));
+  localStorage.removeItem(`website_${role}_profile`);
+};
+
 export interface NotaryProfile {
   fullName: string;
   email: string;
@@ -72,6 +112,8 @@ interface AppState {
   upsertNotification: (notification: NotificationItem) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
+  removeNotification: (id: string) => void;
+  clearNotifications: () => void;
   recentActivities: ActivityItem[];
   addActivity: (activity: ActivityItem) => void;
   clearActivities: () => void;
@@ -145,53 +187,35 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       notifications: state.notifications.map((notification) => ({ ...notification, read: true })),
     })),
+  removeNotification: (id) =>
+    set((state) => ({
+      notifications: state.notifications.filter((notification) => notification.id !== id),
+    })),
+  clearNotifications: () => set({ notifications: [] }),
   recentActivities: [...recentActivities],
   addActivity: (activity) => set((state) => ({ recentActivities: [activity, ...state.recentActivities] })),
   clearActivities: () => set({ recentActivities: [] }),
-  notaryProfile: (() => {
-    const saved = localStorage.getItem("website_notary_profile");
-    try {
-      return saved ? JSON.parse(saved) : {
-        fullName: "Sarah Miller",
-        email: "sarah.miller@title-experts.com",
-        phone: "+1 (512) 555-0123",
-        licenseNumber: "CA-8829-2024",
-        commissionExpiry: "2027-11-14",
-        serviceArea: "Austin, TX & surrounding Travis County",
-        avatarUrl: "",
-        eoCoverage: "$100,000.00",
-        backgroundScreeningStatus: "Pending",
-        backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
-        notifications: {
-          email: true,
-          orders: true,
-          documents: false,
-        },
-      };
-    } catch {
-      return {
-        fullName: "Sarah Miller",
-        email: "sarah.miller@title-experts.com",
-        phone: "+1 (512) 555-0123",
-        licenseNumber: "CA-8829-2024",
-        commissionExpiry: "2027-11-14",
-        serviceArea: "Austin, TX & surrounding Travis County",
-        avatarUrl: "",
-        eoCoverage: "$100,000.00",
-        backgroundScreeningStatus: "Pending",
-        backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
-        notifications: {
-          email: true,
-          orders: true,
-          documents: false,
-        },
-      };
-    }
-  })(),
+  notaryProfile: readScopedProfile("notary", {
+    fullName: "",
+    email: "",
+    phone: "",
+    licenseNumber: "",
+    commissionExpiry: "",
+    serviceArea: "",
+    avatarUrl: "",
+    eoCoverage: "$100,000.00",
+    backgroundScreeningStatus: "Pending",
+    backgroundScreeningDetail: "Under review by the compliance department. Estimated completion: 48 hours.",
+    notifications: {
+      email: true,
+      orders: true,
+      documents: false,
+    },
+  }),
   updateNotaryProfile: (updates) =>
     set((state) => {
       const newProfile = { ...state.notaryProfile, ...updates };
-      localStorage.setItem("website_notary_profile", JSON.stringify(newProfile));
+      writeScopedProfile("notary", newProfile, newProfile.email);
       return { notaryProfile: newProfile };
     }),
   notaryCredentials: [],
@@ -199,46 +223,25 @@ export const useStore = create<AppState>((set) => ({
     set((state) => ({
       notaryCredentials: [credential, ...state.notaryCredentials],
     })),
-  companyProfile: (() => {
-    const saved = localStorage.getItem("website_company_profile");
-    try {
-      return saved ? JSON.parse(saved) : {
-        fullName: "Alex Sterling",
-        email: "alex.s@estateflux.com",
-        phone: "+1 (555) 902-4412",
-        companyName: "Estate Flux Title",
-        companyEmail: "ops@estateflux.com",
-        contactNumber: "+1 (555) 200-1100",
-        businessAddress: "782 Commerce Blvd, Austin TX",
-        avatarUrl: "",
-        notifications: {
-          email: true,
-          orders: true,
-          documents: false,
-        },
-      };
-    } catch {
-      return {
-        fullName: "Alex Sterling",
-        email: "alex.s@estateflux.com",
-        phone: "+1 (555) 902-4412",
-        companyName: "Estate Flux Title",
-        companyEmail: "ops@estateflux.com",
-        contactNumber: "+1 (555) 200-1100",
-        businessAddress: "782 Commerce Blvd, Austin TX",
-        avatarUrl: "",
-        notifications: {
-          email: true,
-          orders: true,
-          documents: false,
-        },
-      };
-    }
-  })(),
+  companyProfile: readScopedProfile("company", {
+    fullName: "",
+    email: "",
+    phone: "",
+    companyName: "",
+    companyEmail: "",
+    contactNumber: "",
+    businessAddress: "",
+    avatarUrl: "",
+    notifications: {
+      email: true,
+      orders: true,
+      documents: false,
+    },
+  }),
   updateCompanyProfile: (updates) =>
     set((state) => {
       const newProfile = { ...state.companyProfile, ...updates };
-      localStorage.setItem("website_company_profile", JSON.stringify(newProfile));
+      writeScopedProfile("company", newProfile, newProfile.email);
       return { companyProfile: newProfile };
     }),
   chatMessages: [...chatMessages],

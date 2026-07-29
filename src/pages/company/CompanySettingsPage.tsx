@@ -44,6 +44,7 @@ export function CompanySettingsPage() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
   const [personalInfo, setPersonalInfo] = useState({
     fullName: companyProfile.fullName,
@@ -143,10 +144,41 @@ export function CompanySettingsPage() {
   };
 
   const toggleNotification = (id: string) => {
-    if (!isEditMode) return;
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, active: !n.active } : n))
+    if (isSavingNotifications || isSaving) return;
+
+    const nextNotifications = notifications.map((n) =>
+      n.id === id ? { ...n, active: !n.active } : n,
     );
+
+    const previousNotifications = notifications;
+    setNotifications(nextNotifications);
+
+    const updatedNotifications = {
+      email: nextNotifications.find((n) => n.id === "email")?.active ?? true,
+      orders: nextNotifications.find((n) => n.id === "orders")?.active ?? true,
+      documents: nextNotifications.find((n) => n.id === "documents")?.active ?? false,
+    };
+
+    void (async () => {
+      try {
+        setIsSavingNotifications(true);
+        const user = await portalAuthService.updateCompanyProfile({
+          notifications: updatedNotifications,
+        });
+
+        const profile = mapSessionToProfile(user);
+        updateCompanyProfile({
+          ...(profile || companyProfile),
+          notifications: updatedNotifications,
+        });
+        toast.success("Notification preferences updated.");
+      } catch (error) {
+        setNotifications(previousNotifications);
+        toast.error(error instanceof Error ? error.message : "Unable to update notification preferences.");
+      } finally {
+        setIsSavingNotifications(false);
+      }
+    })();
   };
 
   const handleSaveSettings = async () => {
@@ -400,9 +432,9 @@ export function CompanySettingsPage() {
                   </div>
                   <button 
                     type="button"
-                    disabled={!isEditMode}
+                    disabled={isSavingNotifications || isSaving}
                     onClick={() => toggleNotification(n.id)}
-                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${!isEditMode ? "cursor-not-allowed opacity-60" : ""}`}
+                    className={`flex h-7 w-12 shrink-0 rounded-full p-1 transition-colors ${n.active ? "bg-brand-600" : "bg-[#dbe2ec]"} ${isSavingNotifications || isSaving ? "cursor-not-allowed opacity-60" : ""}`}
                   >
                     <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${n.active ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
