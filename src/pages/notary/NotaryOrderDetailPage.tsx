@@ -20,6 +20,7 @@ export function NotaryOrderDetailPage() {
   const [resubmittingDocumentId, setResubmittingDocumentId] = useState<string | null>(null);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isAcceptingOpenOrder, setIsAcceptingOpenOrder] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
@@ -47,6 +48,7 @@ export function NotaryOrderDetailPage() {
   const hasRejectedScanback = submittedScanbacks.some((document) => document.displayStatus === "Rejected");
   const hasSubmittedScanback = submittedScanbacks.some((document) => document.displayStatus === "Submitted");
   const meeting = orderDetail?.meeting ?? order?.meeting ?? null;
+  const isOpenOrder = Boolean(order?.openForAll || order?.notary === "Open for All");
 
   const refreshOrderSnapshot = async (orderId: string) => {
     const [refreshedOrder, refreshedDocuments] = await Promise.all([
@@ -72,16 +74,15 @@ export function NotaryOrderDetailPage() {
         setNotaryOrders(orders);
         setNotaryAssignedOrders(orders);
         const selectedOrder = orders.find((item) => item.id.replace("#", "") === id);
-        if (selectedOrder) {
-          const [detail, refreshedDocuments] = await Promise.all([
-            orderService.getOrderDetail(selectedOrder.id),
-            orderService.getDocumentDetails(),
-          ]);
-          if (!isMounted) return;
-          setOrderDetail(detail);
-          setNotaryNotes(detail.notaryNotes);
-          setDocuments(refreshedDocuments.filter((document) => document.orderNumber === detail.id));
-        }
+        const targetOrderId = selectedOrder?.id || `#${id}`;
+        const [detail, refreshedDocuments] = await Promise.all([
+          orderService.getOrderDetail(targetOrderId),
+          orderService.getDocumentDetails(),
+        ]);
+        if (!isMounted) return;
+        setOrderDetail(detail);
+        setNotaryNotes(detail.notaryNotes);
+        setDocuments(refreshedDocuments.filter((document) => document.orderNumber === detail.id));
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Unable to load order details.");
       } finally {
@@ -181,6 +182,25 @@ export function NotaryOrderDetailPage() {
       toast.error(error instanceof Error ? error.message : "Unable to update order status.");
     } finally {
       setIsUpdatingStatus(false);
+    }
+  };
+
+  const acceptOpenOrder = async () => {
+    if (!order) return;
+
+    try {
+      setIsAcceptingOpenOrder(true);
+      const acceptedOrder = await orderService.acceptOpenOrder(order.id);
+      updateNotaryOrder(order.id, acceptedOrder);
+      setNotaryOrders([acceptedOrder, ...notaryOrders.filter((item) => item.id !== acceptedOrder.id)]);
+      setNotaryAssignedOrders([acceptedOrder, ...notaryAssignedOrders.filter((item) => item.id !== acceptedOrder.id)]);
+      setOrderDetail((current) => (current ? { ...current, ...acceptedOrder } : { ...acceptedOrder, specialInstructions: "", notaryNotes: "" }));
+      setOrderStatus(acceptedOrder.status);
+      toast.success(`You accepted ${acceptedOrder.id}.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to accept open order.");
+    } finally {
+      setIsAcceptingOpenOrder(false);
     }
   };
 
@@ -428,42 +448,56 @@ export function NotaryOrderDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="w-[180px] h-[44px] justify-center rounded-[12px] border-brand-300 text-brand-600 bg-brand-50/50 hover:bg-brand-50 px-0 text-[14px] font-semibold"
-            onClick={() => setShowScheduleModal(true)}
-          >
-            <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-brand-500" />
-            {meeting ? "Reschedule Closing" : "Schedule Closing"}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={isUpdatingStatus || orderStatus === "In Progress"}
-            className={`w-[180px] h-[44px] justify-center rounded-[12px] border-amber-200 px-0 text-[14px] font-semibold ${
-              orderStatus === "In Progress"
-                ? "bg-amber-500 text-white shadow-[0_8px_18px_rgba(245,158,11,0.22)]"
-                : "text-amber-600 bg-amber-50/30 hover:bg-amber-50"
-            }`}
-            onClick={() => {
-              void updateStatus("In Progress");
-            }}
-          >
-            {orderStatus === "In Progress" ? "In Progress" : "Mark as In Progress"}
-          </Button>
-          <Button
-            disabled={isUpdatingStatus || orderStatus === "Completed"}
-            className={`w-[180px] h-[44px] justify-center rounded-[12px] px-0 text-[14px] font-semibold ${
-              orderStatus === "Completed"
-                ? "bg-emerald-700 text-white shadow-[0_8px_18px_rgba(16,185,129,0.22)]"
-                : "bg-emerald-600 text-white shadow-[0_8px_18px_rgba(16,185,129,0.22)] hover:bg-emerald-700"
-            }`}
-            onClick={() => {
-              void updateStatus("Completed");
-            }}
-          >
-            {orderStatus === "Completed" ? "Completed" : "Mark as Completed"}
-          </Button>
+        <div className="flex flex-wrap justify-end gap-3">
+          {isOpenOrder ? (
+            <Button
+              disabled={isAcceptingOpenOrder}
+              className="min-w-[220px] h-[44px] justify-center rounded-[12px] bg-brand-600 px-5 text-[14px] font-semibold text-white shadow-[0_10px_22px_rgba(24,90,188,0.22)] hover:bg-brand-700"
+              onClick={() => {
+                void acceptOpenOrder();
+              }}
+            >
+              {isAcceptingOpenOrder ? "Accepting..." : "Accept Open Order"}
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                className="w-[180px] h-[44px] justify-center rounded-[12px] border-brand-300 text-brand-600 bg-brand-50/50 hover:bg-brand-50 px-0 text-[14px] font-semibold"
+                onClick={() => setShowScheduleModal(true)}
+              >
+                <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-brand-500" />
+                {meeting ? "Reschedule Closing" : "Schedule Closing"}
+              </Button>
+              <Button
+                variant="outline"
+                disabled={isUpdatingStatus || orderStatus === "In Progress"}
+                className={`w-[180px] h-[44px] justify-center rounded-[12px] border-amber-200 px-0 text-[14px] font-semibold ${
+                  orderStatus === "In Progress"
+                    ? "bg-amber-500 text-white shadow-[0_8px_18px_rgba(245,158,11,0.22)]"
+                    : "text-amber-600 bg-amber-50/30 hover:bg-amber-50"
+                }`}
+                onClick={() => {
+                  void updateStatus("In Progress");
+                }}
+              >
+                {orderStatus === "In Progress" ? "In Progress" : "Mark as In Progress"}
+              </Button>
+              <Button
+                disabled={isUpdatingStatus || orderStatus === "Completed"}
+                className={`w-[180px] h-[44px] justify-center rounded-[12px] px-0 text-[14px] font-semibold ${
+                  orderStatus === "Completed"
+                    ? "bg-emerald-700 text-white shadow-[0_8px_18px_rgba(16,185,129,0.22)]"
+                    : "bg-emerald-600 text-white shadow-[0_8px_18px_rgba(16,185,129,0.22)] hover:bg-emerald-700"
+                }`}
+                onClick={() => {
+                  void updateStatus("Completed");
+                }}
+              >
+                {orderStatus === "Completed" ? "Completed" : "Mark as Completed"}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 

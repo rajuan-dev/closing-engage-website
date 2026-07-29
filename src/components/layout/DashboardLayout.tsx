@@ -109,6 +109,33 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
     }
   };
 
+  const handleNotificationClick = async (notification: typeof activityItems[number]) => {
+    try {
+      if (!notification.read) {
+        await notificationService.markRead(notification.id);
+        markNotificationRead(notification.id);
+      }
+
+      const normalizedLinkId = notification.linkId?.replace(/^#/, "").trim();
+      if (!normalizedLinkId) {
+        setNotifOpen(false);
+        return;
+      }
+
+      if (notification.type === "order") {
+        if (variant === "notary") {
+          navigate(`/notary/orders/${normalizedLinkId}`);
+        } else {
+          navigate(`/company/orders/${normalizedLinkId}`);
+        }
+      }
+
+      setNotifOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to open notification.");
+    }
+  };
+
   const activityItems = notifications.map((notification) => {
     let Icon = FileText;
     let tone: "brand" | "warning" | "success" = "brand";
@@ -372,19 +399,10 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (!act.read) {
-                                    void notificationService.markRead(act.id).then(() => {
-                                      markNotificationRead(act.id);
-                                    }).catch((error) => {
-                                      toast.error(error instanceof Error ? error.message : "Unable to update notification.");
-                                    });
-                                  }
+                                  void handleNotificationClick(act);
                                 }}
                                 className="flex min-w-0 flex-1 items-start gap-3.5 rounded-[16px] text-left focus:outline-none"
                               >
-                                <div className="pt-3">
-                                  <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${!act.read ? "bg-danger-500 shadow-[0_0_0_5px_rgba(239,68,68,0.10)]" : "bg-[#dbe4f0]"}`} />
-                                </div>
                                 <div
                                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] border ${
                                     act.tone === "warning"

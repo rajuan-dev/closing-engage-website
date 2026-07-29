@@ -6,15 +6,26 @@ import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { orderService } from "@/services/orderService";
 
+const NOTARY_ORDERS_STATUS_FILTER_KEY = "website_notary_orders_status_filter";
+const NOTARY_ORDER_STATUS_OPTIONS = ["All", "Assigned", "In Progress", "Submitted", "Open Order"] as const;
+type NotaryOrderStatusFilter = (typeof NOTARY_ORDER_STATUS_OPTIONS)[number];
+
 export function NotaryOrdersPage() {
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Assigned" | "In Progress" | "Submitted">("All");
+  const [statusFilter, setStatusFilter] = useState<NotaryOrderStatusFilter>(() => {
+    if (typeof window === "undefined") return "All";
+    const saved = window.localStorage.getItem(NOTARY_ORDERS_STATUS_FILTER_KEY);
+    return NOTARY_ORDER_STATUS_OPTIONS.includes(saved as NotaryOrderStatusFilter)
+      ? (saved as NotaryOrderStatusFilter)
+      : "All";
+  });
   const [dateFilter, setDateFilter] = useState("");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [locationFilter, setLocationFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
+  const [openOrders, setOpenOrders] = useState<typeof notaryAssignedOrders>([]);
 
   const { notaryAssignedOrders, setNotaryAssignedOrders, setNotaryOrders } = useStore();
   const [isLoading, setIsLoading] = useState(true);
@@ -27,10 +38,14 @@ export function NotaryOrdersPage() {
       try {
         setIsLoading(true);
         setLoadError("");
-        const orders = await orderService.getAssignedOrders();
+        const [assignedOrders, marketplaceOrders] = await Promise.all([
+          orderService.getAssignedOrders(),
+          orderService.getOpenOrders(),
+        ]);
         if (!isMounted) return;
-        setNotaryAssignedOrders(orders);
-        setNotaryOrders(orders);
+        setNotaryAssignedOrders(assignedOrders);
+        setNotaryOrders(assignedOrders);
+        setOpenOrders(marketplaceOrders);
       } catch (error) {
         if (isMounted) setLoadError(error instanceof Error ? error.message : "Unable to load assigned orders.");
       } finally {
@@ -45,12 +60,22 @@ export function NotaryOrdersPage() {
     };
   }, [setNotaryAssignedOrders, setNotaryOrders]);
 
-  const filteredOrders = notaryAssignedOrders.filter((order) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(NOTARY_ORDERS_STATUS_FILTER_KEY, statusFilter);
+  }, [statusFilter]);
+
+  const selectedOrders = statusFilter === "Open Order" ? openOrders : notaryAssignedOrders;
+
+  const filteredOrders = selectedOrders.filter((order) => {
     const matchesSearch =
       searchValue.trim() === "" ||
       order.id.toLowerCase().includes(searchValue.toLowerCase()) ||
       order.clientName.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesStatus = statusFilter === "All" || order.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "All" ||
+      statusFilter === "Open Order" ||
+      order.status === statusFilter;
     const matchesDate = (() => {
       if (dateFilter.trim() === "") return true;
       // Convert browser date picker format (yyyy-mm-dd) to match mock data month/day/year format
@@ -124,12 +149,13 @@ export function NotaryOrdersPage() {
             <select
               value={statusFilter}
               onChange={(event) => {
-                setStatusFilter(event.target.value as "All" | "Assigned" | "In Progress" | "Submitted");
+                setStatusFilter(event.target.value as NotaryOrderStatusFilter);
                 setCurrentPage(1);
               }}
               className="h-full w-full bg-transparent text-[15px] text-ink-700 outline-none"
             >
               <option value="All">All Statuses</option>
+              <option value="Open Order">Open Order</option>
               <option value="Assigned">Assigned</option>
               <option value="In Progress">In Progress</option>
               <option value="Submitted">Submitted</option>
@@ -256,7 +282,9 @@ export function NotaryOrdersPage() {
                   <td className="px-6 py-5 text-[15px] font-bold text-brand-600">{order.id}</td>
                   <td className="px-6 py-5">
                     <div className="text-[16px] font-semibold text-ink-900">{order.clientName}</div>
-                    <div className="mt-1 text-[13px] text-ink-500">{order.notary}</div>
+                    <div className="mt-1 text-[13px] text-ink-500">
+                      {statusFilter === "Open Order" ? "Open for All" : order.notary}
+                    </div>
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2 text-[15px] text-ink-500">
@@ -269,7 +297,7 @@ export function NotaryOrdersPage() {
                     <div className="mt-1 text-[13px] text-ink-500">{order.time}</div>
                   </td>
                   <td className="px-6 py-5">
-                    <Badge status={order.status} />
+                    <Badge status={statusFilter === "Open Order" ? "Open Order" : order.status} />
                   </td>
                   <td className="px-6 py-5">
                     <Link 
@@ -284,7 +312,9 @@ export function NotaryOrdersPage() {
               {paginatedOrders.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-10 text-center text-[15px] text-ink-400">
-                    No assigned orders found matching your filter criteria.
+                    {statusFilter === "Open Order"
+                      ? "No open orders found matching your filter criteria."
+                      : "No assigned orders found matching your filter criteria."}
                   </td>
                 </tr>
               )}
@@ -292,7 +322,9 @@ export function NotaryOrdersPage() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[#edf1f7] px-6 py-5 text-sm text-ink-500">
-          <span>Showing {paginatedOrders.length} of {filteredOrders.length} filtered orders ({notaryAssignedOrders.length} total)</span>
+          <span>
+            Showing {paginatedOrders.length} of {filteredOrders.length} filtered orders ({selectedOrders.length} total)
+          </span>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}

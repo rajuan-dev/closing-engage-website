@@ -149,6 +149,7 @@ const normalizeOrder = (order: RawOrder): Order => ({
   notary: order.notary || (order.assignedNotaryName === "Unassigned" ? "--" : order.assignedNotaryName) || "--",
   notaryAvatarUrl: order.notaryAvatarUrl || "",
   assignedNotaryId: order.assignedNotaryId || "",
+  openForAll: order.openForAll ?? false,
   status: order.status || "Received",
   date: order.date || order.signingDate || "",
   time: order.time || order.signingTime || "",
@@ -158,6 +159,9 @@ const normalizeOrder = (order: RawOrder): Order => ({
 
 const isDirectlyAssignedNotaryOrder = (order: RawOrder) =>
   order.openForAll !== true && order.assignedNotaryName !== "Open for All";
+
+const isOpenNotaryOrder = (order: RawOrder) =>
+  order.openForAll === true || order.assignedNotaryName === "Open for All";
 
 const normalizeOrderDetail = (order: RawOrder): OrderDetail => ({
   ...normalizeOrder(order),
@@ -179,6 +183,11 @@ export const orderService = {
   async getAssignedOrders(): Promise<Order[]> {
     const orders = await request<RawOrder[]>("/orders");
     return orders.filter(isDirectlyAssignedNotaryOrder).map(normalizeOrder);
+  },
+
+  async getOpenOrders(): Promise<Order[]> {
+    const orders = await request<RawOrder[]>("/orders");
+    return orders.filter(isOpenNotaryOrder).map(normalizeOrder);
   },
 
   async getCompanyOrder(id: string): Promise<OrderDetail> {
@@ -225,6 +234,13 @@ export const orderService = {
     const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/notary-status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    });
+    return normalizeOrder(order);
+  },
+
+  async acceptOpenOrder(id: string): Promise<Order> {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/accept-open`, {
+      method: "PATCH",
     });
     return normalizeOrder(order);
   },

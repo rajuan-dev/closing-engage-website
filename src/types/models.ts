@@ -20,6 +20,7 @@ export interface Order {
   notary: string;
   notaryAvatarUrl?: string;
   assignedNotaryId?: string;
+  openForAll?: boolean;
   status:
     | "Received"
     | "Assigned"

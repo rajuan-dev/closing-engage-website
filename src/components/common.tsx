@@ -140,6 +140,7 @@ export function Select({
 
 export function Badge({ status }: { status: string }) {
   const map: Record<string, string> = {
+    "Open Order": "bg-[#eef4ff] text-brand-600",
     Received: "bg-slate-100 text-slate-600",
     Assigned: "bg-brand-50 text-brand-600",
     "Under Review": "bg-warning-100 text-warning-600",
