@@ -264,9 +264,10 @@ export function CompanyOrdersNewPage() {
                 min="0"
                 step="0.01"
                 placeholder="0.00"
+                icon={<span className="font-bold text-brand-600">$</span>}
                 value={formData.price}
                 onChange={(e) => handleInputChange("price", e.target.value)}
-                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white px-4 text-[14px]"
+                className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white text-[14px]"
               />
             </div>
             <div className="grid gap-5 lg:grid-cols-[1fr_0.72fr]">
