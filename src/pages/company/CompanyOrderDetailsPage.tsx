@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CalendarDays, CheckCircle2, CircleDot, Clock3, Download, Eye, FileText, MapPin } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
-import { Badge, Button, Surface } from "@/components/common";
+import { Badge, Button, Select, Surface } from "@/components/common";
+import { US_STATE_OPTIONS } from "@/constants/usStates";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
@@ -35,6 +36,8 @@ export function CompanyOrderDetailsPage() {
   const [signingDate, setSigningDate] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
+  const [orderPrice, setOrderPrice] = useState("");
+  const [orderState, setOrderState] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -73,6 +76,8 @@ export function CompanyOrderDetailsPage() {
       setSigningDate(order.time ? `${order.date}, ${order.time}` : order.date);
       setPropertyAddress(order.propertyAddress);
       setSpecialInstructions(orderDetail?.specialInstructions || "");
+      setOrderPrice(typeof order.price === "number" ? String(order.price) : (order.price ? String(order.price) : ""));
+      setOrderState(order.state || "");
     }
   }, [order, orderDetail, isEditing]);
 
@@ -187,6 +192,8 @@ export function CompanyOrderDetailsPage() {
                           date: signingDate,
                           propertyAddress,
                           specialInstructions,
+                          price: orderPrice !== "" ? Number(orderPrice) : undefined,
+                          state: orderState,
                         });
                         updateCompanyOrder(order.id, updatedOrder);
                         setOrderDetail(updatedOrder);
@@ -222,6 +229,35 @@ export function CompanyOrderDetailsPage() {
                         onChange={(e) => setSigningDate(e.target.value)}
                         className="h-[48px] w-full rounded-[12px] border border-[#dfe6f2] px-4 text-[15px] text-ink-700 outline-none focus:border-brand-500 transition-colors"
                         required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400 mb-2">
+                        Order Price ($)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-3.5 text-ink-400 font-bold">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={orderPrice}
+                          onChange={(e) => setOrderPrice(e.target.value)}
+                          className="h-[48px] w-full rounded-[12px] border border-[#dfe6f2] pl-8 pr-4 text-[15px] text-ink-700 outline-none focus:border-brand-500 transition-colors"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400 mb-2">
+                        State
+                      </label>
+                      <Select
+                        options={US_STATE_OPTIONS}
+                        value={orderState}
+                        onChange={(e) => setOrderState(e.target.value)}
+                        placeholder="Select State"
+                        className="h-[48px] rounded-[12px] border-[#dfe6f2] bg-white text-[15px]"
                       />
                     </div>
                     <div className="md:col-span-2">

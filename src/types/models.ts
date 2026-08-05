@@ -36,13 +36,18 @@ export interface Order {
   time?: string;
   location?: string;
   meeting?: {
-    status: "scheduled" | "confirmed";
+    status: "scheduled" | "confirmed" | "rejected";
     date: string;
     time: string;
     scheduledByRole: "admin" | "company" | "notary";
     scheduledAt: string;
     confirmedByRole?: "admin" | "company" | "notary";
     confirmedAt?: string;
+    rejectedByRole?: "notary";
+    rejectedAt?: string;
+    rejectionNote?: string;
+    preferredDate?: string;
+    preferredTime?: string;
   } | null;
 }
 

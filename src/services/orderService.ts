@@ -209,7 +209,11 @@ export const orderService = {
 
   async updateCompanyOrder(
     id: string,
-    payload: Partial<Pick<Order, "clientName" | "propertyAddress" | "date">> & { specialInstructions?: string },
+    payload: Partial<Pick<Order, "clientName" | "propertyAddress" | "date">> & {
+      specialInstructions?: string;
+      price?: number | string;
+      state?: string;
+    },
   ): Promise<OrderDetail> {
     const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}`, {
       method: "PATCH",
@@ -218,6 +222,8 @@ export const orderService = {
         propertyAddress: payload.propertyAddress,
         signingDate: payload.date,
         specialInstructions: payload.specialInstructions,
+        price: payload.price !== undefined && payload.price !== "" ? Number(payload.price) : undefined,
+        state: payload.state || undefined,
       }),
     });
     return normalizeOrderDetail(order);
@@ -263,6 +269,17 @@ export const orderService = {
   async confirmOrderMeeting(id: string): Promise<OrderDetail> {
     const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/meeting/confirm`, {
       method: "PATCH",
+    });
+    return normalizeOrderDetail(order);
+  },
+
+  async rejectOrderMeeting(
+    id: string,
+    payload: { note: string; preferredDate?: string; preferredTime?: string },
+  ): Promise<OrderDetail> {
+    const order = await request<RawOrder>(`/orders/${encodeURIComponent(id)}/meeting/reject`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
     });
     return normalizeOrderDetail(order);
   },

@@ -22,6 +22,7 @@ export function NotaryOrderDetailPage() {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isAcceptingOpenOrder, setIsAcceptingOpenOrder] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
+  const [isRespondingToSchedule, setIsRespondingToSchedule] = useState(false);
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const allOrders = [...notaryOrders, ...notaryAssignedOrders];
@@ -802,8 +803,10 @@ export function NotaryOrderDetailPage() {
                   {!meeting
                     ? "Choose the closing date and time to notify the title company."
                     : meeting.status === "confirmed"
-                      ? "The title company confirmed this appointment. You can proceed with the closing."
-                      : "The title company has been notified. Waiting for them to confirm this appointment."}
+                    ? "You accepted this appointment. The title company can now see it as confirmed."
+                    : meeting.status === "rejected"
+                      ? "You rejected this request. The title company can send another schedule."
+                      : "The title company requested this appointment. Accept it or send your preferred availability."}
                 </div>
               </div>
               <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
@@ -813,7 +816,7 @@ export function NotaryOrderDetailPage() {
                     ? "bg-[#e8f7ee] text-[#229b58]"
                     : "bg-[#eef4ff] text-brand-600"
               }`}>
-                {!meeting ? "Open" : meeting.status === "confirmed" ? "Confirmed" : "Pending Company"}
+                {!meeting ? "Open" : meeting.status === "confirmed" ? "Confirmed" : meeting.status === "rejected" ? "Rejected" : "Needs Response"}
               </span>
             </div>
 
@@ -831,9 +834,62 @@ export function NotaryOrderDetailPage() {
                     ) : (
                       <Clock className="h-4 w-4 text-brand-600" />
                     )}
-                    {meeting.status === "confirmed" ? "Confirmed by title company" : "Awaiting company confirmation"}
+                    {meeting.status === "confirmed" ? "Accepted by you" : meeting.status === "rejected" ? "Rejected by you" : "Awaiting your response"}
                   </div>
                 </div>
+              </div>
+            ) : null}
+            {meeting?.status === "scheduled" ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Button
+                  disabled={isRespondingToSchedule}
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        setIsRespondingToSchedule(true);
+                        const updatedOrder = await orderService.confirmOrderMeeting(order.id);
+                        updateNotaryOrder(order.id, updatedOrder);
+                        setOrderDetail(updatedOrder);
+                        toast.success("Schedule accepted.");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Unable to accept schedule.");
+                      } finally {
+                        setIsRespondingToSchedule(false);
+                      }
+                    })();
+                  }}
+                >
+                  Accept Schedule
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={isRespondingToSchedule}
+                  onClick={() => {
+                    const note = window.prompt("Why does this schedule not work?");
+                    if (!note?.trim()) return;
+                    const preferredDate = window.prompt("Preferred date (optional)") || undefined;
+                    const preferredTime = window.prompt("Preferred time (optional)") || undefined;
+                    void (async () => {
+                      try {
+                        setIsRespondingToSchedule(true);
+                        const updatedOrder = await orderService.rejectOrderMeeting(order.id, {
+                          note: note.trim(),
+                          preferredDate: preferredDate?.trim() || undefined,
+                          preferredTime: preferredTime?.trim() || undefined,
+                        });
+                        updateNotaryOrder(order.id, updatedOrder);
+                        setOrderDetail(updatedOrder);
+                        toast.success("Preferred availability sent to the title company.");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Unable to reject schedule.");
+                      } finally {
+                        setIsRespondingToSchedule(false);
+                      }
+                    })();
+                  }}
+                >
+                  Reject / Suggest Time
+                </Button>
               </div>
             ) : null}
           </Surface>
