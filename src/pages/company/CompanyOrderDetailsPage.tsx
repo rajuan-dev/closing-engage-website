@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, CheckCircle2, CircleDot, Clock3, Download, Eye, FileText, MapPin } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowLeft, CircleDot, Download, Eye, FileText, MapPin } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
 import { Badge, Button, Select, Surface } from "@/components/common";
@@ -29,7 +29,6 @@ export function CompanyOrderDetailsPage() {
 
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const [isPreparingPreview, setIsPreparingPreview] = useState(false);
-  const [isConfirmingMeeting, setIsConfirmingMeeting] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [clientName, setClientName] = useState("");
@@ -38,6 +37,11 @@ export function CompanyOrderDetailsPage() {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [orderPrice, setOrderPrice] = useState("");
   const [orderState, setOrderState] = useState("");
+  const [scheduleRequestDate, setScheduleRequestDate] = useState("");
+  const [scheduleRequestTime, setScheduleRequestTime] = useState("");
+  const [rescheduleRejectNote, setRescheduleRejectNote] = useState("");
+  const [isSendingScheduleRequest, setIsSendingScheduleRequest] = useState(false);
+  const [isRespondingToReschedule, setIsRespondingToReschedule] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,6 +82,9 @@ export function CompanyOrderDetailsPage() {
       setSpecialInstructions(orderDetail?.specialInstructions || "");
       setOrderPrice(typeof order.price === "number" ? String(order.price) : (order.price ? String(order.price) : ""));
       setOrderState(order.state || "");
+      setScheduleRequestDate("");
+      setScheduleRequestTime("");
+      setRescheduleRejectNote("");
     }
   }, [order, orderDetail, isEditing]);
 
@@ -132,7 +139,60 @@ export function CompanyOrderDetailsPage() {
 
   const activityLog = orderDetail?.timeline ?? [];
   const meeting = orderDetail?.meeting ?? order.meeting ?? null;
-  const meetingLabel = meeting ? `${meeting.date} at ${meeting.time}` : "Not scheduled yet";
+  const sendScheduleRequest = async () => {
+    if (!scheduleRequestDate || !scheduleRequestTime) {
+      toast.error("Please select both schedule date and time.");
+      return;
+    }
+
+    try {
+      setIsSendingScheduleRequest(true);
+      const updatedOrder = await orderService.scheduleOrder(order.id, scheduleRequestDate, scheduleRequestTime);
+      updateCompanyOrder(order.id, updatedOrder);
+      setOrderDetail(updatedOrder);
+      setScheduleRequestDate("");
+      setScheduleRequestTime("");
+      toast.success("Schedule request sent to the notary.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to send schedule request.");
+    } finally {
+      setIsSendingScheduleRequest(false);
+    }
+  };
+  const acceptNotaryReschedule = async () => {
+    try {
+      setIsRespondingToReschedule(true);
+      const updatedOrder = await orderService.confirmOrderMeeting(order.id);
+      updateCompanyOrder(order.id, updatedOrder);
+      setOrderDetail(updatedOrder);
+      toast.success("Reschedule accepted.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to accept reschedule.");
+    } finally {
+      setIsRespondingToReschedule(false);
+    }
+  };
+  const rejectNotaryReschedule = async () => {
+    if (!rescheduleRejectNote.trim()) {
+      toast.error("Please add a note before rejecting the reschedule request.");
+      return;
+    }
+
+    try {
+      setIsRespondingToReschedule(true);
+      const updatedOrder = await orderService.rejectOrderMeeting(order.id, {
+        note: rescheduleRejectNote.trim(),
+      });
+      updateCompanyOrder(order.id, updatedOrder);
+      setOrderDetail(updatedOrder);
+      setRescheduleRejectNote("");
+      toast.success("Reschedule rejected and notary notified.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to reject reschedule.");
+    } finally {
+      setIsRespondingToReschedule(false);
+    }
+  };
 
   return (
     <>
@@ -310,7 +370,82 @@ export function CompanyOrderDetailsPage() {
                   <Detail
                     label="SIGNING DATE & TIME"
                     value={order.time ? `${order.date}, ${order.time}` : order.date || "Not scheduled"}
-                  />
+                  >
+                    {meeting?.status === "confirmed" ? (
+                      <div className="mt-3 inline-flex rounded-full bg-[#e8f7ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#229b58]">
+                        Confirmed by notary
+                      </div>
+                    ) : null}
+                    {meeting?.status === "rejected" ? (
+                      <div className="mt-4 rounded-[14px] border border-[#ffd8d8] bg-[#fff7f7] p-4">
+                        <div className="rounded-[12px] bg-white px-3 py-3 text-[13px] text-ink-600">
+                          <div>{meeting.rejectionNote || "No note provided."}</div>
+                          {(meeting.preferredDate || meeting.preferredTime) ? (
+                            <div className="mt-2 font-semibold">
+                              Preferred: {[meeting.preferredDate, meeting.preferredTime].filter(Boolean).join(" at ")}
+                            </div>
+                          ) : null}
+                        </div>
+                        {(meeting.preferredDate || meeting.preferredTime) ? (
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <Button
+                              type="button"
+                              disabled={isRespondingToReschedule}
+                              onClick={() => void acceptNotaryReschedule()}
+                              className="h-11 rounded-[12px] px-4 text-[13px] font-semibold"
+                            >
+                              {isRespondingToReschedule ? "Saving..." : "Accept Preferred Time"}
+                            </Button>
+                          </div>
+                        ) : null}
+                        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                          <input
+                            type="date"
+                            value={scheduleRequestDate}
+                            onChange={(event) => setScheduleRequestDate(event.target.value)}
+                            className="h-11 rounded-[12px] border border-[#dfe6f2] bg-white px-3 text-[14px] text-ink-700 outline-none focus:border-brand-300"
+                          />
+                          <input
+                            type="time"
+                            value={scheduleRequestTime}
+                            onChange={(event) => setScheduleRequestTime(event.target.value)}
+                            className="h-11 rounded-[12px] border border-[#dfe6f2] bg-white px-3 text-[14px] text-ink-700 outline-none focus:border-brand-300"
+                          />
+                          <Button
+                            type="button"
+                            disabled={isSendingScheduleRequest}
+                            onClick={() => void sendScheduleRequest()}
+                            className="h-11 rounded-[12px] px-4 text-[13px] font-semibold"
+                          >
+                            {isSendingScheduleRequest ? "Sending..." : "Send New Time"}
+                          </Button>
+                        </div>
+                        <div className="mt-4 rounded-[12px] border border-[#f4dada] bg-white p-3">
+                          <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.12em] text-ink-400">
+                            Reject Reschedule Note
+                          </label>
+                          <textarea
+                            value={rescheduleRejectNote}
+                            onChange={(event) => setRescheduleRejectNote(event.target.value)}
+                            rows={3}
+                            placeholder="Explain why this preferred time does not work."
+                            className="w-full resize-none rounded-[10px] border border-[#dfe6f2] px-3 py-2 text-[13px] text-ink-700 outline-none focus:border-brand-300"
+                          />
+                          <div className="mt-3 flex justify-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={isRespondingToReschedule}
+                              onClick={() => void rejectNotaryReschedule()}
+                              className="h-10 rounded-[10px] px-4 text-[13px] font-semibold"
+                            >
+                              Reject Reschedule
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+                  </Detail>
                   <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
                   <Detail label="STATE" value={order.state || "Not set"} />
                   <div className="md:col-span-2">
@@ -465,84 +600,6 @@ export function CompanyOrderDetailsPage() {
           </div>
 
           <div className="space-y-6">
-            <Surface className="rounded-[18px] border border-[#e4ebf5] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-400">Closing Meeting</div>
-                  <div className="mt-3 flex items-center gap-3">
-                    <div className={`flex h-11 w-11 items-center justify-center rounded-[14px] ${
-                      meeting?.status === "confirmed"
-                        ? "bg-[#edf9f2] text-[#229b58]"
-                        : meeting
-                          ? "bg-[#eef4ff] text-brand-600"
-                          : "bg-[#f3f5f9] text-ink-300"
-                    }`}>
-                      {meeting?.status === "confirmed" ? <CheckCircle2 className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />}
-                    </div>
-                    <div>
-                      <div className="text-[18px] font-bold tracking-tight text-ink-900">{meetingLabel}</div>
-                      <div className="mt-1 text-[13px] text-ink-500">
-                        {!meeting
-                          ? "Waiting for the assigned notary to schedule the closing."
-                          : meeting.status === "confirmed"
-                            ? "Confirmed and ready for the assigned notary."
-                            : "Review this proposed closing time and confirm it for the notary."}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {meeting ? (
-                  <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
-                    meeting.status === "confirmed"
-                      ? "bg-[#e8f7ee] text-[#229b58]"
-                      : "bg-[#eef4ff] text-brand-600"
-                  }`}>
-                    {meeting.status === "confirmed" ? "Confirmed" : "Awaiting Confirm"}
-                  </span>
-                ) : null}
-              </div>
-
-              {meeting ? (
-                <div className="mt-5 grid gap-4 rounded-[14px] border border-[#ebf0f7] bg-white/80 px-4 py-4 sm:grid-cols-2">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">Scheduled By</div>
-                    <div className="mt-2 text-[14px] font-semibold capitalize text-ink-900">{meeting.scheduledByRole}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">Meeting Time</div>
-                    <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-ink-900">
-                      <Clock3 className="h-4 w-4 text-brand-600" />
-                      {meeting.date} at {meeting.time}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {meeting?.status === "scheduled" ? (
-                <Button
-                  className="mt-5 h-[46px] w-full rounded-[12px] text-[14px] font-semibold"
-                  disabled={isConfirmingMeeting}
-                  onClick={() => {
-                    void (async () => {
-                      try {
-                        setIsConfirmingMeeting(true);
-                        const updatedOrder = await orderService.confirmOrderMeeting(order.id);
-                        updateCompanyOrder(order.id, updatedOrder);
-                        setOrderDetail(updatedOrder);
-                        toast.success(`Closing confirmed for ${updatedOrder.meeting?.date} at ${updatedOrder.meeting?.time}`);
-                      } catch (error) {
-                        toast.error(error instanceof Error ? error.message : "Unable to confirm the scheduled meeting.");
-                      } finally {
-                        setIsConfirmingMeeting(false);
-                      }
-                    })();
-                  }}
-                >
-                  {isConfirmingMeeting ? "Confirming..." : "Confirm Meeting"}
-                </Button>
-              ) : null}
-            </Surface>
-
             <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-6 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
               <div className="text-[14px] font-semibold uppercase tracking-[0.08em] text-ink-400">Assigned Notary</div>
               <div className="mt-5 flex items-center gap-4">
@@ -606,15 +663,18 @@ function Detail({
   label,
   value,
   valueClassName,
+  children,
 }: {
   label: string;
   value: string;
   valueClassName?: string;
+  children?: ReactNode;
 }) {
   return (
     <div>
       <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">{label}</div>
       <div className={`mt-2 text-[16px] font-semibold text-ink-900 ${valueClassName ?? ""}`}>{value}</div>
+      {children}
     </div>
   );
 }

@@ -43,7 +43,7 @@ export interface Order {
     scheduledAt: string;
     confirmedByRole?: "admin" | "company" | "notary";
     confirmedAt?: string;
-    rejectedByRole?: "notary";
+    rejectedByRole?: "company" | "notary" | "admin";
     rejectedAt?: string;
     rejectionNote?: string;
     preferredDate?: string;
