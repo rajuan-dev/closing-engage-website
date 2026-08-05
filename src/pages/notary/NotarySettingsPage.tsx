@@ -173,6 +173,11 @@ export function NotarySettingsPage() {
   };
 
   const handleSave = async () => {
+    if (!state) {
+      toast.error("Please select your notary state before saving.");
+      return;
+    }
+
     const updatedNotifications = {
       email: notifications.find((n) => n.id === "email")?.active ?? true,
       orders: notifications.find((n) => n.id === "orders")?.active ?? true,
