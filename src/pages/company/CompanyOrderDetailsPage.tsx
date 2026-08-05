@@ -275,6 +275,8 @@ export function CompanyOrderDetailsPage() {
                     label="SIGNING DATE & TIME"
                     value={order.time ? `${order.date}, ${order.time}` : order.date || "Not scheduled"}
                   />
+                  <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
+                  <Detail label="STATE" value={order.state || "Not set"} />
                   <div className="md:col-span-2">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
                       PROPERTY ADDRESS

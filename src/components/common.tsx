@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { Check, ChevronDown, Search, UploadCloud, Eye, EyeOff } from "lucide-react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { Check, ChevronDown, Search, UploadCloud, Eye, EyeOff, Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { MetricCard, NavItem } from "@/types/models";
@@ -49,6 +49,7 @@ export function Input({
   icon,
   className,
   type,
+  onClick,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
@@ -56,6 +57,17 @@ export function Input({
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const isPasswordType = type === "password";
+
+  const handleClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    if (type === "date" || type === "time") {
+      try {
+        e.currentTarget.showPicker?.();
+      } catch {
+        // Fallback ignored
+      }
+    }
+    if (onClick) onClick(e);
+  };
 
   return (
     <label className="block" htmlFor={props.id}>
@@ -70,6 +82,7 @@ export function Input({
         <input 
           id={props.id}
           type={isPasswordType ? (showPassword ? "text" : "password") : type}
+          onClick={handleClick}
           className="h-full w-full bg-transparent outline-none placeholder:text-ink-300 pr-10" 
           {...props} 
         />
@@ -106,37 +119,556 @@ export function Textarea({
   );
 }
 
+export type SelectOptionObj = {
+  value: string;
+  label: string;
+  sublabel?: string;
+};
+
+export type SelectOption = string | SelectOptionObj;
+
 export function Select({
   label,
   options,
+  value = "",
+  onChange,
   className,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  placeholder = "Select...",
+  name,
+  disabled = false,
+  id,
+}: {
   label?: string;
-  options: string[];
+  options: SelectOption[];
+  value?: string;
+  onChange?: (e: { target: { value: string; name?: string } }) => void;
+  className?: string;
+  placeholder?: string;
+  name?: string;
+  disabled?: boolean;
+  id?: string;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const normalizedOptions = useMemo(() => {
+    return options.map((opt) => {
+      if (typeof opt === "string") {
+        return {
+          value: opt === "Select State" || opt.startsWith("Select ") ? "" : opt,
+          label: opt,
+        };
+      }
+      return opt;
+    });
+  }, [options]);
+
+  const selectedOption = useMemo(() => {
+    return (
+      normalizedOptions.find((o) => o.value === value) ||
+      (value ? { value, label: value } : null)
+    );
+  }, [normalizedOptions, value]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery.trim()) return normalizedOptions;
+    const q = searchQuery.toLowerCase();
+    return normalizedOptions.filter(
+      (opt) =>
+        opt.label.toLowerCase().includes(q) ||
+        opt.value.toLowerCase().includes(q) ||
+        (opt.sublabel && opt.sublabel.toLowerCase().includes(q))
+    );
+  }, [normalizedOptions, searchQuery]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (optValue: string) => {
+    if (onChange) {
+      onChange({ target: { value: optValue, name } });
+    }
+    setIsOpen(false);
+    setSearchQuery("");
+  };
+
+  const isSearchable = normalizedOptions.length > 6;
+
   return (
-    <label className="block">
-      {label ? <span className="mb-2 block text-sm font-semibold text-ink-900">{label}</span> : null}
-      <div className="relative">
-        <select
+    <div className="block" id={id}>
+      {label ? <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.06em] text-ink-500">{label}</span> : null}
+      <div className="relative" ref={containerRef}>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setIsOpen((prev) => !prev)}
           className={cn(
-            "flex h-13 w-full appearance-none items-center justify-between rounded-xl border border-ink-100 bg-white px-4 text-sm text-ink-700 outline-none focus:border-brand-200",
-            className,
+            "flex h-13 w-full items-center justify-between rounded-xl border border-ink-100 bg-white px-4 text-sm text-ink-700 outline-none transition-all duration-150 hover:border-brand-200 focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 disabled:opacity-50 disabled:cursor-not-allowed",
+            isOpen && "border-brand-400 ring-2 ring-brand-500/10 shadow-sm",
+            className
           )}
-          {...props}
         >
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+          <span className={cn("truncate text-left", !selectedOption || selectedOption.value === "" ? "text-ink-400 font-normal" : "font-semibold text-ink-900")}>
+            {selectedOption && selectedOption.value !== "" ? selectedOption.label : placeholder}
+          </span>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink-400 transition-transform duration-200", isOpen && "rotate-180 text-brand-600")} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-xl border border-[#dfe6f2] bg-white p-1.5 shadow-[0_16px_36px_rgba(20,48,112,0.14)] animate-in fade-in zoom-in-95 duration-150">
+            {isSearchable && (
+              <div className="relative mb-1 px-1 pt-1 pb-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search state or code..."
+                  className="w-full rounded-lg border border-[#e4ebf5] bg-[#f8fbff] py-1.5 pl-8 pr-3 text-xs text-ink-900 outline-none focus:border-brand-300 focus:bg-white"
+                  autoFocus
+                />
+              </div>
+            )}
+            <div className="max-h-56 overflow-y-auto pr-1">
+              {filteredOptions.length === 0 ? (
+                <div className="px-3 py-3 text-center text-xs text-ink-400">No options found</div>
+              ) : (
+                filteredOptions.map((opt) => {
+                  const isSelected = opt.value === value;
+                  return (
+                    <button
+                      key={opt.value + opt.label}
+                      type="button"
+                      onClick={() => handleSelect(opt.value)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-lg px-3 py-2 text-[13px] transition-colors text-left",
+                        isSelected
+                          ? "bg-brand-50 font-bold text-brand-700"
+                          : "text-ink-700 hover:bg-[#f5f8ff] hover:text-ink-900 font-medium"
+                      )}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {isSelected && <Check className="h-4 w-4 shrink-0 text-brand-600 ml-2" />}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </label>
+    </div>
   );
 }
+
+export function DatePicker({
+  label,
+  value = "",
+  onChange,
+  placeholder = "Select date...",
+  className,
+  name,
+  disabled = false,
+}: {
+  label?: string;
+  value?: string; // YYYY-MM-DD
+  onChange?: (e: { target: { value: string; name?: string } }) => void;
+  placeholder?: string;
+  className?: string;
+  name?: string;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const today = new Date();
+  const parsedDate = value ? new Date(value + "T00:00:00") : null;
+  const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+
+  const [viewYear, setViewYear] = useState(isValidDate ? parsedDate.getFullYear() : today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(isValidDate ? parsedDate.getMonth() : today.getMonth());
+
+  useEffect(() => {
+    if (isValidDate) {
+      setViewYear(parsedDate.getFullYear());
+      setViewMonth(parsedDate.getMonth());
+    }
+  }, [value]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((v) => v - 1);
+    } else {
+      setViewMonth((v) => v - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((v) => v + 1);
+    } else {
+      setViewMonth((v) => v + 1);
+    }
+  };
+
+  const handleSelectDay = (day: number) => {
+    const formattedMonth = String(viewMonth + 1).padStart(2, "0");
+    const formattedDay = String(day).padStart(2, "0");
+    const dateStr = `${viewYear}-${formattedMonth}-${formattedDay}`;
+
+    if (onChange) {
+      onChange({ target: { value: dateStr, name } });
+    }
+    setIsOpen(false);
+  };
+
+  const handlePreset = (preset: "today" | "tomorrow" | "nextWeek") => {
+    const d = new Date();
+    if (preset === "tomorrow") {
+      d.setDate(d.getDate() + 1);
+    } else if (preset === "nextWeek") {
+      d.setDate(d.getDate() + 7);
+    }
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${y}-${m}-${day}`;
+    if (onChange) {
+      onChange({ target: { value: dateStr, name } });
+    }
+    setIsOpen(false);
+  };
+
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const displayFormatted = isValidDate
+    ? parsedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : value || placeholder;
+
+  return (
+    <div className="block">
+      {label ? <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.06em] text-ink-500">{label}</span> : null}
+      <div className="relative" ref={containerRef}>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setIsOpen((prev) => !prev)}
+          className={cn(
+            "flex h-13 w-full items-center justify-between rounded-xl border border-ink-100 bg-white px-4 text-sm text-ink-700 outline-none transition-all hover:border-brand-200 focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10",
+            isOpen && "border-brand-400 ring-2 ring-brand-500/10 shadow-sm",
+            className
+          )}
+        >
+          <div className="flex items-center gap-2.5 truncate">
+            <Calendar className="h-4 w-4 shrink-0 text-brand-600" />
+            <span className={cn(isValidDate ? "font-semibold text-ink-900" : "text-ink-400 font-normal")}>
+              {displayFormatted}
+            </span>
+          </div>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink-400 transition-transform duration-200", isOpen && "rotate-180 text-brand-600")} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[300px] sm:w-[320px] rounded-2xl border border-[#dfe6f2] bg-white p-4 shadow-[0_20px_45px_rgba(20,48,112,0.16)] animate-in fade-in zoom-in-95 duration-150">
+            <div className="mb-3 flex items-center justify-between gap-1.5 rounded-xl bg-[#f5f8ff] p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => handlePreset("today")}
+                className="flex-1 rounded-lg py-1 text-center font-semibold text-ink-700 hover:bg-white hover:text-brand-600 hover:shadow-sm transition-all"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreset("tomorrow")}
+                className="flex-1 rounded-lg py-1 text-center font-semibold text-ink-700 hover:bg-white hover:text-brand-600 hover:shadow-sm transition-all"
+              >
+                Tomorrow
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreset("nextWeek")}
+                className="flex-1 rounded-lg py-1 text-center font-semibold text-ink-700 hover:bg-white hover:text-brand-600 hover:shadow-sm transition-all"
+              >
+                In 1 Wk
+              </button>
+            </div>
+
+            <div className="mb-3 flex items-center justify-between px-1">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-500 hover:bg-[#f0f4fc] hover:text-ink-900 transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="text-sm font-bold text-ink-900">
+                {monthNames[viewMonth]} {viewYear}
+              </div>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-ink-500 hover:bg-[#f0f4fc] hover:text-ink-900 transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mb-1.5 grid grid-cols-7 text-center text-[11px] font-bold text-ink-400 uppercase">
+              <span>Su</span>
+              <span>Mo</span>
+              <span>Tu</span>
+              <span>We</span>
+              <span>Th</span>
+              <span>Fr</span>
+              <span>Sa</span>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-center text-xs">
+              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                <div key={`empty-${i}`} />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const formattedMonth = String(viewMonth + 1).padStart(2, "0");
+                const formattedDay = String(dayNum).padStart(2, "0");
+                const dateStr = `${viewYear}-${formattedMonth}-${formattedDay}`;
+
+                const isSelected = value === dateStr;
+                const isToday =
+                  today.getFullYear() === viewYear &&
+                  today.getMonth() === viewMonth &&
+                  today.getDate() === dayNum;
+
+                return (
+                  <button
+                    key={dateStr}
+                    type="button"
+                    onClick={() => handleSelectDay(dayNum)}
+                    className={cn(
+                      "h-8 w-8 mx-auto flex items-center justify-center rounded-xl transition-all text-[13px]",
+                      isSelected
+                        ? "bg-brand-600 font-bold text-white shadow-md shadow-brand-600/30"
+                        : isToday
+                        ? "border border-brand-500 font-bold text-brand-600 bg-brand-50"
+                        : "font-semibold text-ink-800 hover:bg-[#f0f4fc] hover:text-brand-600"
+                    )}
+                  >
+                    {dayNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            {value ? (
+              <div className="mt-3 border-t border-[#edf2fa] pt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onChange) onChange({ target: { value: "", name } });
+                    setIsOpen(false);
+                  }}
+                  className="text-xs font-semibold text-danger-600 hover:underline"
+                >
+                  Clear Date
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function TimePicker({
+  label,
+  value = "",
+  onChange,
+  placeholder = "Select time...",
+  className,
+  name,
+  disabled = false,
+}: {
+  label?: string;
+  value?: string;
+  onChange?: (e: { target: { value: string; name?: string } }) => void;
+  placeholder?: string;
+  className?: string;
+  name?: string;
+  disabled?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const popularTimes = [
+    "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
+    "01:00 PM", "02:00 PM", "03:30 PM", "05:00 PM",
+  ];
+
+  const [hour, setHour] = useState("09");
+  const [minute, setMinute] = useState("00");
+  const [ampm, setAmpm] = useState("AM");
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectTime = (timeStr: string) => {
+    if (onChange) {
+      onChange({ target: { value: timeStr, name } });
+    }
+    setIsOpen(false);
+  };
+
+  const handleCustomApply = () => {
+    const timeStr = `${hour}:${minute} ${ampm}`;
+    handleSelectTime(timeStr);
+  };
+
+  return (
+    <div className="block">
+      {label ? <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.06em] text-ink-500">{label}</span> : null}
+      <div className="relative" ref={containerRef}>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setIsOpen((prev) => !prev)}
+          className={cn(
+            "flex h-13 w-full items-center justify-between rounded-xl border border-ink-100 bg-white px-4 text-sm text-ink-700 outline-none transition-all hover:border-brand-200 focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10",
+            isOpen && "border-brand-400 ring-2 ring-brand-500/10 shadow-sm",
+            className
+          )}
+        >
+          <div className="flex items-center gap-2.5 truncate">
+            <Clock className="h-4 w-4 shrink-0 text-brand-600" />
+            <span className={cn(value ? "font-semibold text-ink-900" : "text-ink-400 font-normal")}>
+              {value || placeholder}
+            </span>
+          </div>
+          <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink-400 transition-transform duration-200", isOpen && "rotate-180 text-brand-600")} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[290px] rounded-2xl border border-[#dfe6f2] bg-white p-4 shadow-[0_20px_45px_rgba(20,48,112,0.16)] animate-in fade-in zoom-in-95 duration-150">
+            <div className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-400">
+              Quick Time Options
+            </div>
+            <div className="mb-4 grid grid-cols-2 gap-1.5 text-xs">
+              {popularTimes.map((t) => {
+                const isSelected = value === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleSelectTime(t)}
+                    className={cn(
+                      "rounded-xl py-2 px-3 text-center font-medium transition-all",
+                      isSelected
+                        ? "bg-brand-600 text-white font-bold shadow-sm"
+                        : "bg-[#f5f8ff] text-ink-800 hover:bg-brand-50 hover:text-brand-600 font-semibold"
+                    )}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="border-t border-[#edf2fa] pt-3">
+              <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-400">
+                Custom Time
+              </div>
+              <div className="flex items-center justify-between gap-1.5">
+                <select
+                  value={hour}
+                  onChange={(e) => setHour(e.target.value)}
+                  className="h-9 flex-1 rounded-xl border border-[#dfe6f2] bg-[#f8fbff] px-2 text-xs font-semibold text-ink-900 outline-none focus:border-brand-400"
+                >
+                  {["01","02","03","04","05","06","07","08","09","10","11","12"].map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <span className="font-bold text-ink-400">:</span>
+                <select
+                  value={minute}
+                  onChange={(e) => setMinute(e.target.value)}
+                  className="h-9 flex-1 rounded-xl border border-[#dfe6f2] bg-[#f8fbff] px-2 text-xs font-semibold text-ink-900 outline-none focus:border-brand-400"
+                >
+                  {["00","15","30","45"].map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setAmpm((prev) => (prev === "AM" ? "PM" : "AM"))}
+                  className="h-9 rounded-xl border border-[#dfe6f2] bg-brand-50 px-3 text-xs font-bold text-brand-700 hover:bg-brand-100 transition-colors"
+                >
+                  {ampm}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCustomApply}
+                  className="h-9 rounded-xl bg-brand-600 px-3 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors"
+                >
+                  Set
+                </button>
+              </div>
+            </div>
+
+            {value ? (
+              <div className="mt-3 border-t border-[#edf2fa] pt-2 text-right">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onChange) onChange({ target: { value: "", name } });
+                    setIsOpen(false);
+                  }}
+                  className="text-xs font-semibold text-danger-600 hover:underline"
+                >
+                  Clear Time
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 export function Badge({ status }: { status: string }) {
   const map: Record<string, string> = {

@@ -257,7 +257,7 @@ export function NotaryOrdersPage() {
           <table className="min-w-full text-left">
             <thead>
               <tr className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-ink-300">
-                {["Order ID", "Client Name", "Signing Location", "Signing Date", "Status", "Actions"].map((header) => (
+                {["Order ID", "Client Name", "Signing Location", "Signing Date", "Price", "Status", "Actions"].map((header) => (
                   <th key={header} className="px-6 py-4">
                     {header}
                   </th>
@@ -267,13 +267,13 @@ export function NotaryOrdersPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] font-semibold text-ink-400">
+                  <td colSpan={7} className="px-6 py-10 text-center text-[15px] font-semibold text-ink-400">
                     Loading assigned orders from backend...
                   </td>
                 </tr>
               ) : loadError ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] font-semibold text-danger-600">
+                  <td colSpan={7} className="px-6 py-10 text-center text-[15px] font-semibold text-danger-600">
                     {loadError}
                   </td>
                 </tr>
@@ -296,6 +296,9 @@ export function NotaryOrdersPage() {
                     <div className="text-[15px] font-semibold text-ink-900">{order.date}</div>
                     <div className="mt-1 text-[13px] text-ink-500">{order.time}</div>
                   </td>
+                  <td className="px-6 py-5 text-[15px] font-bold text-ink-900">
+                    {typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"}
+                  </td>
                   <td className="px-6 py-5">
                     <Badge status={statusFilter === "Open Order" ? "Open Order" : order.status} />
                   </td>
@@ -311,7 +314,7 @@ export function NotaryOrdersPage() {
               ))}
               {paginatedOrders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-[15px] text-ink-400">
+                  <td colSpan={7} className="px-6 py-10 text-center text-[15px] text-ink-400">
                     {statusFilter === "Open Order"
                       ? "No open orders found matching your filter criteria."
                       : "No assigned orders found matching your filter criteria."}

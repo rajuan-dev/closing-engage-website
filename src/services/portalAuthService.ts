@@ -43,6 +43,7 @@ interface NotaryProfilePayload {
   license?: string;
   expiry?: string;
   serviceArea?: string;
+  state?: string;
   avatarUrl?: string;
   notifications?: {
     email?: boolean;

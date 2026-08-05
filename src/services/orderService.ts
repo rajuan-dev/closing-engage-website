@@ -24,6 +24,8 @@ interface CreateOrderPayload {
   state?: string;
   zip?: string;
   date?: string;
+  signingTime?: string;
+  price?: string;
   loanType?: string;
   scanbacks: string;
   preferredNotary?: string;
@@ -39,6 +41,9 @@ type RawOrder = Order & {
   assignedNotaryName?: string;
   assignedNotaryId?: string;
   openForAll?: boolean;
+  state?: string;
+  price?: number | null;
+  pricing?: number | null;
   notaryAvatarUrl?: string;
   specialInstructions?: string;
   notaryNotes?: string;
@@ -150,6 +155,8 @@ const normalizeOrder = (order: RawOrder): Order => ({
   notaryAvatarUrl: order.notaryAvatarUrl || "",
   assignedNotaryId: order.assignedNotaryId || "",
   openForAll: order.openForAll ?? false,
+  state: order.state || "",
+  price: order.price ?? order.pricing ?? null,
   status: order.status || "Received",
   date: order.date || order.signingDate || "",
   time: order.time || order.signingTime || "",
@@ -281,6 +288,8 @@ export const orderService = {
       body: JSON.stringify({
         ...payload,
         date: payload.date || todayDisplayDate(),
+        signingTime: payload.signingTime || undefined,
+        price: payload.price ? Number(payload.price) : undefined,
         loanType: payload.loanType && payload.loanType !== "Select a loan type" ? payload.loanType : undefined,
         state: payload.state && payload.state !== "Select State" ? payload.state : undefined,
         preferredNotary: payload.preferredNotary || "No preference",

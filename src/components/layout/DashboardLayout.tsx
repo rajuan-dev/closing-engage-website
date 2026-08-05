@@ -180,6 +180,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
           license?: string;
           expiry?: string;
           serviceArea?: string;
+          state?: string;
           contactPerson?: string;
         } | null;
 
@@ -194,6 +195,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
             companyEmail: typedUser.businessEmail || typedUser.email || "",
             contactNumber: typedUser.phone || "",
             businessAddress: typedUser.address || "",
+            state: typedUser.state || "",
             avatarUrl: typedUser.avatarUrl || "",
           });
         }
@@ -206,6 +208,7 @@ export function DashboardLayout({ variant }: { variant: "company" | "notary" }) 
             licenseNumber: typedUser.license || "",
             commissionExpiry: typedUser.expiry || "",
             serviceArea: typedUser.serviceArea || "",
+            state: typedUser.state || "",
             avatarUrl: typedUser.avatarUrl || "",
           });
         }

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, FileText, UserRound } from "lucide-react";
-import { Button, FooterBand, Input, Surface } from "@/components/common";
+import { Button, DatePicker, FooterBand, Input, Select, Surface } from "@/components/common";
 import { portalAuthService } from "@/services/portalAuthService";
 import { useStore } from "@/store/useStore";
 import { toast } from "@/store/useToastStore";
 import { prepareAvatarDataUrl } from "@/utils/avatarImage";
+import { US_STATE_OPTIONS } from "@/constants/usStates";
 
 interface NotarySessionUser {
   fullName?: string;
@@ -14,6 +15,7 @@ interface NotarySessionUser {
   license?: string;
   expiry?: string;
   serviceArea?: string;
+  state?: string;
   specialty?: string;
   avatarUrl?: string;
   notifications?: {
@@ -34,6 +36,7 @@ const mapSessionToProfile = (user: unknown) => {
     licenseNumber: notary.license || "",
     commissionExpiry: notary.expiry || "",
     serviceArea: notary.serviceArea || "",
+    state: notary.state || "",
     avatarUrl: notary.avatarUrl || "",
     notifications: notary.notifications || { email: true, orders: true, documents: false },
   };
@@ -54,6 +57,7 @@ export function NotarySettingsPage() {
   const [licenseNumber, setLicenseNumber] = useState(notaryProfile.licenseNumber);
   const [commissionExpiry, setCommissionExpiry] = useState(notaryProfile.commissionExpiry);
   const [serviceArea, setServiceArea] = useState(notaryProfile.serviceArea);
+  const [state, setState] = useState(notaryProfile.state || "");
   const [avatarUrl, setAvatarUrl] = useState(notaryProfile.avatarUrl || "");
 
   const [passwords, setPasswords] = useState({
@@ -78,6 +82,7 @@ export function NotarySettingsPage() {
     setLicenseNumber(notaryProfile.licenseNumber);
     setCommissionExpiry(notaryProfile.commissionExpiry);
     setServiceArea(notaryProfile.serviceArea);
+    setState(notaryProfile.state || "");
     setAvatarUrl(notaryProfile.avatarUrl || "");
     setNotifications([
       { id: "email", label: "Email Notifications", body: "Receive global summary emails", active: notaryProfile.notifications?.email ?? true },
@@ -183,6 +188,7 @@ export function NotarySettingsPage() {
         license: licenseNumber,
         expiry: commissionExpiry,
         serviceArea,
+        state,
         avatarUrl,
         notifications: updatedNotifications,
       });
@@ -196,8 +202,10 @@ export function NotarySettingsPage() {
           licenseNumber,
           commissionExpiry,
           serviceArea,
+          state,
           avatarUrl,
         }),
+        state,
         notifications: updatedNotifications,
       });
 
@@ -352,19 +360,29 @@ export function NotarySettingsPage() {
                 onChange={(e) => setLicenseNumber(e.target.value)}
                 className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
               />
-              <Input 
+              <DatePicker 
                 label="COMMISSION EXPIRY" 
                 disabled={!isEditMode}
                 value={commissionExpiry}
                 onChange={(e) => setCommissionExpiry(e.target.value)}
-                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+                placeholder="Select Date"
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400 opacity-80" : "bg-[#f7f9fd]"}`} 
               />
               <Input 
                 label="SERVICE AREA" 
                 disabled={!isEditMode}
                 value={serviceArea}
                 onChange={(e) => setServiceArea(e.target.value)}
-                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] md:col-span-2 ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] px-4 text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400" : "bg-[#f7f9fd]"}`} 
+              />
+              <Select
+                label="STATE"
+                disabled={!isEditMode}
+                options={US_STATE_OPTIONS}
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                placeholder="Select State"
+                className={`h-[48px] rounded-[12px] border-[#e2e8f3] text-[14px] ${!isEditMode ? "bg-[#f1f4f9] text-ink-400 opacity-80" : "bg-[#f7f9fd]"}`}
               />
             </div>
           </Surface>

@@ -21,6 +21,8 @@ export interface Order {
   notaryAvatarUrl?: string;
   assignedNotaryId?: string;
   openForAll?: boolean;
+  state?: string;
+  price?: number | null;
   status:
     | "Received"
     | "Assigned"

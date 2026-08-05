@@ -53,6 +53,7 @@ export interface NotaryProfile {
   licenseNumber: string;
   commissionExpiry: string;
   serviceArea: string;
+  state?: string;
   avatarUrl?: string;
   eoCoverage: string;
   backgroundScreeningStatus: "Pending" | "Verified" | "Failed";
@@ -72,6 +73,7 @@ export interface CompanyProfile {
   companyEmail: string;
   contactNumber: string;
   businessAddress: string;
+  state?: string;
   avatarUrl?: string;
   notifications: {
     email: boolean;

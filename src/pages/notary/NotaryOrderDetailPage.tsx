@@ -739,6 +739,8 @@ export function NotaryOrderDetailPage() {
             <div className="grid gap-8 md:grid-cols-2">
               <Detail label="CLIENT" value={order.clientName} />
               <Detail label="SIGNING DATE & TIME" value={`${order.date}, ${order.time}`} />
+              <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
+              <Detail label="STATE" value={order.state || "Not set"} />
               <div className="md:col-span-2">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
                   PROPERTY ADDRESS
