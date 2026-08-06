@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CheckCircle2, ChevronLeft, ChevronRight, Clock, CloudUpload, Download, Eye, MapPin, Printer, Trash2, FileText, ArrowLeft } from "lucide-react";
+import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, CloudUpload, Download, Eye, MapPin, Printer, Trash2, FileText, ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, FooterBand, Modal, Surface, Textarea } from "@/components/common";
 import { DocumentViewer } from "@/components/DocumentViewer";
@@ -840,23 +840,36 @@ export function NotaryOrderDetailPage() {
             <div className="mb-7 flex items-center justify-between">
               <div className="text-[18px] font-bold tracking-tight text-ink-900">Order Information</div>
             </div>
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid gap-6 grid-cols-2 md:grid-cols-4">
               <Detail label="CLIENT" value={order.clientName} />
               <Detail label="SIGNING DATE & TIME" value={`${order.date}, ${order.time}`}>
                 {meeting?.status === "confirmed" ? (
-                  <div className="mt-3 inline-flex rounded-full bg-[#e8f7ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#229b58]">
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-700 border border-emerald-200/80">
+                    <CheckCircle2 size={12} className="text-emerald-600" />
                     Confirmed
                   </div>
                 ) : null}
-                {canRespondToSchedule ? (
-                  <div className="mt-4 space-y-3">
-                    {wasCompanyRescheduleRejected && meeting?.rejectionNote ? (
-                      <div className="rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-3 text-[13px] leading-5 text-amber-800">
-                        <div className="font-bold">Company declined your previous reschedule request.</div>
-                        <div className="mt-1">{meeting.rejectionNote}</div>
+              </Detail>
+              <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
+              <Detail label="STATE" value={order.state || "Not set"} />
+
+              {/* Action Banner for Responding to Schedule */}
+              {canRespondToSchedule ? (
+                <div className="col-span-2 md:col-span-4 rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 shadow-2xs space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 px-3 rounded-lg border border-amber-200/80">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500 text-white shrink-0">
+                        <Calendar size={15} />
                       </div>
-                    ) : null}
-                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-bold text-slate-900">Schedule Confirmation Required</div>
+                        <div className="text-[12px] text-slate-600 truncate mt-0.5">
+                          Proposed signing date: <span className="font-semibold text-slate-800">{order.date}, {order.time}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
                       <Button
                         disabled={isRespondingToSchedule}
                         onClick={() => {
@@ -874,37 +887,68 @@ export function NotaryOrderDetailPage() {
                             }
                           })();
                         }}
+                        className="h-8.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3.5 text-[12px] font-semibold flex items-center gap-1.5"
                       >
+                        <CheckCircle2 size={13} />
                         Accept Schedule
                       </Button>
                       <Button
                         variant="outline"
                         disabled={isRespondingToSchedule}
                         onClick={() => setShowRescheduleModal(true)}
+                        className="h-8.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 px-3.5 text-[12px] font-semibold flex items-center gap-1.5"
                       >
+                        <Clock size={13} />
                         Request Reschedule
                       </Button>
                     </div>
                   </div>
-                ) : null}
-                {meeting?.status === "rejected" && !wasCompanyRescheduleRejected ? (
-                  <div className="mt-4 rounded-[12px] border border-[#ffd8d8] bg-[#fff7f7] px-3 py-3 text-[13px] text-ink-600">
-                      <div>{meeting.rejectionNote || "No note provided."}</div>
-                      {(meeting.preferredDate || meeting.preferredTime) ? (
-                        <div className="mt-2 font-semibold">
-                          Preferred: {[meeting.preferredDate, meeting.preferredTime].filter(Boolean).join(" at ")}
+
+                  {wasCompanyRescheduleRejected && meeting?.rejectionNote ? (
+                    <div className="rounded-lg border border-amber-200 bg-white p-2.5 px-3 text-[12px] text-amber-900 flex items-start gap-2">
+                      <span className="font-bold text-amber-700 shrink-0">Company Note:</span>
+                      <span className="italic text-slate-700">"{meeting.rejectionNote}"</span>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {/* Pending Reschedule Banner */}
+              {meeting?.status === "rejected" && !wasCompanyRescheduleRejected ? (
+                <div className="col-span-2 md:col-span-4 rounded-xl border border-blue-200 bg-blue-50/50 p-3.5 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-2.5 px-3 rounded-lg border border-blue-200/80">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-white shrink-0">
+                        <Clock size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[13px] font-bold text-slate-900">Reschedule Requested</span>
+                          {(meeting.preferredDate || meeting.preferredTime) && (
+                            <span className="text-[12px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                              Requested: {[meeting.preferredDate, meeting.preferredTime].filter(Boolean).join(" at ")}
+                            </span>
+                          )}
                         </div>
-                      ) : null}
+                        {meeting.rejectionNote && (
+                          <div className="text-[12px] text-slate-600 truncate mt-0.5">
+                            Note: <span className="italic">"{meeting.rejectionNote}"</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold text-blue-800 border border-blue-200 shrink-0">
+                      Pending Title Company Review
+                    </span>
                   </div>
-                ) : null}
-              </Detail>
-              <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
-              <Detail label="STATE" value={order.state || "Not set"} />
-              <div className="md:col-span-2">
+                </div>
+              ) : null}
+
+              <div className="col-span-2 md:col-span-4">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400">
                   PROPERTY ADDRESS
                 </div>
-                <div className="mt-3 flex items-center gap-2 text-[16px] font-semibold text-ink-900">
+                <div className="mt-2 flex items-center gap-2 text-[15px] font-semibold text-ink-900">
                   <MapPin className="h-4 w-4 text-brand-600" />
                   {order.location}
                 </div>
