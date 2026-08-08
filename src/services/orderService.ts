@@ -147,6 +147,29 @@ const formatSize = (bytes: number): string => `${(bytes / (1024 * 1024)).toFixed
 const todayDisplayDate = (): string =>
   new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
+const usStateCodesSet = new Set([
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA',
+  'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT',
+  'VA', 'WA', 'WV', 'WI', 'WY'
+]);
+
+const extractStateFromAddress = (address?: string | null): string => {
+  if (!address) return '';
+  const segments = address.split(',').map((segment) => segment.trim()).filter(Boolean);
+  for (const segment of segments) {
+    const upper = segment.toUpperCase();
+    if (usStateCodesSet.has(upper)) return upper;
+  }
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const parts = segments[i].split(/\s+/).map((part) => part.trim().toUpperCase()).filter(Boolean);
+    for (const part of parts) {
+      if (usStateCodesSet.has(part)) return part;
+    }
+  }
+  return '';
+};
+
 const normalizeOrder = (order: RawOrder): Order => ({
   id: order.id || order.orderNumber || "",
   clientName: order.clientName || "",
@@ -155,8 +178,8 @@ const normalizeOrder = (order: RawOrder): Order => ({
   notaryAvatarUrl: order.notaryAvatarUrl || "",
   assignedNotaryId: order.assignedNotaryId || "",
   openForAll: order.openForAll ?? false,
-  state: order.state || "",
-  price: order.price ?? order.pricing ?? null,
+  state: order.state?.trim() || extractStateFromAddress(order.propertyAddress || order.location),
+  price: order.price ?? order.pricing ?? (order as any).orderPrice ?? null,
   status: order.status || "Received",
   date: order.date || order.signingDate || "",
   time: order.time || order.signingTime || "",

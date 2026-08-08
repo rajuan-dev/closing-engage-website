@@ -55,7 +55,9 @@ export function NotaryOrderDetailPage() {
   const meeting = orderDetail?.meeting ?? order?.meeting ?? null;
   const isOpenOrder = Boolean(order?.openForAll || order?.notary === "Open for All");
   const wasCompanyRescheduleRejected = meeting?.rejectedByRole === "company";
-  const canRespondToSchedule = meeting?.status === "scheduled" || wasCompanyRescheduleRejected;
+  const canRespondToSchedule = !isOpenOrder && (meeting?.status === "scheduled" || wasCompanyRescheduleRejected);
+  const hasPrintableDocuments = providedDocuments.length > 0;
+  const canConfirmPrintedDocuments = !isOpenOrder && hasPrintableDocuments;
 
   const refreshOrderSnapshot = async (orderId: string) => {
     const [refreshedOrder, refreshedDocuments] = await Promise.all([
@@ -744,16 +746,26 @@ export function NotaryOrderDetailPage() {
         <div className="text-[14px] font-extrabold uppercase tracking-[0.16em] text-ink-500">Order Lifecycle</div>
         <div className="mt-8 grid gap-8 md:grid-cols-3 text-center">
           <div>
-            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[14px] bg-[#1f9d55] text-white">
-              <CheckCircle2 className="h-5 w-5" />
+            <div
+              className={`mx-auto flex h-11 w-11 items-center justify-center rounded-[14px] ${
+                hasPrintableDocuments
+                  ? "bg-[#1f9d55] text-white"
+                  : "border-2 border-[#d8dee9] bg-white text-ink-300"
+              }`}
+            >
+              {hasPrintableDocuments ? <CheckCircle2 className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
             </div>
-            <div className="mt-4 text-[16px] font-semibold text-ink-900">Docs Ready to Print</div>
+            <div className={`mt-4 text-[16px] font-semibold ${hasPrintableDocuments ? "text-ink-900" : "text-ink-400"}`}>Docs Ready to Print</div>
             <button
               type="button"
               disabled
-              className="mt-4 rounded-full bg-[#e8f7ee] px-5 py-2 text-[13px] font-semibold text-[#1f9d55]"
+              className={`mt-4 rounded-full px-5 py-2 text-[13px] font-semibold ${
+                hasPrintableDocuments
+                  ? "bg-[#e8f7ee] text-[#1f9d55]"
+                  : "bg-[#eef2f7] text-ink-300"
+              }`}
             >
-              Completed
+              {hasPrintableDocuments ? "Completed" : "Pending"}
             </button>
           </div>
           <div>
@@ -761,23 +773,27 @@ export function NotaryOrderDetailPage() {
               className={`mx-auto flex h-11 w-11 items-center justify-center rounded-[14px] ${
                 printedConfirmed
                   ? "bg-[#1f9d55] text-white"
-                  : "border-2 border-brand-600 bg-white text-brand-600"
+                  : canConfirmPrintedDocuments
+                    ? "border-2 border-brand-600 bg-white text-brand-600"
+                    : "border-2 border-[#d8dee9] bg-white text-ink-300"
               }`}
             >
               <Printer className="h-5 w-5" />
             </div>
-            <div className="mt-4 text-[16px] font-semibold text-ink-900">Docs Printed by Notary</div>
+            <div className={`mt-4 text-[16px] font-semibold ${printedConfirmed || canConfirmPrintedDocuments ? "text-ink-900" : "text-ink-400"}`}>Docs Printed by Notary</div>
             <button
               type="button"
               onClick={() => void confirmPrintedDocuments()}
-              disabled={printedConfirmed || isUpdatingStatus}
+              disabled={printedConfirmed || isUpdatingStatus || !canConfirmPrintedDocuments}
               className={`mt-4 rounded-full px-5 py-2 text-[13px] font-semibold ${
                 printedConfirmed
                   ? "bg-[#e8f7ee] text-[#1f9d55]"
-                  : "border border-brand-600 bg-white text-brand-600"
+                  : canConfirmPrintedDocuments
+                    ? "border border-brand-600 bg-white text-brand-600"
+                    : "bg-[#eef2f7] text-ink-300 cursor-not-allowed"
               }`}
             >
-              {printedConfirmed ? "Confirmed" : isUpdatingStatus ? "Confirming..." : "Confirm"}
+              {printedConfirmed ? "Confirmed" : isUpdatingStatus ? "Confirming..." : canConfirmPrintedDocuments ? "Confirm" : "Pending"}
             </button>
           </div>
           <div>
