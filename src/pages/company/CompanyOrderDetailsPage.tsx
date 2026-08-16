@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Calendar, CheckCircle2, CircleDot, Clock, Download, Eye, FileText, MapPin, Send, XCircle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
@@ -29,6 +29,8 @@ export function CompanyOrderDetailsPage() {
 
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const [isPreparingPreview, setIsPreparingPreview] = useState(false);
+  const [isUploadingDocuments, setIsUploadingDocuments] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [clientName, setClientName] = useState("");
@@ -42,6 +44,7 @@ export function CompanyOrderDetailsPage() {
   const [rescheduleRejectNote, setRescheduleRejectNote] = useState("");
   const [isSendingScheduleRequest, setIsSendingScheduleRequest] = useState(false);
   const [isRespondingToReschedule, setIsRespondingToReschedule] = useState(false);
+  const canUploadCompanyDocuments = Boolean(order?.assignedNotaryId || order?.openForAll);
 
   useEffect(() => {
     let isMounted = true;
@@ -113,6 +116,31 @@ export function CompanyOrderDetailsPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to download document.");
     }
+  };
+
+  const handleCompanyDocumentPicker = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    event.target.value = "";
+
+    if (!files?.length || !order) return;
+    if (!canUploadCompanyDocuments) {
+      toast.error("Documents can be uploaded only after the order is assigned or opened to notaries.");
+      return;
+    }
+
+    void (async () => {
+      try {
+        setIsUploadingDocuments(true);
+        await orderService.uploadCompanyDocuments(order, Array.from(files));
+        const documents = await orderService.getCompanyDocuments();
+        setCompanyDocuments(documents);
+        toast.success("Documents uploaded successfully.");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Unable to upload company documents.");
+      } finally {
+        setIsUploadingDocuments(false);
+      }
+    })();
   };
 
   if (isLoading && !order) {
@@ -293,7 +321,7 @@ export function CompanyOrderDetailsPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-400 mb-2">
-                        Order Price ($)
+                        Title Company Fee ($)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-3.5 text-ink-400 font-bold">$</span>
@@ -378,7 +406,7 @@ export function CompanyOrderDetailsPage() {
                       </div>
                     ) : null}
                   </Detail>
-                  <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
+                  <Detail label="TITLE COMPANY FEE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
                   <Detail label="STATE" value={order.state || "Not set"} />
 
                   {/* Reschedule Action Panel - Ultra Compact Banner */}
@@ -575,14 +603,39 @@ export function CompanyOrderDetailsPage() {
             </Surface>
 
             <Surface className="rounded-[18px] border border-[#e4ebf5] bg-white p-8 shadow-[0_12px_30px_rgba(20,48,112,0.05)]">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={handleCompanyDocumentPicker}
+              />
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[#eef4ff] text-brand-600">
                     <FileText className="h-4 w-4" />
                   </div>
-                  <div className="text-[18px] font-bold tracking-tight text-ink-900">Documents</div>
+                  <div>
+                    <div className="text-[18px] font-bold tracking-tight text-ink-900">Documents</div>
+                    <div className="mt-1 text-[12px] text-ink-400">
+                      {canUploadCompanyDocuments
+                        ? "Upload title documents any time after assignment or open broadcast."
+                        : "Uploads unlock after the order is assigned or opened to notaries."}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-[13px] font-semibold text-brand-600">{titleDocuments.length} Files Total</div>
+                <div className="flex items-center gap-3">
+                  <div className="text-[13px] font-semibold text-brand-600">{titleDocuments.length} Files Total</div>
+                  <Button
+                    type="button"
+                    disabled={!canUploadCompanyDocuments || isUploadingDocuments}
+                    className="h-[40px] rounded-[10px] px-4 text-[12px] font-semibold disabled:opacity-50"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {isUploadingDocuments ? "Uploading..." : "Upload Documents"}
+                  </Button>
+                </div>
               </div>
               <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
                 {titleDocuments.length > 0 ? titleDocuments.map((document, index) => (

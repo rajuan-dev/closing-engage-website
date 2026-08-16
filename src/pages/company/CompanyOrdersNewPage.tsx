@@ -136,19 +136,19 @@ export function CompanyOrdersNewPage() {
       const newOrder = await orderService.createCompanyOrder({
         ...formData,
       });
-      const uploadedDocuments = await orderService.uploadCompanyDocuments(newOrder, uploadedFiles);
 
       useStore.getState().addCompanyOrder(newOrder);
-      uploadedDocuments.forEach((doc) => {
-        useStore.getState().addCompanyDocument(doc);
-      });
       useStore.getState().addActivity({
         title: "New Order Created",
         description: `Order ${newOrder.id} has been successfully created for ${formData.clientName}.`,
         time: "Just now",
       });
 
-      toast.success("Order created successfully!");
+      if (uploadedFiles.length > 0) {
+        toast.success("Order created successfully! Upload title documents after admin assignment or open broadcast.");
+      } else {
+        toast.success("Order created successfully!");
+      }
       navigate("/company/orders");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to create order.");

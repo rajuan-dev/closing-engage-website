@@ -44,6 +44,9 @@ type RawOrder = Order & {
   state?: string;
   price?: number | null;
   pricing?: number | null;
+  companyFee?: number | null;
+  notaryFee?: number | null;
+  closingEngageRevenue?: number | null;
   notaryAvatarUrl?: string;
   specialInstructions?: string;
   notaryNotes?: string;
@@ -180,6 +183,9 @@ const normalizeOrder = (order: RawOrder): Order => ({
   openForAll: order.openForAll ?? false,
   state: order.state?.trim() || extractStateFromAddress(order.propertyAddress || order.location),
   price: order.price ?? order.pricing ?? (order as any).orderPrice ?? null,
+  companyFee: order.companyFee ?? null,
+  notaryFee: order.notaryFee ?? null,
+  closingEngageRevenue: order.closingEngageRevenue ?? null,
   status: order.status || "Received",
   date: order.date || order.signingDate || "",
   time: order.time || order.signingTime || "",
@@ -198,6 +204,9 @@ const normalizeOrderDetail = (order: RawOrder): OrderDetail => ({
   specialInstructions: order.specialInstructions || "",
   notaryNotes: order.notaryNotes || "",
   notaryPrintedConfirmed: order.notaryPrintedConfirmed ?? false,
+  companyFee: order.companyFee ?? null,
+  notaryFee: order.notaryFee ?? null,
+  closingEngageRevenue: order.closingEngageRevenue ?? null,
   timeline:
     order && typeof order === "object" && "timeline" in order && Array.isArray((order as { timeline?: unknown[] }).timeline)
       ? ((order as { timeline?: OrderDetail["timeline"] }).timeline ?? [])
@@ -341,6 +350,14 @@ export const orderService = {
   },
 
   async uploadCompanyDocuments(order: Order, files: File[]): Promise<DocumentRecord[]> {
+    return this.uploadPortalDocuments(order, files, "company");
+  },
+
+  async uploadNotaryDocuments(order: Order, files: File[]): Promise<DocumentRecord[]> {
+    return this.uploadPortalDocuments(order, files, "notary");
+  },
+
+  async uploadPortalDocuments(order: Order, files: File[], uploader: "company" | "notary"): Promise<DocumentRecord[]> {
     const uploadedDocuments: DocumentRecord[] = [];
 
     for (const file of files) {
@@ -370,16 +387,12 @@ export const orderService = {
         uploadDate: document.uploadDate,
         size: document.size,
         status: document.displayStatus || "Submitted",
-        uploadedBy: document.uploadedBy || "Title Company",
-        uploaderRole: "notary",
+        uploadedBy: document.uploadedBy || (uploader === "company" ? "Title Company" : "Notary"),
+        uploaderRole: uploader,
       });
     }
 
     return uploadedDocuments;
-  },
-
-  async uploadNotaryDocuments(order: Order, files: File[]): Promise<DocumentRecord[]> {
-    return this.uploadCompanyDocuments(order, files);
   },
 
   async getCompanyDocuments(): Promise<DocumentRecord[]> {

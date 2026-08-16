@@ -23,6 +23,9 @@ export interface Order {
   openForAll?: boolean;
   state?: string;
   price?: number | null;
+  companyFee?: number | null;
+  notaryFee?: number | null;
+  closingEngageRevenue?: number | null;
   status:
     | "Received"
     | "Assigned"

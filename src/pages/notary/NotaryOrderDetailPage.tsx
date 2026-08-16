@@ -866,7 +866,7 @@ export function NotaryOrderDetailPage() {
                   </div>
                 ) : null}
               </Detail>
-              <Detail label="ORDER PRICE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
+              <Detail label="NOTARY FEE" value={typeof order.price === "number" ? `$${order.price.toFixed(2)}` : "Not set"} />
               <Detail label="STATE" value={order.state || "Not set"} />
 
               {/* Action Banner for Responding to Schedule */}
