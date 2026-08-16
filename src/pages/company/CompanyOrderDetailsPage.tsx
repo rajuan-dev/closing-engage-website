@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Calendar, CheckCircle2, CircleDot, Clock, Download, Eye, FileText, MapPin, Send, XCircle } from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle2, CircleDot, Clock, Download, Eye, FileText, Loader2, MapPin, Send, Trash2, Upload, XCircle } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { AssignedNotaryAvatar } from "@/components/AssignedNotaryAvatar";
 import { Badge, Button, Select, Surface } from "@/components/common";
 import { US_STATE_OPTIONS } from "@/constants/usStates";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { useStore } from "@/store/useStore";
+import { useConfirmStore } from "@/store/useConfirmStore";
 import { toast } from "@/store/useToastStore";
 import { orderService, type OrderDetail } from "@/services/orderService";
 
@@ -30,7 +31,9 @@ export function CompanyOrderDetailsPage() {
   const [viewingFile, setViewingFile] = useState<{ name: string; url: string } | null>(null);
   const [isPreparingPreview, setIsPreparingPreview] = useState(false);
   const [isUploadingDocuments, setIsUploadingDocuments] = useState(false);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { confirm } = useConfirmStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [clientName, setClientName] = useState("");
@@ -119,10 +122,10 @@ export function CompanyOrderDetailsPage() {
   };
 
   const handleCompanyDocumentPicker = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const files = event.target.files ? Array.from(event.target.files) : [];
     event.target.value = "";
 
-    if (!files?.length || !order) return;
+    if (!files.length || !order) return;
     if (!canUploadCompanyDocuments) {
       toast.error("Documents can be uploaded only after the order is assigned or opened to notaries.");
       return;
@@ -131,7 +134,7 @@ export function CompanyOrderDetailsPage() {
     void (async () => {
       try {
         setIsUploadingDocuments(true);
-        await orderService.uploadCompanyDocuments(order, Array.from(files));
+        await orderService.uploadCompanyDocuments(order, files);
         const documents = await orderService.getCompanyDocuments();
         setCompanyDocuments(documents);
         toast.success("Documents uploaded successfully.");
@@ -141,6 +144,28 @@ export function CompanyOrderDetailsPage() {
         setIsUploadingDocuments(false);
       }
     })();
+  };
+
+  const handleDeleteTitleDocument = (documentId: string, documentName: string) => {
+    confirm({
+      title: "Delete Document?",
+      message: `Are you sure you want to delete "${documentName}"? This action cannot be undone.`,
+      confirmLabel: "Delete Document",
+      type: "danger",
+      onConfirm: async () => {
+        try {
+          setDeletingDocumentId(documentId);
+          await orderService.deleteDocument(documentId);
+          const documents = await orderService.getCompanyDocuments();
+          setCompanyDocuments(documents);
+          toast.success("Document deleted.");
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Unable to delete document.");
+        } finally {
+          setDeletingDocumentId(null);
+        }
+      },
+    });
   };
 
   if (isLoading && !order) {
@@ -579,7 +604,7 @@ export function CompanyOrderDetailsPage() {
                       <div className="mt-1 text-[12px] text-ink-400">Uploaded {document.uploadDate} • {document.size}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
+                      <button 
                         onClick={() => void handlePreviewDocument(document.id, document.name)}
                         disabled={isPreparingPreview}
                         className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-slate-200 text-brand-600 hover:bg-brand-50 transition-colors"
@@ -630,10 +655,16 @@ export function CompanyOrderDetailsPage() {
                   <Button
                     type="button"
                     disabled={!canUploadCompanyDocuments || isUploadingDocuments}
-                    className="h-[40px] rounded-[10px] px-4 text-[12px] font-semibold disabled:opacity-50"
+                    className="group relative inline-flex items-center gap-2.5 h-[42px] rounded-xl px-5 text-[13px] font-bold tracking-wide text-white bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 shadow-[0_4px_14px_rgba(37,99,235,0.22)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.32)] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none disabled:hover:scale-100"
                     onClick={() => fileInputRef.current?.click()}
+                    title={canUploadCompanyDocuments ? "Upload title documents" : "Uploads unlock after assignment"}
                   >
-                    {isUploadingDocuments ? "Uploading..." : "Upload Documents"}
+                    {isUploadingDocuments ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-white shrink-0" />
+                    ) : (
+                      <Upload className="h-4 w-4 stroke-[2.25] text-white transition-transform duration-200 group-hover:-translate-y-0.5 shrink-0" />
+                    )}
+                    <span>{isUploadingDocuments ? "Uploading..." : "Upload Documents"}</span>
                   </Button>
                 </div>
               </div>
@@ -662,6 +693,15 @@ export function CompanyOrderDetailsPage() {
                         aria-label={`Download ${document.name}`}
                       >
                         <Download className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTitleDocument(document.id, document.name)}
+                        disabled={deletingDocumentId === document.id}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-[#f5c8c6] text-danger-600 hover:bg-danger-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label={`Delete ${document.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
